@@ -33,6 +33,42 @@ def validate_vlan_reference(cur, vlan_id):
         raise ValueError(f"Le VLAN {vlan_id} n'existe pas. Creez-le d'abord dans la page VLAN.")
 
 
+def get_switch_id_by_name(cur, switch_name):
+    """
+    Récupère l'id_switch à partir du nom du switch.
+    ✅ Jointure correcte: nom (string) → switchs → id_switch (int)
+    """
+    if not switch_name:
+        return None
+    
+    cur.execute(
+        "SELECT id_switch FROM switchs WHERE nom = %s",
+        (switch_name,)
+    )
+    result = cur.fetchone()
+    if result:
+        return result[0]
+    
+    logger.warning(f"[get_switch_id_by_name] Switch '{switch_name}' introuvable")
+    return None
+
+
+def get_switch_credentials(cur, id_switch):
+    """
+    Récupère les credentials SSH du switch à partir de son ID.
+    Utilisé pour le déploiement SSH.
+    """
+    if not id_switch:
+        return None
+    
+    cur.execute(
+        "SELECT id_switch, nom, ip, username, password FROM switchs WHERE id_switch = %s",
+        (id_switch,)
+    )
+    result = cur.fetchone()
+    return result if result else None
+
+
 def generate_default_interfaces(nb_ports=24):
     """Génère les interfaces par défaut en fonction du nombre de ports du switch"""
     interfaces = []
@@ -257,8 +293,14 @@ def row_to_interface(row):
     }
 
 
-def normalize_interface_payload(data, forced_id=None):
-    """Valide et normalise les données d'une interface"""
+def normalize_interface_payload(data, forced_id=None, cur=None):
+    """
+    Valide et normalise les données d'une interface.
+    Si cur est fourni, effectue les jointures avec switchs et vlan.
+    ✅ Jointures correctes:
+       - nom du switch (string) → table switchs → id_switch (int)
+       - vlan_id (int) → table vlan → validation
+    """
     if not isinstance(data, dict):
         raise ValueError("Le corps JSON est invalide")
 
@@ -280,13 +322,22 @@ def normalize_interface_payload(data, forced_id=None):
         except (TypeError, ValueError):
             raise ValueError("vlan_id doit etre un entier")
 
+    # ✅ JOINTURE 1: Récupérer id_switch à partir du nom du switch
     raw_id_switch = data.get("id_switch")
-    id_switch = None if raw_id_switch in (None, "") else raw_id_switch
-    if id_switch is not None:
+    id_switch = None
+    
+    if raw_id_switch is not None:
         try:
-            id_switch = int(id_switch)
+            # Si c'est déjà un entier, utiliser directement
+            id_switch = int(raw_id_switch)
         except (TypeError, ValueError):
-            raise ValueError("id_switch doit etre un entier")
+            # Si c'est un string (nom du switch), faire la jointure
+            if cur and isinstance(raw_id_switch, str):
+                id_switch = get_switch_id_by_name(cur, raw_id_switch)
+                if not id_switch:
+                    raise ValueError(f"Le switch '{raw_id_switch}' n'existe pas en BDD")
+            else:
+                raise ValueError("id_switch doit etre un entier ou un nom de switch valide")
 
     raw_equipement_id = data.get("equipement_id")
     equipement_id = None if raw_equipement_id in (None, "") else raw_equipement_id
@@ -343,30 +394,41 @@ def normalize_interface_payload(data, forced_id=None):
 
 @interface_bp.route("/api/interface", methods=["GET"])
 def get_interfaces():
-    """Récupère toutes les interfaces"""
+    """
+    Récupère toutes les interfaces avec JOIN sur les tables switchs et vlan.
+    ✅ Jointures: interface → switchs (id_switch) → nom du switch
+                  interface → vlan (vlan_id) → nom du vlan
+    """
     id_switch = request.args.get('id_switch') or request.args.get('switch_id')
     conn = get_db_connection()
     try:
         cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
         
+        # ✅ JOIN complet: interface + switchs + vlan
         query = """
-            SELECT id_interface, nom, ip, vlan_id, id_switch, equipement_id, status, mode, type,
-                   speed, allowed_vlans, port_security, max_mac, violation_mode, bpdu_guard
-            FROM interface
+            SELECT 
+                i.id_interface, i.nom, i.ip, i.vlan_id, i.id_switch, i.equipement_id, 
+                i.status, i.mode, i.type, i.speed, i.allowed_vlans, 
+                i.port_security, i.max_mac, i.violation_mode, i.bpdu_guard,
+                s.nom as switch_name, s.ip as switch_ip,
+                v.nom as vlan_name, v.reseau as vlan_reseau
+            FROM interface i
+            LEFT JOIN switchs s ON i.id_switch = s.id_switch
+            LEFT JOIN vlan v ON i.vlan_id = v.id_vlan
         """
         
         if id_switch:
-            query += " WHERE id_switch = %s ORDER BY id_interface ASC"
+            query += " WHERE i.id_switch = %s ORDER BY i.id_interface ASC"
             cur.execute(query, (id_switch,))
-            logger.info(f"[API] GET interfaces pour switch_id={id_switch}")
+            logger.info(f"[API] GET interfaces pour switch_id={id_switch} (avec jointures)")
         else:
-            query += " ORDER BY id_interface ASC"
+            query += " ORDER BY i.id_interface ASC"
             cur.execute(query)
-            logger.info(f"[API] GET all interfaces")
+            logger.info(f"[API] GET all interfaces (avec jointures)")
             
         rows = cur.fetchall()
         interfaces = [row_to_interface(row) for row in rows]
-        logger.debug(f"[API] Retour: {len(interfaces)} interfaces")
+        logger.debug(f"[API] Retour: {len(interfaces)} interfaces avec infos switches/vlans")
         return jsonify({"success": True, "count": len(interfaces), "interfaces": interfaces})
     except Exception as e:
         logger.exception(f"[API] Erreur GET interfaces")
@@ -377,30 +439,46 @@ def get_interfaces():
 
 @interface_bp.route("/api/interface", methods=["POST"])
 def create_interface():
-    """Crée une nouvelle interface (via l'interface graphique)"""
+    """
+    Crée une nouvelle interface (via l'interface graphique).
+    ✅ Jointure correcte: id_switch (int) → switchs table → vérification du switch
+    """
+    conn = get_db_connection()
     try:
-        payload = normalize_interface_payload(request.get_json())
+        cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+        
+        # Normaliser avec le curseur pour les jointures
+        payload = normalize_interface_payload(request.get_json(), cur=cur)
     except ValueError as e:
         logger.warning(f"[API] Erreur validation create_interface: {str(e)}")
         return jsonify({"success": False, "error": str(e)}), 400
+    finally:
+        if conn and not conn.closed:
+            conn.close()
 
     conn = get_db_connection()
     try:
         cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
         
-        # Pour la création, on ne doit pas fournir id_interface (il est SERIAL)
-        # On vérifie si le nom de l'interface existe déjà pour ce switch
-        # (Bien que le nom soit unique globalement dans la table, une vérification par switch est plus logique)
-        # Pour l'instant, la contrainte est sur le nom globalement.
+        # Vérifier que le nom de l'interface n'existe pas déjà
         cur.execute("SELECT 1 FROM interface WHERE nom = %s", (payload["nom"],))
         if cur.fetchone():
             logger.warning(f"[API] Interface {payload['nom']} existe déjà")
             return jsonify({"success": False, "error": f"L'interface {payload['nom']} existe deja"}), 409
 
+        # Valider le VLAN s'il est fourni
         validate_vlan_reference(cur, payload["vlan_id"])
+        
+        # Valider que le switch existe
+        if payload["id_switch"]:
+            cur.execute("SELECT 1 FROM switchs WHERE id_switch = %s", (payload["id_switch"],))
+            if not cur.fetchone():
+                logger.warning(f"[API] Switch id={payload['id_switch']} introuvable")
+                return jsonify({"success": False, "error": f"Le switch {payload['id_switch']} n'existe pas"}), 404
 
+        # Insérer l'interface
         cur.execute("""
-            INSERT INTO interface ( -- id_interface est SERIAL, ne pas l'inclure ici
+            INSERT INTO interface (
                 nom, ip, vlan_id, id_switch, equipement_id, status, mode, type,
                 speed, allowed_vlans, port_security, max_mac, violation_mode, bpdu_guard
             )
@@ -425,7 +503,7 @@ def create_interface():
         ))
         row = cur.fetchone()
         conn.commit()
-        logger.info(f"[API] Interface {payload['nom']} créée avec succès")
+        logger.info(f"[API] Interface {payload['nom']} créée avec succès (switch_id={payload['id_switch']})")
         
         return jsonify({
             "success": True,
@@ -442,17 +520,36 @@ def create_interface():
 
 @interface_bp.route("/api/interface/<int:interface_id>", methods=["PUT"])
 def update_interface(interface_id):
-    """Met à jour une interface existante (via l'interface graphique)"""
+    """
+    Met à jour une interface existante (via l'interface graphique).
+    ✅ Jointure correcte: id_switch → switchs table
+    """
+    conn = get_db_connection()
     try:
-        payload = normalize_interface_payload(request.get_json() or {}, forced_id=interface_id)
+        cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+        
+        # Normaliser avec le curseur pour les jointures
+        payload = normalize_interface_payload(request.get_json() or {}, forced_id=interface_id, cur=cur)
     except ValueError as e:
         logger.warning(f"[API] Erreur validation update_interface: {str(e)}")
         return jsonify({"success": False, "error": str(e)}), 400
+    finally:
+        if conn and not conn.closed:
+            conn.close()
 
     conn = get_db_connection()
     try:
         cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+        
+        # Valider le VLAN
         validate_vlan_reference(cur, payload["vlan_id"])
+        
+        # Valider que le switch existe
+        if payload["id_switch"]:
+            cur.execute("SELECT 1 FROM switchs WHERE id_switch = %s", (payload["id_switch"],))
+            if not cur.fetchone():
+                logger.warning(f"[API] Switch id={payload['id_switch']} introuvable")
+                return jsonify({"success": False, "error": f"Le switch {payload['id_switch']} n'existe pas"}), 404
         
         cur.execute("""
             UPDATE interface
@@ -497,7 +594,7 @@ def update_interface(interface_id):
             return jsonify({"success": False, "error": "Interface introuvable"}), 404
 
         conn.commit()
-        logger.info(f"[API] Interface {interface_id} mise à jour avec succès")
+        logger.info(f"[API] Interface {interface_id} mise à jour avec succès (switch_id={payload['id_switch']})")
         return jsonify({
             "success": True,
             "message": f"Interface {interface_id} mise a jour avec succes",

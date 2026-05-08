@@ -146,26 +146,25 @@
       dbExists: true
     });
 
-    const buildInterfacePayload = (port) => ({
-      // id_interface est envoyé uniquement pour les mises à jour (PUT)
-      ...(port.dbExists && { id_interface: port.id_interface }),
-      nom: port.id,
-      ip: port.srcIp || null,
-      id_switch: selectedSwitchId, // Assurez-vous que l'id_switch est toujours envoyé
-      vlan_id: port.mode === 'trunk' ? null : (port.vlan && port.vlan !== 'All' ? Number(port.vlan) : null),
-      equipement_id: port.equipement_id ?? null,
-      status: port.status,
-      mode: port.mode,
-      type: port.type,
-      speed: port.speed === '-' ? null : port.speed,
-      allowed_vlans: port.mode === 'trunk' ? (port.vlan || port.allowedVlans || 'All') : null,
-      port_security: port.portSecurity,
-      max_mac: Number(port.maxMac || 1),
-      violation_mode: port.securityViolation || 'shutdown',
-      bpdu_guard: port.bpdu_guard,
-    });
-
     const InterfacesPage = () => {
+      // ✅ buildInterfacePayload maintenant DANS le composant pour accéder à selectedSwitchId
+      const buildInterfacePayload = (port) => ({
+        ...(port.dbExists && { id_interface: port.id_interface }),
+        nom: port.id,
+        ip: port.srcIp || null,
+        id_switch: selectedSwitchId,   // ← accessible car dans le même scope du composant
+        vlan_id: port.mode === 'trunk' ? null : (port.vlan && port.vlan !== 'All' ? Number(port.vlan) : null),
+        equipement_id: port.equipement_id ?? null,
+        status: port.status,
+        mode: port.mode,
+        type: port.type,
+        speed: port.speed === '-' ? null : port.speed,
+        allowed_vlans: port.mode === 'trunk' ? (port.vlan || port.allowedVlans || 'All') : null,
+        port_security: port.portSecurity,
+        max_mac: Number(port.maxMac || 1),
+        violation_mode: port.securityViolation || 'shutdown',
+        bpdu_guard: port.bpdu_guard,
+      });
       const [availableVlans, setAvailableVlans] = useState([]);
       const [isLoadingVlans, setIsLoadingVlans] = useState(false);
       const [ports, setPorts] = useState(generateInitialPorts());
