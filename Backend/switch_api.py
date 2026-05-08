@@ -15,7 +15,7 @@ def get_switches():
     try:
         cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
         cur.execute("""
-            SELECT id_switch, reference, nom, ip, masque, username, nb_ports, status
+            SELECT id_switch, reference_id, nom, ip, masque, username, nb_ports, status
             FROM switchs
             ORDER BY id_switch ASC
         """)
@@ -43,7 +43,7 @@ def add_switch():
         cur = conn.cursor()
         cur.execute(
             """
-            INSERT INTO switchs (reference, nom, ip, masque, username, password, nb_ports, status)
+            INSERT INTO switchs (reference_id, nom, ip, masque, username, password, nb_ports, status)
             VALUES (%s, %s, %s, %s, %s, %s, %s, 'UNKNOWN')
             RETURNING id_switch
             """,
