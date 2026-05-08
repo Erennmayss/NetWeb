@@ -9,6 +9,7 @@
   <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
   <script src="auth.js"></script>
+  <script src="netguard-audit.js"></script>
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=DM+Mono&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="layout.css" />
   <link rel="stylesheet" href="sidebar.css" />
@@ -486,6 +487,7 @@
             });
             setEquipements(eqs => eqs.map(e => e.id === eqModal.id ? { ...e, ...res.switch } : e));
             addToast(`${form.nom} mis à jour`, 'success');
+            if (window.NetGuardAudit) window.NetGuardAudit.switchUpdated({ name: form.nom, ip: form.ip });
           } else {
             // Ajout
             if (!form.password) { addToast('Mot de passe requis', 'error'); setSaving(false); return; }
@@ -495,6 +497,7 @@
             });
             setEquipements(eqs => [...eqs, res.switch]);
             addToast(`${form.nom} ajouté`, 'success');
+            if (window.NetGuardAudit) window.NetGuardAudit.switchCreated({ name: form.nom, ip: form.ip });
           }
           setEqModal(null);
         } catch (err) {
@@ -512,6 +515,7 @@
           setEquipements(eqs => eqs.filter(e => e.id !== id));
           setSshUsers(us => us.filter(u => u.id_switch !== id));
           addToast(`${nom} supprimé`, 'success');
+          if (window.NetGuardAudit) window.NetGuardAudit.switchDeleted({ id, name: nom });
         } catch (err) {
           addToast(`Erreur suppression : ${err.message}`, 'error');
         }

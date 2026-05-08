@@ -9,6 +9,7 @@
   <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
   <script src="auth.js"></script>
+  <script src="netguard-audit.js"></script>
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=DM+Mono&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="layout.css" />
   <link rel="stylesheet" href="sidebar.css" />
@@ -319,6 +320,7 @@
             setVlans(prev => prev.filter(v => v.id !== vlanId));
             if (selectedVlan?.id === vlanId) setSelectedVlan(null);
             showToast(`✅ VLAN ${vlanId} supprimé avec succès.`, 'success');
+            if (window.NetGuardAudit) window.NetGuardAudit.vlanDeleted({ id: vlanId });
           } else {
             showToast(`❌ Erreur : ${data.error || 'Suppression impossible'}`, 'error');
           }
@@ -409,6 +411,7 @@
                 : `VLAN enregistré en BDD. Vérifiez la connexion SSH au switch.`,
                 sshOk ? 'success' : 'error'
               );
+              if (window.NetGuardAudit) window.NetGuardAudit.vlanCreated({ id: newVlan.id, name: newVlan.name, switchName: selectedSwitch ? selectedSwitch.nom : '?' });
             }
           } else {
             alert("Erreur: " + (data.error || "Erreur inconnue"));

@@ -544,6 +544,82 @@ def delete_interface(interface_id):
         conn.close()
 
 
+@interface_bp.route("/api/network/deploy-interface", methods=["POST"])
+def deploy_interface():
+    """
+    Déploie la configuration d'une interface sur le switch via SSH.
+    Récupère les credentials SSH depuis la table switchs (via id_switch).
+    Si id_switch absent, fallback sur hosts.yaml.
+    """
+    data = request.get_json() or {}
+
+    interface_name  = data.get("interface_name", "")
+    mode            = data.get("mode", "access")
+    vlan_id         = data.get("vlan_id")
+    status          = data.get("status", "UP")
+    port_security   = bool(data.get("port_security", False))
+    max_mac         = int(data.get("max_mac", 1))
+    violation_mode  = data.get("violation_mode", "shutdown")
+    bpdu_guard      = bool(data.get("bpdu_guard", False))
+    allowed_vlans   = data.get("allowed_vlans")
+    description     = data.get("description")
+    static_mac      = data.get("static_mac")
+    id_switch       = data.get("id_switch")
+
+    if not interface_name:
+        return jsonify({"success": False, "error": "interface_name est requis"}), 400
+
+    # ── Récupérer les credentials SSH depuis la table switchs ─────────────────
+    switch_ip = switch_user = switch_password = None
+    if id_switch:
+        conn = get_db_connection()
+        try:
+            cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+            cur.execute(
+                "SELECT ip, username, password FROM switchs WHERE id_switch = %s",
+                (int(id_switch),)
+            )
+            sw = cur.fetchone()
+            if sw:
+                switch_ip       = sw["ip"]
+                switch_user     = sw["username"]
+                switch_password = sw["password"]
+                logger.info(f"[deploy-interface] Credentials trouvés pour switch {id_switch} → {switch_ip}")
+            else:
+                logger.warning(f"[deploy-interface] Switch id={id_switch} introuvable en BDD, fallback hosts.yaml")
+        except Exception as e:
+            logger.warning(f"[deploy-interface] Erreur récupération switch: {e}, fallback hosts.yaml")
+        finally:
+            conn.close()
+
+    # ── Déploiement SSH ────────────────────────────────────────────────────────
+    try:
+        from network.interface_deploy import run_deploy
+        result = run_deploy(
+            interface_name  = interface_name,
+            mode            = mode,
+            vlan_id         = int(vlan_id) if vlan_id is not None else 1,
+            status          = status,
+            port_security   = port_security,
+            max_mac         = max_mac,
+            violation_mode  = violation_mode,
+            bpdu_guard      = bpdu_guard,
+            allowed_vlans   = allowed_vlans,
+            description     = description,
+            static_mac      = static_mac,
+            switch_ip       = switch_ip,
+            switch_user     = switch_user,
+            switch_password = switch_password,
+        )
+    except ImportError:
+        result = {"success": False, "error": "Module network.interface_deploy introuvable", "commands": []}
+    except Exception as e:
+        result = {"success": False, "error": str(e), "commands": []}
+
+    status_code = 200 if result.get("success") else 500
+    return jsonify(result), status_code
+
+
 @interface_bp.route("/api/interface/reset", methods=["POST"])
 def reset_interfaces():
     """Réinitialise les interfaces aux valeurs par défaut (uniquement si demandé explicitement)"""

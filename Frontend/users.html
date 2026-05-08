@@ -9,6 +9,8 @@
   <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
   <script src="auth.js"></script>
+  <!-- ✅ Bibliothèque audit localStorage -->
+  <script src="netguard-audit.js"></script>
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=DM+Mono&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="layout.css" />
   <link rel="stylesheet" href="sidebar.css" />
@@ -49,7 +51,6 @@
       const [searchQuery, setSearchQuery] = useState('');
       const [toast, setToast] = useState(null);
       const [loading, setLoading] = useState(true);
-      // Session dans l'état React pour éviter la race condition au chargement
       const [currentUser, setCurrentUser] = useState(null);
       const [sessionChecked, setSessionChecked] = useState(false);
 
@@ -71,12 +72,11 @@
           });
           if (response.ok) {
             const data = await response.json();
-            console.log("📦 Utilisateurs reçus:", data);
             const list = Array.isArray(data) ? data : (data.users || []);
             setUsers(list.map(u => ({
               ...u, 
               status: "Active",
-              lastLogin: u.last_login ? new Date(u.last_login).toLocaleString('fr-FR') : 'Jamais',
+              lastLogin:  u.last_login  ? new Date(u.last_login).toLocaleString('fr-FR')  : 'Jamais',
               lastLogout: u.last_logout ? new Date(u.last_logout).toLocaleString('fr-FR') : 'Jamais'
             })));
           } else if (response.status === 401) {
@@ -88,14 +88,12 @@
             showToast(`Erreur ${response.status}: ${err.error || 'Chargement impossible'}`, 'error');
           }
         } catch (error) {
-          console.error('Erreur fetchUsers:', error);
           showToast(`Erreur réseau: ${error.message}`, 'error');
         } finally {
           setLoading(false);
         }
       };
 
-      // Lire la session dans useEffect garantit que localStorage est disponible
       useEffect(() => {
         const session = window.NetGuardAuth.getSession();
         if (session) {
@@ -135,26 +133,24 @@
 
       const getRoleBadge = (role) => {
         const styles = {
-          'ADMIN': 'bg-rose-100 text-rose-700 border-rose-200',
-          'NETWORK_ADMIN': 'bg-blue-100 text-blue-700 border-blue-200',
+          'ADMIN':          'bg-rose-100 text-rose-700 border-rose-200',
+          'NETWORK_ADMIN':  'bg-blue-100 text-blue-700 border-blue-200',
           'SECURITY_ADMIN': 'bg-orange-100 text-orange-700 border-orange-200',
-          'AUDITOR': 'bg-slate-100 text-slate-600 border-slate-200'
+          'AUDITOR':        'bg-slate-100 text-slate-600 border-slate-200'
         };
         return (
-          <span className={`px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest border ${styles[role]}`}>
+          <span className={`px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest border ${styles[role] || styles['AUDITOR']}`}>
             {role}
           </span>
         );
       };
 
-      const getStatusBadge = (status) => {
-        return (
-          <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold ${status === 'Active' ? 'bg-emerald-50 text-emerald-600' : 'bg-slate-100 text-slate-500'}`}>
-            <span className={`w-1.5 h-1.5 rounded-full ${status === 'Active' ? 'bg-emerald-500' : 'bg-slate-400'}`}></span>
-            {status}
-          </span>
-        );
-      };
+      const getStatusBadge = (status) => (
+        <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold ${status === 'Active' ? 'bg-emerald-50 text-emerald-600' : 'bg-slate-100 text-slate-500'}`}>
+          <span className={`w-1.5 h-1.5 rounded-full ${status === 'Active' ? 'bg-emerald-500' : 'bg-slate-400'}`}></span>
+          {status}
+        </span>
+      );
 
       const filteredUsers = users.filter(u => 
         u.username.toLowerCase().includes(searchQuery.toLowerCase()) || 
@@ -177,7 +173,7 @@
           <div className="flex flex-col md:flex-row md:justify-between md:items-end mb-8 gap-4">
             <div>
               <h1 className="page-title text-3xl font-bold text-slate-800 tracking-tight">Utilisateurs</h1>
-              <p className="text-slate-500 mt-1">Gérez les accès de l'équipe SOC & NOC.</p>
+              <p className="text-slate-500 mt-1">Gérez les accès de l'équipe SOC &amp; NOC.</p>
             </div>
             <div className="flex flex-wrap gap-3 items-center">
               <div className="relative">
@@ -224,11 +220,13 @@
                           <div>
                             <span className="font-bold text-slate-700 flex items-center gap-2">
                               {user.username}
-                              {user.username === currentUser.username && <span className="bg-indigo-100 text-indigo-700 text-[9px] px-1.5 py-0.5 rounded font-black uppercase">Vous</span>}
+                              {user.username === currentUser.username && (
+                                <span className="bg-indigo-100 text-indigo-700 text-[9px] px-1.5 py-0.5 rounded font-black uppercase">Vous</span>
+                              )}
                             </span>
                           </div>
                         </div>
-                       </td>
+                      </td>
                       <td className="px-6 py-4 text-sm font-medium text-slate-500">{user.email}</td>
                       <td className="px-6 py-4">{getRoleBadge(user.role)}</td>
                       <td className="px-6 py-4">{getStatusBadge(user.status)}</td>
@@ -261,34 +259,51 @@
             </div>
           </div>
 
-          {/* Form Modal */}
+          {/* ── Modal Création / Édition ──────────────────────────────────── */}
           {isFormModalOpen && (
             <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
               <div className="modal-card bg-white rounded-[2rem] w-full max-w-md p-8 shadow-2xl modal-enter">
-                <h2 className="text-2xl font-bold text-slate-800 mb-6">{editingUser ? 'Modifier' : 'Créer'} un Utilisateur</h2>
+                <h2 className="text-2xl font-bold text-slate-800 mb-6">
+                  {editingUser ? 'Modifier' : 'Créer'} un Utilisateur
+                </h2>
                 <form className="space-y-4" onSubmit={async (e) => {
                   e.preventDefault();
                   const userData = {
-                    username: e.target.username.value,
-                    email: e.target.email.value,
-                    password: e.target.password.value,
-                    role: e.target.role.value
+                    username: e.target.username.value.trim(),
+                    email:    e.target.email.value.trim(),
+                    password: e.target.password ? e.target.password.value : undefined,
+                    role:     e.target.role.value,
                   };
-                  
+
                   try {
                     const response = await fetch('http://127.0.0.1:5000/users', {
-                      method: 'POST',
+                      method:  'POST',
                       headers: window.NetGuardAuth.getAuthHeaders(),
-                      body: JSON.stringify(userData)
+                      body:    JSON.stringify(userData),
                     });
                     const result = await response.json();
-                    
+
                     if (response.ok) {
                       setIsFormModalOpen(false);
                       showToast('Utilisateur créé avec succès');
                       fetchUsers();
+
+                      // ✅ Audit : enregistre qui a créé quel utilisateur
+                      window.NetGuardAudit.userCreated({
+                        username: userData.username,
+                        role:     userData.role,
+                      });
+
                     } else {
                       showToast(result.error || 'Erreur', 'error');
+
+                      // ✅ Audit : tentative échouée
+                      window.NetGuardAudit.log({
+                        action:   'Tentative création utilisateur',
+                        target:   `${userData.username} — ${result.error || 'erreur inconnue'}`,
+                        severity: 'Medium',
+                        success:  false,
+                      });
                     }
                   } catch (err) {
                     showToast('Erreur serveur', 'error');
@@ -296,36 +311,46 @@
                 }}>
                   <div>
                     <label className="block text-xs font-bold text-slate-500 mb-1">Nom d'utilisateur</label>
-                    <input type="text" name="username" defaultValue={editingUser?.username} required className="w-full border border-slate-200 rounded-xl p-3 outline-none focus:border-indigo-500 bg-slate-50 font-medium" />
+                    <input type="text" name="username" defaultValue={editingUser?.username} required
+                      className="w-full border border-slate-200 rounded-xl p-3 outline-none focus:border-indigo-500 bg-slate-50 font-medium" />
                   </div>
                   <div>
                     <label className="block text-xs font-bold text-slate-500 mb-1">Email</label>
-                    <input type="email" name="email" defaultValue={editingUser?.email} required className="w-full border border-slate-200 rounded-xl p-3 outline-none focus:border-indigo-500 bg-slate-50 font-medium" />
+                    <input type="email" name="email" defaultValue={editingUser?.email} required
+                      className="w-full border border-slate-200 rounded-xl p-3 outline-none focus:border-indigo-500 bg-slate-50 font-medium" />
                   </div>
                   {!editingUser && (
                     <div>
                       <label className="block text-xs font-bold text-slate-500 mb-1">Mot de passe</label>
-                      <input type="password" name="password" required className="w-full border border-slate-200 rounded-xl p-3 outline-none focus:border-indigo-500 bg-slate-50" />
+                      <input type="password" name="password" required
+                        className="w-full border border-slate-200 rounded-xl p-3 outline-none focus:border-indigo-500 bg-slate-50" />
                     </div>
                   )}
                   <div>
                     <label className="block text-xs font-bold text-slate-500 mb-1">Rôle</label>
-                    <select name="role" defaultValue={editingUser?.role || 'AUDITOR'} className="w-full border border-slate-200 rounded-xl p-3 outline-none focus:border-indigo-500 font-bold text-slate-700 bg-slate-50">
+                    <select name="role" defaultValue={editingUser?.role || 'AUDITOR'}
+                      className="w-full border border-slate-200 rounded-xl p-3 outline-none focus:border-indigo-500 font-bold text-slate-700 bg-slate-50">
                       <option value="ADMIN">ADMIN</option>
                       <option value="NETWORK_ADMIN">NETWORK_ADMIN</option>
                       <option value="SECURITY_ADMIN">SECURITY_ADMIN</option>
                       <option value="AUDITOR">AUDITOR</option>
                     </select>
                   </div>
-                  
+
                   <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl mt-4 flex items-start gap-2">
                     <span className="text-amber-500 mt-0.5">⚠️</span>
-                    <p className="text-xs font-medium text-amber-800">Toute modification de rôle affectera les permissions de l'utilisateur immédiatement.</p>
+                    <p className="text-xs font-medium text-amber-800">
+                      Toute modification de rôle affectera les permissions de l'utilisateur immédiatement.
+                    </p>
                   </div>
 
                   <div className="flex gap-3 mt-8 pt-4 border-t border-slate-100">
-                    <button type="button" onClick={() => setIsFormModalOpen(false)} className="flex-1 py-3 font-bold text-slate-500 bg-slate-100 hover:bg-slate-200 rounded-xl transition-all">Annuler</button>
-                    <button type="submit" className="flex-1 py-3 bg-indigo-600 text-white font-bold rounded-xl shadow-lg shadow-indigo-600/15 hover:bg-indigo-700 transition-all">
+                    <button type="button" onClick={() => setIsFormModalOpen(false)}
+                      className="flex-1 py-3 font-bold text-slate-500 bg-slate-100 hover:bg-slate-200 rounded-xl transition-all">
+                      Annuler
+                    </button>
+                    <button type="submit"
+                      className="flex-1 py-3 bg-indigo-600 text-white font-bold rounded-xl shadow-lg shadow-indigo-600/15 hover:bg-indigo-700 transition-all">
                       {editingUser ? 'Mettre à jour' : 'Créer'}
                     </button>
                   </div>
@@ -334,7 +359,7 @@
             </div>
           )}
 
-          {/* Delete Modal */}
+          {/* ── Modal Suppression ─────────────────────────────────────────── */}
           {isDeleteModalOpen && targetUser && (
             <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
               <div className="modal-card bg-white rounded-[2rem] w-full max-w-sm p-8 shadow-2xl modal-enter text-center">
@@ -342,20 +367,39 @@
                   <span className="text-2xl">🗑️</span>
                 </div>
                 <h2 className="text-xl font-bold text-slate-800 mb-2">Supprimer l'utilisateur ?</h2>
-                <p className="text-sm text-slate-500 mb-6">Êtes-vous sûr de vouloir supprimer définitivement <strong>{targetUser.username}</strong> ? Cette action est irréversible.</p>
+                <p className="text-sm text-slate-500 mb-6">
+                  Êtes-vous sûr de vouloir supprimer définitivement <strong>{targetUser.username}</strong> ?
+                  Cette action est irréversible.
+                </p>
                 <div className="flex gap-3">
-                  <button onClick={() => setIsDeleteModalOpen(false)} className="flex-1 py-2.5 font-bold text-slate-500 bg-slate-100 hover:bg-slate-200 rounded-xl transition-all">Annuler</button>
+                  <button onClick={() => setIsDeleteModalOpen(false)}
+                    className="flex-1 py-2.5 font-bold text-slate-500 bg-slate-100 hover:bg-slate-200 rounded-xl transition-all">
+                    Annuler
+                  </button>
                   <button 
                     onClick={async () => {
                       try {
-                        await fetch(`http://127.0.0.1:5000/users/${targetUser.id}`, {
-                          method: 'DELETE', 
-                          headers: window.NetGuardAuth.getAuthHeaders()
+                        const resp = await fetch(`http://127.0.0.1:5000/users/${targetUser.id}`, {
+                          method:  'DELETE', 
+                          headers: window.NetGuardAuth.getAuthHeaders(),
                         });
-                        setUsers(users.filter(u => u.id !== targetUser.id));
-                        setIsDeleteModalOpen(false);
-                        showToast('Utilisateur supprimé', 'error');
-                      } catch(e) { showToast('Erreur réseau', 'error'); }
+
+                        if (resp.ok) {
+                          setUsers(users.filter(u => u.id !== targetUser.id));
+                          setIsDeleteModalOpen(false);
+                          showToast('Utilisateur supprimé', 'error');
+
+                          // ✅ Audit : suppression réelle enregistrée
+                          window.NetGuardAudit.userDeleted({
+                            username: targetUser.username,
+                            id:       targetUser.id,
+                          });
+                        } else {
+                          showToast('Erreur lors de la suppression', 'error');
+                        }
+                      } catch (e) {
+                        showToast('Erreur réseau', 'error');
+                      }
                     }} 
                     className="flex-1 py-2.5 bg-rose-600 text-white font-bold rounded-xl hover:bg-rose-700 transition-all"
                   >

@@ -8,6 +8,7 @@
 <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
 <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 <script src="auth.js"></script>
+  <script src="netguard-audit.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
 <link rel="stylesheet" href="sidebar.css" />
 <link rel="stylesheet" href="topbar.css" />
@@ -16,361 +17,268 @@
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
   :root {
-    --bg: #f8fafc;
-    --card: white;
-    --border: #e2e8f0;
-    --text: #1e293b;
-    --muted: #64748b;
-    --primary: #6366f1;
+    --bg:           #f8fafc;
+    --card:         white;
+    --border:       #e2e8f0;
+    --text:         #1e293b;
+    --muted:        #64748b;
+    --primary:      #6366f1;
     --primary-soft: rgba(99, 102, 241, 0.12);
-    --success: #22c55e;
-    --danger: #ef4444;
-    --warning: #f59e0b;
-    --shadow: 0 4px 6px -1px rgba(100, 108, 255, 0.15);
+    --success:      #22c55e;
+    --danger:       #ef4444;
+    --warning:      #f59e0b;
+    --shadow:       0 4px 6px -1px rgba(100, 108, 255, 0.15);
   }
 
   html, body {
-    height: 100%;
-    width: 100%;
+    height: 100%; width: 100%;
     font-family: 'DM Sans', sans-serif;
     background: var(--bg);
     color: var(--text);
   }
-
   body { overflow: hidden; }
   button, input, textarea { font: inherit; }
 
-  .app-shell {
-    width: 100vw;
-    height: 100vh;
-    display: flex;
-    background: var(--bg);
-  }
+  /* ── Shell ── */
+  .app-shell { width: 100vw; height: 100vh; display: flex; background: var(--bg); }
+  .main      { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+  .content   { flex: 1; padding: 25px; overflow-y: auto; }
 
-  .main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
-
-  .content {
-    flex: 1;
-    padding: 25px;
-    overflow-y: auto;
-  }
-
+  /* ── Stat cards ── */
   .stats-header-grid {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
     gap: 20px;
     margin-bottom: 30px;
   }
-
   .stat-mini-card {
-    background: white;
-    padding: 20px;
-    border-radius: 16px;
-    display: flex;
-    align-items: center;
-    gap: 15px;
-    box-shadow: var(--shadow);
-    border: 1px solid var(--border);
-    transition: all 0.2s ease;
+    background: white; padding: 20px; border-radius: 16px;
+    display: flex; align-items: center; gap: 15px;
+    box-shadow: var(--shadow); border: 1px solid var(--border);
+    transition: all .2s ease;
   }
+  .stat-icon  { width: 45px; height: 45px; border-radius: 12px; display: flex; align-items: center; justify-content: center; }
+  .stat-info  { display: flex; flex-direction: column; }
+  .stat-value { font-size: 20px; font-weight: 700; color: #1e293b; }
+  .stat-label { font-size: 12px; color: #64748b; }
+  .stat-badge { font-size: 10px; padding: 2px 8px; border-radius: 10px; margin-top: 4px; display: inline-block; font-weight: 600; }
 
-  .stat-icon {
-    width: 45px;
-    height: 45px;
-    border-radius: 12px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-
-  .stat-info {
-    display: flex;
-    flex-direction: column;
-  }
-
-  .stat-value {
-    font-size: 20px;
-    font-weight: 700;
-    color: #1e293b;
-  }
-
-  .stat-label {
-    font-size: 12px;
-    color: #64748b;
-  }
-
-  .stat-badge {
-    font-size: 10px;
-    padding: 2px 8px;
-    border-radius: 10px;
-    margin-top: 4px;
-    display: inline-block;
-    font-weight: 600;
-  }
-
+  /* ── Section ── */
   .manage-section {
-    background: white;
-    padding: 20px;
-    border-radius: 16px;
-    border: 1px solid var(--border);
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-    box-shadow: var(--shadow);
+    background: white; padding: 20px; border-radius: 16px;
+    border: 1px solid var(--border); display: flex; flex-direction: column;
+    gap: 10px; box-shadow: var(--shadow);
   }
-
   .section-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    border-bottom: 1px solid var(--border);
-    padding-bottom: 10px;
-    margin-bottom: 5px;
+    display: flex; align-items: center; justify-content: space-between;
+    border-bottom: 1px solid var(--border); padding-bottom: 10px; margin-bottom: 5px;
   }
+  .section-title   { font-size: 14px; font-weight: 600; color: #334155; }
+  .status-indicator { width: 8px; height: 8px; border-radius: 50%; transition: background .2s ease; }
 
-  .section-title {
-    font-size: 14px;
-    font-weight: 600;
-    color: #334155;
-  }
-
-  .status-indicator {
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-    transition: background 0.2s ease;
-  }
-
-  /* Conteneur scrollable pour la table */
+  /* ── Table ── */
   .table-scroll-container {
-    max-height: 520px;
-    overflow-y: auto;
-    overflow-x: auto;
-    border-radius: 12px;
-    scrollbar-width: thin;
+    max-height: 520px; overflow-y: auto; overflow-x: auto;
+    border-radius: 12px; scrollbar-width: thin;
   }
+  .table-scroll-container::-webkit-scrollbar       { width: 8px; height: 8px; }
+  .table-scroll-container::-webkit-scrollbar-track { background: var(--border); border-radius: 10px; }
+  .table-scroll-container::-webkit-scrollbar-thumb { background: var(--primary); border-radius: 10px; }
+  .table-scroll-container::-webkit-scrollbar-thumb:hover { background: #4f46e5; }
 
-  /* Style du scrollbar */
-  .table-scroll-container::-webkit-scrollbar {
-    width: 8px;
-    height: 8px;
-  }
+  .dark-mode .table-scroll-container::-webkit-scrollbar-track { background: #1e293b; }
+  .dark-mode .table-scroll-container::-webkit-scrollbar-thumb { background: #475569; }
+  .dark-mode .table-scroll-container::-webkit-scrollbar-thumb:hover { background: #6366f1; }
 
-  .table-scroll-container::-webkit-scrollbar-track {
-    background: var(--border);
-    border-radius: 10px;
-  }
-
-  .table-scroll-container::-webkit-scrollbar-thumb {
-    background: var(--primary);
-    border-radius: 10px;
-  }
-
-  .table-scroll-container::-webkit-scrollbar-thumb:hover {
-    background: #4f46e5;
-  }
-
-  /* Mode sombre scrollbar */
-  .dark-mode .table-scroll-container::-webkit-scrollbar-track {
-    background: #1e293b;
-  }
-
-  .dark-mode .table-scroll-container::-webkit-scrollbar-thumb {
-    background: #475569;
-  }
-
-  .dark-mode .table-scroll-container::-webkit-scrollbar-thumb:hover {
-    background: #6366f1;
-  }
-
-  /* En-tête de table sticky */
-  .table-scroll-container thead tr {
-    position: sticky;
-    top: 0;
-    z-index: 10;
-  }
-
-  .table-scroll-container table {
-    width: 100%;
-    border-collapse: collapse;
-    table-layout: fixed;
-  }
-
+  .table-scroll-container thead tr { position: sticky; top: 0; z-index: 10; }
+  .table-scroll-container table    { width: 100%; border-collapse: collapse; table-layout: fixed; }
   .table-scroll-container th {
-    background: #f8fafc;
-    box-shadow: 0 1px 0 var(--border);
-    padding: 12px 12px;
-    font-size: 11px;
-    color: #64748b;
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-    font-weight: 700;
-    border-bottom: 1px solid var(--border);
+    background: #f8fafc; box-shadow: 0 1px 0 var(--border);
+    padding: 12px; font-size: 11px; color: #64748b; text-transform: uppercase;
+    letter-spacing: .08em; font-weight: 700; border-bottom: 1px solid var(--border);
   }
-
   .table-scroll-container th:nth-child(1) { width: 90px; }
   .table-scroll-container th:nth-child(2) { width: 100px; }
   .table-scroll-container th:nth-child(3) { width: auto; }
 
   .table-scroll-container td {
-    padding: 14px 12px;
-    border-bottom: 1px solid #f1f5f9;
-    font-size: 13px;
-    color: #334155;
-    font-weight: 500;
-    vertical-align: middle;
-    word-wrap: break-word;
+    padding: 14px 12px; border-bottom: 1px solid #f1f5f9; font-size: 13px;
+    color: #334155; font-weight: 500; vertical-align: middle; word-wrap: break-word;
   }
-
   .table-scroll-container td:nth-child(3) {
-    font-family: 'DM Mono', monospace;
-    font-size: 12px;
-    white-space: normal;
-    word-break: break-word;
-    line-height: 1.5;
+    font-family: 'DM Mono', monospace; font-size: 12px; white-space: normal;
+    word-break: break-word; line-height: 1.5;
   }
-
-  .table-scroll-container tbody tr {
-    transition: all 0.2s ease;
-    cursor: pointer;
-  }
-
-  .table-scroll-container tbody tr:hover {
-    background: #f8fafc;
-  }
-
-  .table-scroll-container tbody tr.selected {
-    background: var(--primary-soft);
-  }
-
+  .table-scroll-container tbody tr { transition: all .2s ease; cursor: pointer; }
+  .table-scroll-container tbody tr:hover { background: #f8fafc; }
+  .table-scroll-container tbody tr.selected { background: var(--primary-soft); }
   .table-scroll-container tbody tr.selected td:first-child {
-    border-left: 3px solid var(--primary);
-    padding-left: 9px;
+    border-left: 3px solid var(--primary); padding-left: 9px;
   }
 
-  .mono {
-    font-family: 'DM Mono', monospace;
-    font-size: 13px;
-  }
+  /* ── Badges protocole ── */
+  .badge-tcp  { display: inline-block; padding: 4px 10px; border-radius: 4px; font-size: 11px; font-weight: 700; background: #eff6ff; color: #1d4ed8; }
+  .badge-udp  { background: #f0fdf4; color: #166534; }
+  .badge-icmp { background: #fffbeb; color: #92400e; }
 
-  .badge-tcp {
-    display: inline-block;
-    padding: 4px 10px;
-    border-radius: 4px;
-    font-size: 11px;
-    font-weight: 700;
-    background: #eff6ff;
-    color: #1d4ed8;
-  }
-
-  .badge-udp {
-    background: #f0fdf4;
-    color: #166534;
-  }
-
-  .badge-icmp {
-    background: #fffbeb;
-    color: #92400e;
-  }
-
+  /* ── Éditeur ── */
   .editor-area {
-    width: 100%;
-    min-height: 120px;
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    padding: 14px;
-    resize: vertical;
-    background: #fafcff;
-    color: var(--text);
-    outline: none;
-    font-family: 'DM Mono', monospace;
-    font-size: 14px;
-    line-height: 1.6;
-    margin-top: 16px;
-    transition: all 0.2s ease;
+    width: 100%; min-height: 120px; border: 1px solid var(--border);
+    border-radius: 12px; padding: 14px; resize: vertical; background: #fafcff;
+    color: var(--text); outline: none; font-family: 'DM Mono', monospace;
+    font-size: 14px; line-height: 1.6; margin-top: 16px; transition: all .2s ease;
   }
+  .editor-area:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(99,102,241,.1); }
+  .editor-label { font-size: 13px; font-weight: 600; color: #334155; margin-top: 16px; margin-bottom: 8px; display: block; }
 
-  .editor-area:focus {
-    border-color: var(--primary);
-    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
-  }
-
-  .editor-label {
-    font-size: 13px;
-    font-weight: 600;
-    color: #334155;
-    margin-top: 16px;
-    margin-bottom: 8px;
-    display: block;
-  }
-
-  .button-row {
-    display: flex;
-    gap: 12px;
-    flex-wrap: wrap;
-    margin-top: 16px;
-  }
-
+  /* ── Boutons ── */
+  .button-row { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 16px; align-items: center; }
   .btn {
-    padding: 8px 16px;
-    border-radius: 6px;
-    font-size: 12px;
-    font-weight: 600;
-    border: none;
-    cursor: pointer;
-    transition: all 0.2s ease;
+    padding: 8px 16px; border-radius: 6px; font-size: 12px; font-weight: 600;
+    border: none; cursor: pointer; transition: all .2s ease; white-space: nowrap;
   }
-
+  .btn:disabled { opacity: .5; cursor: not-allowed; transform: none !important; }
   .btn-primary { background: #6366f1; color: white; }
-  .btn-primary:hover { background: #4f46e5; transform: translateY(-1px); }
+  .btn-primary:hover:not(:disabled) { background: #4f46e5; transform: translateY(-1px); }
   .btn-outline { background: transparent; border: 1px solid var(--border); color: #64748b; }
-  .btn-outline:hover { background: rgba(99, 102, 241, 0.08); border-color: var(--primary); color: var(--primary); }
-  .btn-danger { background: #ef4444; color: white; }
-  .btn-danger:hover { background: #dc2626; transform: translateY(-1px); }
+  .btn-outline:hover:not(:disabled) { background: rgba(99,102,241,.08); border-color: var(--primary); color: var(--primary); }
+  .btn-danger  { background: #ef4444; color: white; }
+  .btn-danger:hover:not(:disabled)  { background: #dc2626; transform: translateY(-1px); }
   .btn-success { background: #22c55e; color: white; }
-  .btn-success:hover { background: #16a34a; transform: translateY(-1px); }
+  .btn-success:hover:not(:disabled) { background: #16a34a; transform: translateY(-1px); }
+  .btn-snort {
+    background: linear-gradient(135deg, #1e40af 0%, #3b82f6 100%);
+    color: white; border: none; box-shadow: 0 2px 8px rgba(59,130,246,.35);
+  }
+  .btn-snort:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 4px 16px rgba(59,130,246,.45); }
 
-  .bg-blue { background: #eff6ff; color: #1d4ed8; }
+  /* ── Tones ── */
+  .bg-blue  { background: #eff6ff; color: #1d4ed8; }
   .bg-green { background: #f0fdf4; color: #166534; }
   .bg-amber { background: #fffbeb; color: #92400e; }
+  .mono     { font-family: 'DM Mono', monospace; font-size: 13px; }
 
+  /* ── Toast ── */
   .toast {
-    position: fixed;
-    right: 20px;
-    bottom: 20px;
-    padding: 12px 20px;
-    border-radius: 12px;
-    background: #1e293b;
-    color: white;
-    font-size: 13px;
-    box-shadow: 0 12px 24px -12px rgba(0,0,0,0.3);
-    z-index: 1000;
-    animation: slideIn 0.3s ease;
+    position: fixed; right: 20px; bottom: 20px; padding: 12px 20px;
+    border-radius: 12px; background: #1e293b; color: white; font-size: 13px;
+    box-shadow: 0 12px 24px -12px rgba(0,0,0,.3); z-index: 2000;
+    animation: slideIn .3s ease;
   }
-  .toast-error { background: #dc2626; }
+  .toast-error   { background: #dc2626; }
   .toast-success { background: #16a34a; }
-
   @keyframes slideIn {
     from { opacity: 0; transform: translateX(100%); }
-    to { opacity: 1; transform: translateX(0); }
+    to   { opacity: 1; transform: translateX(0); }
   }
 
+  /* ── Spinner ── */
   .loading-spinner {
-    display: inline-block;
-    width: 20px;
-    height: 20px;
-    border: 2px solid #f3f3f3;
-    border-top: 2px solid #6366f1;
-    border-radius: 50%;
-    animation: spin 1s linear infinite;
-    margin-right: 8px;
+    display: inline-block; width: 20px; height: 20px;
+    border: 2px solid #f3f3f3; border-top: 2px solid #6366f1;
+    border-radius: 50%; animation: spin 1s linear infinite; margin-right: 8px;
+  }
+  @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+  /* ══════════════════════════════════════
+     MODAL SNORT.ORG
+  ══════════════════════════════════════ */
+  .modal-overlay {
+    position: fixed; inset: 0;
+    background: rgba(15, 23, 42, 0.55);
+    backdrop-filter: blur(4px);
+    display: flex; align-items: center; justify-content: center;
+    z-index: 1000; animation: fadeIn .2s ease;
+  }
+  @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+  .modal-box {
+    background: white; border-radius: 20px; padding: 32px;
+    width: 460px; max-width: calc(100vw - 40px);
+    box-shadow: 0 25px 80px rgba(0,0,0,.25);
+    animation: popIn .25s cubic-bezier(.34,1.56,.64,1);
+    position: relative;
+  }
+  @keyframes popIn {
+    from { opacity: 0; transform: scale(.92) translateY(10px); }
+    to   { opacity: 1; transform: scale(1)   translateY(0);    }
   }
 
-  @keyframes spin {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
+  .modal-header {
+    display: flex; align-items: flex-start; justify-content: space-between;
+    margin-bottom: 24px;
+  }
+  .modal-title   { font-size: 16px; font-weight: 700; color: #0f172a; }
+  .modal-subtitle { font-size: 12px; color: #94a3b8; margin-top: 3px; }
+  .modal-close {
+    width: 28px; height: 28px; border-radius: 8px; border: none;
+    background: #f1f5f9; color: #64748b; cursor: pointer; font-size: 14px;
+    display: flex; align-items: center; justify-content: center;
+    transition: all .15s;
+  }
+  .modal-close:hover { background: #fee2e2; color: #dc2626; }
+
+  .source-selector { display: flex; gap: 12px; margin-bottom: 20px; }
+  .source-card {
+    flex: 1; padding: 14px 16px; border-radius: 12px; cursor: pointer;
+    border: 2px solid #e2e8f0; background: white;
+    transition: all .15s ease;
+  }
+  .source-card:hover     { border-color: #a5b4fc; background: #fafafe; }
+  .source-card.active    { border-color: #6366f1; background: rgba(99,102,241,.06); }
+  .source-card-icon      { font-size: 20px; margin-bottom: 6px; }
+  .source-card-title     { font-size: 13px; font-weight: 700; color: #1e293b; }
+  .source-card-sub       { font-size: 11px; color: #64748b; margin-top: 2px; }
+  .source-card.active .source-card-title { color: #4f46e5; }
+
+  .modal-label {
+    font-size: 12px; font-weight: 600; color: #475569;
+    text-transform: uppercase; letter-spacing: .06em; margin-bottom: 8px; display: block;
+  }
+  .modal-input {
+    width: 100%; padding: 11px 14px; border-radius: 10px;
+    border: 1.5px solid #e2e8f0; font-family: 'DM Mono', monospace;
+    font-size: 13px; outline: none; color: #1e293b; background: #f8fafc;
+    transition: border-color .15s;
+  }
+  .modal-input:focus { border-color: #6366f1; background: white; box-shadow: 0 0 0 3px rgba(99,102,241,.1); }
+  .modal-hint { font-size: 11px; color: #94a3b8; margin-top: 6px; margin-bottom: 16px; }
+  .modal-hint a { color: #6366f1; text-decoration: none; }
+  .modal-hint a:hover { text-decoration: underline; }
+
+  .info-banner {
+    border-radius: 10px; padding: 12px 14px; font-size: 12px;
+    margin-bottom: 16px; display: flex; gap: 10px; align-items: flex-start;
+  }
+  .info-banner.green  { background: #f0fdf4; border: 1px solid #bbf7d0; color: #166534; }
+  .info-banner.blue   { background: #eff6ff; border: 1px solid #bfdbfe; color: #1d4ed8; }
+  .info-banner.amber  { background: #fffbeb; border: 1px solid #fde68a; color: #92400e; }
+  .info-banner-icon   { font-size: 14px; flex-shrink: 0; margin-top: 1px; }
+  .info-banner-text   { line-height: 1.5; }
+
+  .progress-bar-wrap  {
+    background: #f1f5f9; border-radius: 8px; height: 6px; margin: 12px 0; overflow: hidden;
+  }
+  .progress-bar-fill  {
+    height: 100%; background: linear-gradient(90deg, #6366f1, #8b5cf6);
+    border-radius: 8px; animation: progressAnim 1.5s ease-in-out infinite alternate;
+  }
+  @keyframes progressAnim { from { width: 20%; } to { width: 85%; } }
+
+  .progress-label {
+    font-size: 12px; color: #6366f1; display: flex; align-items: center; gap: 8px; margin-top: 4px;
   }
 
+  .modal-footer { display: flex; gap: 10px; margin-top: 20px; }
+  .modal-footer .btn { flex: 1; padding: 11px; font-size: 13px; }
+
+  /* ── Séparateur de boutons ── */
+  .btn-divider {
+    width: 1px; height: 24px; background: var(--border);
+    align-self: center; flex-shrink: 0;
+  }
+
+  /* ── Responsive ── */
   @media (max-width: 860px) {
     body { overflow: auto; }
     .app-shell { height: auto; min-height: 100vh; }
@@ -380,6 +288,8 @@
     .btn { width: 100%; }
     .table-scroll-container th:nth-child(1) { width: 70px; }
     .table-scroll-container th:nth-child(2) { width: 85px; }
+    .modal-box { padding: 24px; }
+    .source-selector { flex-direction: column; }
   }
 </style>
 </head>
@@ -387,7 +297,11 @@
 <div class="app-shell">
   <aside id="sidebar-root" class="sidebar-host" data-page="configuration"></aside>
   <main class="main">
-    <div id="topbar-root" data-title="Configuration IDS" data-subtitle="Gestion des regles de securite et export Snort" data-notifications="2"></div>
+    <div id="topbar-root"
+         data-title="Configuration IDS"
+         data-subtitle="Gestion des règles de sécurité et export Snort"
+         data-notifications="2">
+    </div>
     <section class="content">
       <div id="root"></div>
     </section>
@@ -396,93 +310,80 @@
 
 <script src="sidebar.js"></script>
 <script src="topbar.js"></script>
+
 <script type="text/babel">
 const { useState, useEffect, useCallback } = React;
 
-// API base URL
-const API_BASE_URL = window.location.port === '5000' ? '' : 'http://127.0.0.1:5000';
+/* ─── API Base URL ─────────────────────────────────────── */
+const API_BASE_URL = window.location.port === '5000'
+  ? ''
+  : 'http://127.0.0.1:5000';
 
-// API functions
+/* ─── API helpers ──────────────────────────────────────── */
 const api = {
   async getRules() {
-    const url = `${API_BASE_URL}/api/regles`;
-    const response = await fetch(url);
-    if (!response.ok) throw new Error(`HTTP ${response.status}`);
-    const data = await response.json();
-    if (!data.success) throw new Error(data.error || "Erreur inconnue");
-    const rulesArray = data.regles || data.rules || [];
-    if (!Array.isArray(rulesArray)) throw new Error("La réponse ne contient pas un tableau de règles");
-    return rulesArray;
+    const r = await fetch(`${API_BASE_URL}/api/regles`);
+    if (!r.ok) throw new Error(`HTTP ${r.status}`);
+    const d = await r.json();
+    if (!d.success) throw new Error(d.error || "Erreur inconnue");
+    const arr = d.regles || d.rules || [];
+    if (!Array.isArray(arr)) throw new Error("Réponse invalide");
+    return arr;
   },
-
   async addRule(rule) {
-    const response = await fetch(`${API_BASE_URL}/api/regles`, {
+    const r = await fetch(`${API_BASE_URL}/api/regles`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ rule })
     });
-    const data = await response.json();
-    if (!data.success) throw new Error(data.error);
-    return data;
+    const d = await r.json();
+    if (!d.success) throw new Error(d.error);
+    return d;
   },
-
   async updateRule(sid, rule) {
-    const response = await fetch(`${API_BASE_URL}/api/regles/${sid}`, {
+    const r = await fetch(`${API_BASE_URL}/api/regles/${sid}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ rule })
     });
-    const data = await response.json();
-    if (!data.success) throw new Error(data.error);
-    return data;
+    const d = await r.json();
+    if (!d.success) throw new Error(d.error);
+    return d;
   },
-
   async deleteRule(sid) {
-    const response = await fetch(`${API_BASE_URL}/api/regles/${sid}`, {
-      method: 'DELETE'
-    });
-    const data = await response.json();
-    if (!data.success) throw new Error(data.error);
-    return data;
+    const r = await fetch(`${API_BASE_URL}/api/regles/${sid}`, { method: 'DELETE' });
+    const d = await r.json();
+    if (!d.success) throw new Error(d.error);
+    return d;
   },
-
   async resetRules() {
-    const response = await fetch(`${API_BASE_URL}/api/regles/reset`, {
-      method: 'POST'
-    });
-    const data = await response.json();
-    if (!data.success) throw new Error(data.error);
-    return data;
+    const r = await fetch(`${API_BASE_URL}/api/regles/reset`, { method: 'POST' });
+    const d = await r.json();
+    if (!d.success) throw new Error(d.error);
+    return d;
   }
 };
 
+/* ─── Utilitaires ──────────────────────────────────────── */
 function extractProtocol(rule) {
   try {
-    const parts = rule.split(/\s+/);
-    if (parts.length > 1) {
-      const protocol = parts[1].toLowerCase();
-      if (['tcp', 'udp', 'icmp'].includes(protocol)) return protocol;
-    }
-    return 'tcp';
-  } catch (e) {
-    return 'tcp';
-  }
+    const p = rule.split(/\s+/)[1]?.toLowerCase();
+    return ['tcp','udp','icmp'].includes(p) ? p : 'tcp';
+  } catch { return 'tcp'; }
 }
 
+/* ─── Composant StatCard ───────────────────────────────── */
 const StatCard = ({ icon, label, value, badge, tone }) => {
-  const getIcon = () => {
-    switch(icon) {
-      case 'rules': return <path d="M4 4h16v16H4zM8 8h8M8 12h6M8 16h4" />;
-      case 'export': return <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3" />;
-      case 'snort': return <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />;
-      default: return null;
-    }
+  const icons = {
+    rules:  <path d="M4 4h16v16H4zM8 8h8M8 12h6M8 16h4"/>,
+    export: <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/>,
+    snort:  <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
   };
   return (
     <div className="stat-mini-card">
       <div className={`stat-icon ${tone}`}>
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-          {getIcon()}
+          {icons[icon]}
         </svg>
       </div>
       <div className="stat-info">
@@ -494,235 +395,438 @@ const StatCard = ({ icon, label, value, badge, tone }) => {
   );
 };
 
-function App() {
-  const [rules, setRules] = useState([]);
-  const [selectedSid, setSelectedSid] = useState(null);
-  const [editorValue, setEditorValue] = useState('');
-  const [toast, setToast] = useState({ message: '', type: '' });
-  const [loading, setLoading] = useState(true);
-  const [lastUpdate, setLastUpdate] = useState(new Date());
-  const [actionLoading, setActionLoading] = useState(false);
+/* ══════════════════════════════════════════════════════════
+   MODAL — Téléchargement depuis Snort.org
+══════════════════════════════════════════════════════════ */
+const SnortDownloadModal = ({ onClose, onSuccess, apiBaseUrl }) => {
+  const [source,   setSource]   = useState('community');
+  const [oinkcode, setOinkcode] = useState('');
+  const [loading,  setLoading]  = useState(false);
+  const [progress, setProgress] = useState('');
+  const [result,   setResult]   = useState(null); // résumé après import
 
-  // ✅ Mise à jour locale des statistiques sans recharger toute la page
-  const updateStatsOnly = useCallback((newRules) => {
-    // Met à jour uniquement les cartes statistiques
-    const statTotal = document.getElementById('stat-total-value');
-    if (statTotal) statTotal.textContent = newRules.length;
-  }, []);
+  const handleDownload = async () => {
+    setLoading(true);
+    setProgress('Connexion à snort.org…');
+    setResult(null);
 
-  const loadRules = useCallback(async (showLoading = true) => {
-    if (showLoading) setLoading(true);
     try {
-      const rulesData = await api.getRules();
-      
-      let formattedRules = [];
-      if (Array.isArray(rulesData)) {
-        formattedRules = rulesData.map(rule => ({
-          sid: String(rule.sid),
-          definition: rule.rule,
-          type: extractProtocol(rule.rule)
-        }));
-      }
-      
-      // ✅ Mise à jour locale du state
-      setRules(formattedRules);
-      updateStatsOnly(formattedRules);
-      
-      if (formattedRules.length > 0) {
-        const stillExists = formattedRules.some(r => r.sid === selectedSid);
-        if (!stillExists || !selectedSid) {
-          setSelectedSid(formattedRules[0].sid);
-        }
+      const body = { source };
+      if (source === 'registered') body.oinkcode = oinkcode.trim();
+
+      setProgress('Téléchargement de l\'archive en cours…');
+
+      const r = await fetch(`${apiBaseUrl}/api/regles/download-from-snort`, {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify(body)
+      });
+
+      setProgress('Importation des règles en base de données…');
+      const d = await r.json();
+
+      if (!d.success) throw new Error(d.error);
+
+      setResult(d);
+      setProgress('');
+      onSuccess(d.message);
+    } catch (err) {
+      setProgress('');
+      setResult({ error: err.message });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="modal-overlay" onClick={e => { if (e.target === e.currentTarget && !loading) onClose(); }}>
+      <div className="modal-box">
+
+        {/* En-tête */}
+        <div className="modal-header">
+          <div>
+            <div className="modal-title">📥 Télécharger depuis Snort.org</div>
+            <div className="modal-subtitle">Bibliothèque officielle Cisco Talos — Snort 2.9.20</div>
+          </div>
+          <button className="modal-close" onClick={onClose} disabled={loading}>✕</button>
+        </div>
+
+        {/* Sélection de la source */}
+        <label className="modal-label">Source des règles</label>
+        <div className="source-selector">
+          <div
+            className={`source-card ${source === 'community' ? 'active' : ''}`}
+            onClick={() => !loading && setSource('community')}
+          >
+            <div className="source-card-icon">🌍</div>
+            <div className="source-card-title">Community Rules</div>
+            <div className="source-card-sub">GPLv2 · Gratuit · Sans compte</div>
+          </div>
+          <div
+            className={`source-card ${source === 'registered' ? 'active' : ''}`}
+            onClick={() => !loading && setSource('registered')}
+          >
+            <div className="source-card-icon">🔑</div>
+            <div className="source-card-title">Registered Rules</div>
+            <div className="source-card-sub">Oinkcode requis · Plus complètes</div>
+          </div>
+        </div>
+
+        {/* Bannière info selon la source */}
+        {source === 'community' && (
+          <div className="info-banner green">
+            <span className="info-banner-icon">✅</span>
+            <div className="info-banner-text">
+              Règles <strong>GPLv2</strong> développées par la communauté Snort et validées par Cisco Talos.
+              Téléchargement direct, aucune inscription requise.
+            </div>
+          </div>
+        )}
+        {source === 'registered' && (
+          <div className="info-banner blue">
+            <span className="info-banner-icon">ℹ️</span>
+            <div className="info-banner-text">
+              Règles <strong>Registered/Subscriber</strong> — archive <code>snortrules-snapshot-29200.tar.gz</code>.
+              Nécessite un compte gratuit sur snort.org pour obtenir un Oinkcode.
+            </div>
+          </div>
+        )}
+
+        {/* Champ Oinkcode */}
+        {source === 'registered' && (
+          <>
+            <label className="modal-label">Oinkcode</label>
+            <input
+              className="modal-input"
+              type="text"
+              value={oinkcode}
+              onChange={e => setOinkcode(e.target.value)}
+              placeholder="ex: a1b2c3d4e5f67890abcdef1234567890"
+              disabled={loading}
+              autoComplete="off"
+            />
+            <p className="modal-hint">
+              Trouvez votre oinkcode sur{' '}
+              <a href="https://www.snort.org/oinkcodes" target="_blank" rel="noopener noreferrer">
+                snort.org → Account → Oinkcode
+              </a>
+            </p>
+          </>
+        )}
+
+        {/* Progression */}
+        {loading && (
+          <>
+            <div className="progress-bar-wrap">
+              <div className="progress-bar-fill"></div>
+            </div>
+            <div className="progress-label">
+              <div className="loading-spinner" style={{ width: 14, height: 14, margin: 0 }}></div>
+              {progress}
+            </div>
+          </>
+        )}
+
+        {/* Résultat après import */}
+        {result && !result.error && (
+          <div className="info-banner green" style={{ marginTop: 12 }}>
+            <span className="info-banner-icon">🎉</span>
+            <div className="info-banner-text">
+              <strong>Import réussi !</strong><br/>
+              {result.added} règle(s) ajoutée(s) &nbsp;·&nbsp;
+              {result.skipped_duplicates} doublon(s) ignoré(s)
+              {result.errors_count > 0 && ` · ${result.errors_count} erreur(s)`}
+              <br/>
+              <span style={{ fontSize: 11, color: '#166534', opacity: .8 }}>
+                Archive : {result.total_in_archive} règles dans {result.files_parsed} fichier(s) .rules
+              </span>
+            </div>
+          </div>
+        )}
+        {result && result.error && (
+          <div className="info-banner amber" style={{ marginTop: 12 }}>
+            <span className="info-banner-icon">⚠️</span>
+            <div className="info-banner-text"><strong>Erreur :</strong> {result.error}</div>
+          </div>
+        )}
+
+        {/* Boutons */}
+        <div className="modal-footer">
+          {!result ? (
+            <>
+              <button
+                className="btn btn-snort"
+                onClick={handleDownload}
+                disabled={loading || (source === 'registered' && !oinkcode.trim())}
+              >
+                {loading ? 'Téléchargement…' : '⬇ Importer les règles'}
+              </button>
+              <button className="btn btn-outline" onClick={onClose} disabled={loading} style={{ flex: '0 0 auto', width: 'auto', padding: '11px 18px' }}>
+                Annuler
+              </button>
+            </>
+          ) : (
+            <>
+              {!result.error && (
+                <button className="btn btn-snort" onClick={handleDownload} disabled={loading}>
+                  ↺ Réimporter
+                </button>
+              )}
+              {result.error && (
+                <button className="btn btn-primary" onClick={handleDownload} disabled={loading}>
+                  ↺ Réessayer
+                </button>
+              )}
+              <button className="btn btn-outline" onClick={onClose} style={{ flex: '0 0 auto', width: 'auto', padding: '11px 18px' }}>
+                Fermer
+              </button>
+            </>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+/* ══════════════════════════════════════════════════════════
+   COMPOSANT PRINCIPAL — App
+══════════════════════════════════════════════════════════ */
+function App() {
+  const [rules,        setRules]        = useState([]);
+  const [selectedSid,  setSelectedSid]  = useState(null);
+  const [editorValue,  setEditorValue]  = useState('');
+  const [toast,        setToast]        = useState({ message: '', type: '' });
+  const [loading,      setLoading]      = useState(true);
+  const [lastUpdate,   setLastUpdate]   = useState(new Date());
+  const [actionLoading,setActionLoading]= useState(false);
+  const [showSnortModal,setShowSnortModal] = useState(false);
+
+  /* ── Chargement des règles ── */
+  const loadRules = useCallback(async (showSpinner = true) => {
+    if (showSpinner) setLoading(true);
+    try {
+      const data = await api.getRules();
+      const formatted = data.map(r => ({
+        sid:        String(r.sid),
+        definition: r.rule,
+        type:       extractProtocol(r.rule)
+      }));
+      setRules(formatted);
+      if (formatted.length > 0) {
+        const still = formatted.some(r => r.sid === selectedSid);
+        if (!still || !selectedSid) setSelectedSid(formatted[0].sid);
       } else {
         setSelectedSid(null);
         setEditorValue('');
       }
-    } catch (error) {
-      console.error('Erreur chargement:', error);
-      setToast({ message: 'Erreur: ' + error.message, type: 'error' });
+    } catch (err) {
+      setToast({ message: 'Erreur : ' + err.message, type: 'error' });
     } finally {
-      if (showLoading) setLoading(false);
+      if (showSpinner) setLoading(false);
     }
-  }, [selectedSid, updateStatsOnly]);
+  }, [selectedSid]);
 
-  // Chargement initial uniquement
-  useEffect(() => {
-    loadRules(true);
-  }, []);
+  useEffect(() => { loadRules(true); }, []);
 
+  /* ── Auto-dismiss toast ── */
   useEffect(() => {
-    if (toast.message) {
-      const timer = setTimeout(() => setToast({ message: '', type: '' }), 3000);
-      return () => clearTimeout(timer);
-    }
+    if (!toast.message) return;
+    const t = setTimeout(() => setToast({ message: '', type: '' }), 4000);
+    return () => clearTimeout(t);
   }, [toast]);
 
+  /* ── Sync éditeur ← règle sélectionnée ── */
   const selectedRule = rules.find(r => r.sid === selectedSid);
   useEffect(() => {
     if (selectedRule) setEditorValue(selectedRule.definition);
   }, [selectedSid, selectedRule]);
 
-  const getTypeBadge = (type) => {
-    const classes = { tcp: 'badge-tcp', udp: 'badge-udp', icmp: 'badge-icmp' };
-    return <span className={classes[type] || 'badge-tcp'}>{type.toUpperCase()}</span>;
+  /* ── Badge protocole ── */
+  const getTypeBadge = type => {
+    const cls = { tcp: 'badge-tcp', udp: 'badge-udp', icmp: 'badge-icmp' };
+    return <span className={cls[type] || 'badge-tcp'}>{type.toUpperCase()}</span>;
   };
 
-  // ✅ Ajouter - met à jour uniquement la table et l'éditeur
+  /* ── AJOUTER ── */
   const handleAddRule = async () => {
     if (!editorValue.trim()) {
       setToast({ message: 'Veuillez saisir une règle dans l\'éditeur', type: 'error' });
       return;
     }
-    
     setActionLoading(true);
     try {
       let newRule = editorValue.trim();
       const sidMatch = newRule.match(/sid:(\d+)/);
       let newSid;
-      
       if (sidMatch) {
         newSid = parseInt(sidMatch[1]);
       } else {
         newSid = rules.length > 0 ? Math.max(...rules.map(r => parseInt(r.sid)), 1000000) + 1 : 1000001;
         newRule = `${newRule} sid:${newSid};`;
       }
-      
       await api.addRule(newRule);
-      
-      // ✅ Recharge uniquement les données (pas la page)
       await loadRules(false);
-      
       setSelectedSid(String(newSid));
-      setToast({ message: 'Règle ajoutée', type: 'success' });
+      setToast({ message: 'Règle ajoutée avec succès', type: 'success' });
       setLastUpdate(new Date());
-    } catch (error) {
-      setToast({ message: 'Erreur: ' + error.message, type: 'error' });
+    } catch (err) {
+      setToast({ message: 'Erreur : ' + err.message, type: 'error' });
     } finally {
       setActionLoading(false);
     }
   };
 
-  // ✅ Modifier - met à jour uniquement la ligne modifiée
+  /* ── MODIFIER ── */
   const handleSaveRule = async () => {
-    if (!selectedSid) {
-      setToast({ message: 'Sélectionnez une règle à modifier', type: 'error' });
-      return;
-    }
-    if (!editorValue.trim()) {
-      setToast({ message: 'La règle ne peut pas être vide', type: 'error' });
-      return;
-    }
-    
+    if (!selectedSid)         { setToast({ message: 'Sélectionnez une règle à modifier', type: 'error' }); return; }
+    if (!editorValue.trim())  { setToast({ message: 'La règle ne peut pas être vide',    type: 'error' }); return; }
     setActionLoading(true);
     try {
       await api.updateRule(parseInt(selectedSid), editorValue);
-      
-      // ✅ Mise à jour locale de la règle modifiée sans recharger tout
-      const updatedRules = rules.map(rule => 
-        rule.sid === selectedSid 
-          ? { ...rule, definition: editorValue, type: extractProtocol(editorValue) }
-          : rule
-      );
-      setRules(updatedRules);
-      
+      setRules(rules.map(r =>
+        r.sid === selectedSid
+          ? { ...r, definition: editorValue, type: extractProtocol(editorValue) }
+          : r
+      ));
       setToast({ message: 'Règle sauvegardée', type: 'success' });
+      if (window.NetGuardAudit) window.NetGuardAudit.ruleModified({ sid: selectedSid });
       setLastUpdate(new Date());
-    } catch (error) {
-      setToast({ message: 'Erreur: ' + error.message, type: 'error' });
+    } catch (err) {
+      setToast({ message: 'Erreur : ' + err.message, type: 'error' });
     } finally {
       setActionLoading(false);
     }
   };
 
-  // ✅ Supprimer - supprime la ligne sans recharger
+  /* ── SUPPRIMER ── */
   const handleDeleteRule = async () => {
     if (!selectedSid) return;
-    if (rules.length <= 1) {
-      setToast({ message: 'Impossible de supprimer la dernière règle', type: 'error' });
-      return;
-    }
-    if (!confirm(`Supprimer la règle ${selectedSid} ?`)) return;
-    
+    if (rules.length <= 1) { setToast({ message: 'Impossible de supprimer la dernière règle', type: 'error' }); return; }
+    if (!confirm(`Supprimer la règle SID ${selectedSid} ?`)) return;
     setActionLoading(true);
     try {
       await api.deleteRule(parseInt(selectedSid));
-      
-      // ✅ Mise à jour locale après suppression
-      const newRules = rules.filter(r => r.sid !== selectedSid);
-      setRules(newRules);
-      
-      if (newRules.length > 0) {
-        setSelectedSid(newRules[0].sid);
-      } else {
-        setSelectedSid(null);
-        setEditorValue('');
-      }
-      
+      const next = rules.filter(r => r.sid !== selectedSid);
+      setRules(next);
+      setSelectedSid(next.length > 0 ? next[0].sid : null);
+      if (window.NetGuardAudit) window.NetGuardAudit.ruleDeleted({ sid: selectedSid });
+      if (next.length === 0) setEditorValue('');
       setToast({ message: 'Règle supprimée', type: 'success' });
       setLastUpdate(new Date());
-    } catch (error) {
-      setToast({ message: 'Erreur: ' + error.message, type: 'error' });
+    } catch (err) {
+      setToast({ message: 'Erreur : ' + err.message, type: 'error' });
     } finally {
       setActionLoading(false);
     }
   };
 
-  // ✅ Reset - recharge depuis le serveur
+  /* ── RESET ── */
   const handleResetRules = async () => {
-    if (!confirm('⚠️ Supprimer TOUTES les règles ?')) return;
+    if (!confirm('⚠️ Supprimer TOUTES les règles ? Cette action est irréversible.')) return;
     setActionLoading(true);
     try {
       await api.resetRules();
       await loadRules(false);
       setToast({ message: 'Base réinitialisée', type: 'success' });
+      if (window.NetGuardAudit) window.NetGuardAudit.rulesReset();
       setLastUpdate(new Date());
-    } catch (error) {
-      setToast({ message: 'Erreur: ' + error.message, type: 'error' });
+    } catch (err) {
+      setToast({ message: 'Erreur : ' + err.message, type: 'error' });
     } finally {
       setActionLoading(false);
     }
   };
 
-  // ✅ Export - ne change pas l'état
-  const handleExportToSnort = async () => {
-    const exportData = rules.map(r => r.definition).join('\n\n');
+  /* ── COPIER (clipboard) ── */
+  const handleCopyRules = async () => {
     try {
-      await navigator.clipboard.writeText(exportData);
-      setToast({ message: `${rules.length} règles copiées`, type: 'success' });
+      await navigator.clipboard.writeText(rules.map(r => r.definition).join('\n\n'));
+      setToast({ message: `${rules.length} règle(s) copiées dans le presse-papier`, type: 'success' });
     } catch {
       setToast({ message: 'Erreur de copie', type: 'error' });
     }
   };
 
-  // ✅ Sélection d'une règle - mise à jour locale uniquement
-  const handleRuleSelect = (sid) => {
-    setSelectedSid(sid);
+  /* ── TÉLÉCHARGER .rules (fichier local) ── */
+  const handleDownloadFile = async () => {
+    try {
+      const r = await fetch(`${API_BASE_URL}/api/regles/export`);
+      if (!r.ok) throw new Error(`HTTP ${r.status}`);
+      const blob = await r.blob();
+      const url  = URL.createObjectURL(blob);
+      const a    = document.createElement('a');
+      a.href     = url;
+      a.download = 'snort_rules.rules';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      setToast({ message: `Fichier snort_rules.rules téléchargé (${rules.length} règles)`, type: 'success' });
+    } catch (err) {
+      setToast({ message: 'Erreur téléchargement : ' + err.message, type: 'error' });
+    }
   };
 
+  /* ── IMPORTER fichier .rules uploadé ── */
+  const handleImportFile = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    setActionLoading(true);
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      const r = await fetch(`${API_BASE_URL}/api/regles/import`, { method: 'POST', body: formData });
+      const d = await r.json();
+      if (!d.success) throw new Error(d.error);
+      await loadRules(false);
+      setToast({ message: d.message, type: 'success' });
+      setLastUpdate(new Date());
+    } catch (err) {
+      setToast({ message: 'Erreur import : ' + err.message, type: 'error' });
+    } finally {
+      setActionLoading(false);
+      e.target.value = '';
+    }
+  };
+
+  /* ── Callback succès modal Snort.org ── */
+  const handleSnortSuccess = (message) => {
+    loadRules(false);
+    setToast({ message, type: 'success' });
+    setLastUpdate(new Date());
+    setShowSnortModal(false);
+  };
+
+  /* ── Chargement initial ── */
   if (loading) {
     return (
-      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '400px' }}>
+      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: 400 }}>
         <div className="loading-spinner"></div>
-        <span style={{ marginLeft: '10px' }}>Chargement des règles...</span>
+        <span style={{ marginLeft: 10, color: '#64748b' }}>Chargement des règles…</span>
       </div>
     );
   }
 
+  /* ══ RENDU ═══════════════════════════════════════════════ */
   return (
     <>
+      {/* ── Cartes statistiques ── */}
       <div className="stats-header-grid">
-        <StatCard icon="rules" label="Regles actives" value={rules.length} badge="En production" tone="bg-blue" />
-        <StatCard icon="export" label="Dernière modif" value={lastUpdate.toLocaleTimeString('fr-FR')} badge="Manuel" tone="bg-green" />
-        <StatCard icon="snort" label="Statut API" value="Connectée" badge="Prêt" tone="bg-amber" />
+        <StatCard icon="rules"  label="Règles actives"  value={rules.length}                         badge="En production" tone="bg-blue"  />
+        <StatCard icon="export" label="Dernière modif"  value={lastUpdate.toLocaleTimeString('fr-FR')} badge="Manuel"       tone="bg-green" />
+        <StatCard icon="snort"  label="Statut API"      value="Connectée"                             badge="Prêt"         tone="bg-amber" />
       </div>
 
+      {/* ── Section principale ── */}
       <div className="manage-section">
         <div className="section-header">
           <span className="section-title">Règles IDS</span>
-          <div className="status-indicator" style={{ background: rules.length > 0 ? '#22c55e' : '#ef4444' }}></div>
+          <div className="status-indicator"
+               style={{ background: rules.length > 0 ? '#22c55e' : '#ef4444' }}>
+          </div>
         </div>
 
-        {/* Table scrollable */}
+        {/* Table des règles */}
         <div className="table-scroll-container">
           <table>
             <thead>
@@ -734,10 +838,10 @@ function App() {
             </thead>
             <tbody>
               {rules.map(rule => (
-                <tr 
-                  key={rule.sid} 
-                  className={selectedSid === rule.sid ? 'selected' : ''} 
-                  onClick={() => handleRuleSelect(rule.sid)}
+                <tr
+                  key={rule.sid}
+                  className={selectedSid === rule.sid ? 'selected' : ''}
+                  onClick={() => setSelectedSid(rule.sid)}
                 >
                   <td className="mono">{rule.sid}</td>
                   <td>{getTypeBadge(rule.type)}</td>
@@ -746,8 +850,8 @@ function App() {
               ))}
               {rules.length === 0 && (
                 <tr>
-                  <td colSpan="3" style={{ textAlign: 'center', padding: '40px' }}>
-                    Aucune règle trouvée. Écrivez une règle dans l'éditeur et cliquez "Ajouter".
+                  <td colSpan="3" style={{ textAlign: 'center', padding: 40, color: '#94a3b8' }}>
+                    Aucune règle. Écrivez une règle dans l'éditeur ou importez depuis Snort.org.
                   </td>
                 </tr>
               )}
@@ -755,38 +859,80 @@ function App() {
           </table>
         </div>
 
+        {/* ── Barre de boutons ── */}
         <div className="button-row">
-          <button className="btn btn-primary" onClick={handleAddRule} disabled={actionLoading}>
-            {actionLoading ? <div className="loading-spinner" style={{ width: '14px', height: '14px' }}></div> : 'Ajouter'}
+          {/* CRUD */}
+          <button className="btn btn-primary"  onClick={handleAddRule}    disabled={actionLoading}>
+            {actionLoading ? <span style={{ display:'flex', alignItems:'center', gap:6 }}><div className="loading-spinner" style={{ width:14, height:14, margin:0 }}></div>…</span> : '+ Ajouter'}
           </button>
-          <button className="btn btn-outline" onClick={handleSaveRule} disabled={actionLoading || !selectedSid}>
-            Modifier
-          </button>
-          <button className="btn btn-danger" onClick={handleDeleteRule} disabled={actionLoading || !selectedSid || rules.length <= 1}>
-            Supprimer
-          </button>
-          <button className="btn btn-outline" onClick={handleResetRules} disabled={actionLoading}>
-            Reset
-          </button>
-          <button className="btn btn-success" onClick={handleExportToSnort} disabled={rules.length === 0}>
-            Exporter
+          <button className="btn btn-outline"  onClick={handleSaveRule}   disabled={actionLoading || !selectedSid}>Modifier</button>
+          <button className="btn btn-danger"   onClick={handleDeleteRule} disabled={actionLoading || !selectedSid || rules.length <= 1}>Supprimer</button>
+          <button className="btn btn-outline"  onClick={handleResetRules} disabled={actionLoading}>Reset</button>
+
+          {/* Séparateur visuel */}
+          <div className="btn-divider"></div>
+
+          {/* Export / Import fichier local */}
+          <button className="btn btn-success"  onClick={handleCopyRules}    disabled={rules.length === 0} title="Copier toutes les règles dans le presse-papier">📋 Copier</button>
+          <button className="btn btn-success"  onClick={handleDownloadFile}  disabled={rules.length === 0} title="Télécharger en fichier .rules">⬇ .rules</button>
+          <label  className="btn btn-outline"  title="Importer un fichier .rules local" style={{ cursor:'pointer' }}>
+            ⬆ Importer
+            <input type="file" accept=".rules,.txt" style={{ display:'none' }} onChange={handleImportFile} />
+          </label>
+
+          {/* Séparateur visuel */}
+          <div className="btn-divider"></div>
+
+          {/* Téléchargement depuis snort.org */}
+          <button
+            className="btn btn-snort"
+            onClick={() => setShowSnortModal(true)}
+            disabled={actionLoading}
+            title="Télécharger les règles officielles depuis snort.org (Snort 2.9.20)"
+          >
+            🌐 Snort.org
           </button>
         </div>
 
+        {/* ── Éditeur ── */}
         {selectedRule && (
           <div>
-            <label className="editor-label">Éditeur de règle - SID {selectedRule.sid}</label>
+            <label className="editor-label">
+              Éditeur de règle — SID {selectedRule.sid}
+            </label>
             <textarea
               className="editor-area"
               value={editorValue}
               onChange={e => setEditorValue(e.target.value)}
-              placeholder="Entrez la définition de la règle Snort..."
+              placeholder="Entrez la définition de la règle Snort…"
+              disabled={actionLoading}
+            />
+          </div>
+        )}
+        {!selectedRule && rules.length === 0 && (
+          <div>
+            <label className="editor-label">Nouvelle règle</label>
+            <textarea
+              className="editor-area"
+              value={editorValue}
+              onChange={e => setEditorValue(e.target.value)}
+              placeholder='alert tcp any any -> $HOME_NET 80 (msg:"Test"; sid:1000001; rev:1;)'
               disabled={actionLoading}
             />
           </div>
         )}
       </div>
 
+      {/* ── Modal Snort.org ── */}
+      {showSnortModal && (
+        <SnortDownloadModal
+          apiBaseUrl={API_BASE_URL}
+          onClose={() => setShowSnortModal(false)}
+          onSuccess={handleSnortSuccess}
+        />
+      )}
+
+      {/* ── Toast notifications ── */}
       {toast.message && (
         <div className={`toast ${toast.type === 'error' ? 'toast-error' : toast.type === 'success' ? 'toast-success' : ''}`}>
           {toast.message}
@@ -798,24 +944,25 @@ function App() {
 
 ReactDOM.createRoot(document.getElementById('root')).render(<App />);
 </script>
+
 <script>
+  /* ── Sync mode sombre ── */
   (function syncDarkMode() {
-    const savedTheme = localStorage.getItem('netguard-theme');
-    const htmlElement = document.documentElement;
-    if (savedTheme === 'dark') htmlElement.classList.add('dark-mode');
-    else if (savedTheme === 'light') htmlElement.classList.remove('dark-mode');
-    else if (window.matchMedia('(prefers-color-scheme: dark)').matches) htmlElement.classList.add('dark-mode');
-    
-    window.addEventListener('storage', function(e) {
-      if (e.key === 'netguard-theme') {
-        if (e.newValue === 'dark') htmlElement.classList.add('dark-mode');
-        else if (e.newValue === 'light') htmlElement.classList.remove('dark-mode');
-      }
+    const html = document.documentElement;
+    const saved = localStorage.getItem('netguard-theme');
+    if      (saved === 'dark')  html.classList.add('dark-mode');
+    else if (saved === 'light') html.classList.remove('dark-mode');
+    else if (window.matchMedia('(prefers-color-scheme: dark)').matches)
+      html.classList.add('dark-mode');
+
+    window.addEventListener('storage', e => {
+      if (e.key !== 'netguard-theme') return;
+      if (e.newValue === 'dark')  html.classList.add('dark-mode');
+      else if (e.newValue === 'light') html.classList.remove('dark-mode');
     });
-    
-    window.addEventListener('themeChanged', function(e) {
-      if (e.detail.isDark) htmlElement.classList.add('dark-mode');
-      else htmlElement.classList.remove('dark-mode');
+    window.addEventListener('themeChanged', e => {
+      if (e.detail.isDark) html.classList.add('dark-mode');
+      else html.classList.remove('dark-mode');
     });
   })();
 </script>

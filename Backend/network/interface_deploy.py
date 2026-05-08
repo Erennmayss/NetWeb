@@ -92,11 +92,14 @@ def build_commands(interface_name, mode, vlan_id, status,
 def run_deploy(interface_name, mode="access", vlan_id=1, status="UP",
                port_security=False, max_mac=1, violation_mode="shutdown",
                bpdu_guard=False, allowed_vlans=None, description=None,
-               static_mac=None):
+               static_mac=None,
+               switch_ip=None, switch_user=None, switch_password=None):
     """
     Déploie la configuration d'une interface sur le switch Cisco via SSH/Netmiko.
 
-    Les identifiants SSH sont lus AUTOMATIQUEMENT depuis hosts.yaml.
+    Si switch_ip / switch_user / switch_password sont fournis (depuis la BDD),
+    ils sont utilisés directement via Netmiko sans passer par hosts.yaml.
+    Sinon, fallback sur hosts.yaml (compatibilité ascendante / test manuel).
 
     Retourne : {"success": bool, "message"/"error": str, "commands": list}
     """
@@ -115,7 +118,8 @@ def run_deploy(interface_name, mode="access", vlan_id=1, status="UP",
     )
 
     print(f"\n{'='*55}")
-    print(f"  🔌 Connexion SSH → switch (source : hosts.yaml)")
+    src = f"{switch_ip} (source : BDD switchs)" if switch_ip else "hosts.yaml"
+    print(f"  🔌 Connexion SSH → {src}")
     print(f"{'='*55}")
     print(f"  Interface  : {interface_name}")
     print(f"  Mode       : {mode.upper()}")
@@ -139,6 +143,34 @@ def run_deploy(interface_name, mode="access", vlan_id=1, status="UP",
         print(f"   {c}")
     print()
 
+    # ── Chemin 1 : credentials fournis directement (depuis la table switchs) ──
+    if switch_ip and switch_user and switch_password:
+        try:
+            from netmiko import ConnectHandler
+            device = {
+                "device_type": "cisco_ios",
+                "host":        switch_ip,
+                "username":    switch_user,
+                "password":    switch_password,
+                "port":        22,
+            }
+            net_connect = ConnectHandler(**device)
+            output = net_connect.send_config_set(commands)
+            net_connect.send_command("end")
+            net_connect.send_command("write memory")
+            net_connect.disconnect()
+            print(f"🎉 Interface {interface_name} configurée et sauvegardée sur {switch_ip} !")
+            return {
+                "success":  True,
+                "message":  f"Interface {interface_name} configurée et sauvegardée sur le switch {switch_ip}.",
+                "commands": commands,
+                "output":   output,
+            }
+        except Exception as e:
+            print(f"❌ Erreur SSH sur {switch_ip} : {e}")
+            return {"success": False, "error": str(e), "commands": commands}
+
+    # ── Chemin 2 : fallback hosts.yaml ────────────────────────────────────────
     try:
         nr = build_nornir()
 

@@ -452,7 +452,8 @@
             allowed_vlans:  currentPort.mode === 'trunk' ? (currentPort.vlan || 'All') : null,
             description:    currentPort.type === 'uplink' ? 'Uplink Port' : 'Access Port',
             static_mac:     currentPort.staticMac || null,
-            remove_port_security: !currentPort.portSecurity,  // ← annule si décoché
+            remove_port_security: !currentPort.portSecurity,
+            id_switch:      selectedSwitchId,
           };
 
           console.log('[handleApplyAndDeploy] Deploy payload:', deployPayload);
@@ -466,6 +467,7 @@
 
           if (data.success) {
             showToast(`🎉 Interface ${id} enregistrée en BDD et déployée sur le switch !`);
+            if (window.NetGuardAudit) window.NetGuardAudit.interfaceDeployed({ name: id, mode: currentPort.mode, vlan: currentPort.vlan });
           } else {
             showToast(`⚠️ BDD OK — mais déploiement SSH échoué : ${data.error || 'Erreur inconnue'}`, 'error');
           }
@@ -504,6 +506,10 @@
           setTftpResult(data);
           if (data.success) {
             showToast(tftpMode === 'backup' ? `✅ ${data.config_type}-config sauvegardée sur ${tftpServer}` : `✅ ${data.config_type}-config restaurée depuis ${tftpServer}`);
+            if (window.NetGuardAudit) {
+              if (tftpMode === 'backup') { window.NetGuardAudit.tftpBackup({ server: tftpServer, filename: tftpFilename, configType: tftpConfigType, success: true }); }
+              else { window.NetGuardAudit.tftpRestore({ server: tftpServer, filename: tftpFilename, configType: tftpConfigType, success: true }); }
+            }
           } else {
             showToast(`❌ TFTP échoué : ${data.error || 'Erreur inconnue'}`, 'error');
           }
@@ -545,6 +551,7 @@
           setMirroringResult(data);
           if (data.success) {
             showToast(`✅ Port mirroring déployé : VLAN ${mirroringSourceVlan} → ${mirroringDestination}`);
+            if (window.NetGuardAudit) window.NetGuardAudit.portMirroringCreated({ sessionId: mirroringSessionId, sourceVlan: mirroringSourceVlan, destination: mirroringDestination });
           } else {
             showToast(`❌ Échec port mirroring : ${data.error || 'Erreur inconnue'}`, 'error');
           }
@@ -574,6 +581,7 @@
           setMirroringResult(null);
           if (data.success) {
             showToast(`✅ Session SPAN ${mirroringSessionId} supprimée du switch`);
+            if (window.NetGuardAudit) window.NetGuardAudit.portMirroringDeleted({ sessionId: mirroringSessionId });
           } else {
             showToast(`❌ Échec suppression SPAN : ${data.error || 'Erreur inconnue'}`, 'error');
           }
@@ -637,6 +645,7 @@
           ));
           if (selectedPortId === portId) { setSelectedPortId(null); setDeployResult(null); }
           showToast(`✅ Interface ${portId} supprimée et réinitialisée sur le switch`);
+          if (window.NetGuardAudit) window.NetGuardAudit.interfaceDeleted({ name: portId });
           setTimeout(() => { setDeleteModal(null); setDeleteResult(null); }, 1800);
         }
       };
@@ -1148,67 +1157,22 @@ end`}
 
                   <div className="space-y-5">
 
-                    {/* ── SECTION SWITCH CIBLE (hosts.yaml) ── */}
-                    <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200 mb-2">
-                      <div className="flex items-center justify-between mb-3">
-                        <div className="flex items-center gap-2">
-                          <span className="text-base">🔒</span>
-                          <h3 className="text-xs font-bold text-indigo-600 uppercase tracking-wider">Switch Cible (hosts.yaml)</h3>
+                    {/* ── SWITCH CIBLE (depuis la selection BDD) ── */}
+                    {switches.find(sw => sw.id === selectedSwitchId) ? (
+                      <div className="p-3 bg-indigo-50 rounded-xl border border-indigo-100 flex items-center gap-3 mb-2">
+                        <span className="text-lg">📡</span>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-[10px] font-bold text-indigo-500 uppercase tracking-wider">Switch cible</p>
+                          <p className="text-sm font-bold text-indigo-700 truncate">{switches.find(sw => sw.id === selectedSwitchId).nom}</p>
+                          <p className="text-[11px] font-mono text-indigo-400">{switches.find(sw => sw.id === selectedSwitchId).ip}</p>
                         </div>
-                        <button onClick={saveSwitchConfig} disabled={isSavingSwitch}
-                          className="text-[10px] font-bold px-3 py-1.5 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50 transition-all">
-                          {isSavingSwitch ? 'Sauvegarde...' : '💾 Sauvegarder'}
-                        </button>
+                        <span className="px-2 py-1 bg-emerald-100 text-emerald-700 text-[10px] font-bold rounded-lg">BDD ✓</span>
                       </div>
-                      {!switchCfgLoaded ? (
-                        <p className="text-[11px] text-slate-400 italic">Chargement depuis hosts.yaml...</p>
-                      ) : (
-                        <div className="grid grid-cols-2 gap-2">
-                          <div>
-                            <label className="block text-[10px] font-bold text-slate-500 mb-1">IP du Switch</label>
-                            <input type="text" value={switchCfg.hostname}
-                              onChange={(e) => setSwitchCfg({...switchCfg, hostname: e.target.value})}
-                              className="w-full border border-slate-200 rounded-lg p-2 text-sm font-mono outline-none focus:border-indigo-500"
-                              placeholder="10.10.10.50" />
-                          </div>
-                          <div>
-                            <label className="block text-[10px] font-bold text-slate-500 mb-1">Utilisateur SSH</label>
-                            <input type="text" value={switchCfg.username}
-                              onChange={(e) => setSwitchCfg({...switchCfg, username: e.target.value})}
-                              className="w-full border border-slate-200 rounded-lg p-2 text-sm outline-none focus:border-indigo-500"
-                              placeholder="admin" />
-                          </div>
-                          <div>
-                            <label className="block text-[10px] font-bold text-slate-500 mb-1">Mot de passe SSH</label>
-                            <input type="password" value={switchCfg.password}
-                              onChange={(e) => setSwitchCfg({...switchCfg, password: e.target.value})}
-                              className="w-full border border-slate-200 rounded-lg p-2 text-sm outline-none focus:border-indigo-500"
-                              placeholder="••••••" />
-                          </div>
-                          <div>
-                            <label className="block text-[10px] font-bold text-slate-500 mb-1">Enable Secret</label>
-                            <input type="password" value={switchCfg.secret}
-                              onChange={(e) => setSwitchCfg({...switchCfg, secret: e.target.value})}
-                              className="w-full border border-slate-200 rounded-lg p-2 text-sm outline-none focus:border-indigo-500"
-                              placeholder="enable secret" />
-                          </div>
-                          <div>
-                            <label className="block text-[10px] font-bold text-slate-500 mb-1">Port SSH</label>
-                            <input type="number" value={switchCfg.port}
-                              onChange={(e) => setSwitchCfg({...switchCfg, port: parseInt(e.target.value)||22})}
-                              className="w-full border border-slate-200 rounded-lg p-2 text-sm font-mono outline-none focus:border-indigo-500"
-                              placeholder="22" />
-                          </div>
-                          <div>
-                            <label className="block text-[10px] font-bold text-slate-500 mb-1">Nom inventaire</label>
-                            <input type="text" value={switchCfg.host_key}
-                              onChange={(e) => setSwitchCfg({...switchCfg, host_key: e.target.value})}
-                              className="w-full border border-slate-200 rounded-lg p-2 text-sm font-mono outline-none focus:border-indigo-500"
-                              placeholder="switch_cible" />
-                          </div>
-                        </div>
-                      )}
-                    </div>
+                    ) : (
+                      <div className="p-3 bg-amber-50 rounded-xl border border-amber-200 text-xs text-amber-700 font-semibold mb-2">
+                        ⚠️ Aucun switch selectionne — choisissez-en un en haut de page.
+                      </div>
+                    )}
 
                     {/* ── PORT STATUS ── */}
                     <div className="p-4 bg-slate-50 rounded-xl border border-slate-100 flex items-center justify-between">
