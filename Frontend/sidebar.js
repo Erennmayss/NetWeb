@@ -12,7 +12,6 @@
   }
 
   const session = window.NetGuardAuth.getSession();
-  const isAdmin = session && (session.role === 'admin' || session.role === 'ADMIN');
 
   const links = [
     { id: 'dashboard', label: 'Dashboard', href: 'dashboard.html', icon: 'monitor' },
@@ -24,10 +23,7 @@
     { id: 'users', label: 'Users', href: 'users.html', icon: 'users' },
     { id: 'equipements', label: 'Équipements', href: 'equipements.html', icon: 'switch' },
     { id: 'logs', label: 'Logs', href: 'logs.html', icon: 'logs' }
-  ].filter((link) => {
-    if (link.id === 'equipements' && !isAdmin) return false;
-    return window.NetGuardAuth.canAccessPage(link.id);
-  });
+  ].filter((link) => window.NetGuardAuth.canAccessPage(link.id));
 
   const icons = {
     vlan: '<path d="M21 5H3a1 1 0 0 0-1 1v3a1 1 0 0 0 1 1h18a1 1 0 0 0 1-1V6a1 1 0 0 0-1-1zM21 13H3a1 1 0 0 0-1 1v3a1 1 0 0 0 1 1h18a1 1 0 0 0 1-1v-3a1 1 0 0 0-1-1z"></path>',

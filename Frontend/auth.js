@@ -20,7 +20,7 @@
     traffic: [ROLES.ADMIN, ROLES.SECURITY_ADMIN, ROLES.AUDITOR],
     configuration: [ROLES.ADMIN, ROLES.SECURITY_ADMIN],
     users: [ROLES.ADMIN],
-    equipements: [ROLES.ADMIN],
+    equipements: [ROLES.ADMIN, ROLES.NETWORK_ADMIN],
     logs: [ROLES.ADMIN, ROLES.AUDITOR]
   };
 

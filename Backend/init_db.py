@@ -34,6 +34,7 @@ def init_database():
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS switchs (
                 id_switch SERIAL PRIMARY KEY,
+                reference_id VARCHAR(100),
                 nom VARCHAR(100) UNIQUE NOT NULL,
                 ip VARCHAR(50) UNIQUE NOT NULL,
                 masque VARCHAR(50),

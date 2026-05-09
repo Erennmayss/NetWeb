@@ -3,6 +3,7 @@ from Database.db import get_db_connection
 from utils.decorators import require_role
 from utils.security import hash_password
 import psycopg2
+import re
 
 # Création du Blueprint pour les utilisateurs
 users_bp = Blueprint('users', __name__)
@@ -15,6 +16,18 @@ class User:
         self.password = password
         self.role = role
 
+def validate_password(password):
+    """Valide que le mot de passe respecte les règles de sécurité."""
+    if len(password) < 8:
+        return "Le mot de passe doit contenir au moins 8 caractères"
+    if not re.search(r'[A-Z]', password):
+        return "Le mot de passe doit contenir au moins une majuscule"
+    if not re.search(r'[0-9]', password):
+        return "Le mot de passe doit contenir au moins un chiffre"
+    if not re.search(r'[!@#$%^&*(),.?\":{}|<>_\-+=\[\]\/\\]', password):
+        return "Le mot de passe doit contenir au moins un caractère spécial"
+    return None  # ✅ Mot de passe valide
+
 @users_bp.route("/users", methods=["POST"])
 @require_role("ADMIN")
 def create_user():
@@ -26,6 +39,11 @@ def create_user():
 
     if not all([username, email, password, role]):
         return jsonify({"error": "Données incomplètes"}), 400
+
+    # ✅ Validation mot de passe fort
+    pw_error = validate_password(password)
+    if pw_error:
+        return jsonify({"error": pw_error}), 400
 
     hashed_pw = hash_password(password).decode('utf-8')
 

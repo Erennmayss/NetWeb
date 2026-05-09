@@ -25,7 +25,7 @@ def _row_to_switch(row):
         "username": row["username"],
         "nb_ports": row["nb_ports"],
         "status":   row["status"] or "UNKNOWN",
-        "reference": row.get("reference", "") or "",
+        "reference": row.get("reference_id", "") or "",
     }
 
 
@@ -61,7 +61,7 @@ def get_switches():
         cur  = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
 
         cur.execute("""
-            SELECT id_switch, nom, ip, masque, username, password, nb_ports, status, reference
+            SELECT id_switch, nom, ip, masque, username, password, nb_ports, status, reference_id
             FROM switchs
             ORDER BY nom
         """)
@@ -94,9 +94,9 @@ def create_switch():
         conn = get_db_connection()
         cur  = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
         cur.execute("""
-            INSERT INTO switchs (reference, nom, ip, masque, username, password, nb_ports, status)
+            INSERT INTO switchs (reference_id, nom, ip, masque, username, password, nb_ports, status)
             VALUES (%s, %s, %s, %s, %s, %s, %s, 'UNKNOWN')
-            RETURNING id_switch, nom, ip, masque, username, password, nb_ports, status, reference
+            RETURNING id_switch, nom, ip, masque, username, password, nb_ports, status, reference_id
         """, (reference, nom, ip, masque, username, password, nb_ports))
         row = cur.fetchone()
         conn.commit()
@@ -132,20 +132,20 @@ def update_switch(switch_id):
             # Mise à jour avec nouveau mot de passe
             cur.execute("""
                 UPDATE switchs
-                SET reference=%s, nom=%s, ip=%s, masque=%s, username=%s, password=%s,
+                SET reference_id=%s, nom=%s, ip=%s, masque=%s, username=%s, password=%s,
                     nb_ports=COALESCE(%s, nb_ports)
                 WHERE id_switch=%s
-                RETURNING id_switch, nom, ip, masque, username, password, nb_ports, status, reference
+                RETURNING id_switch, nom, ip, masque, username, password, nb_ports, status, reference_id
             """, (reference, nom, ip, masque, username, password,
                   nb_ports, switch_id))
         else:
             # Mise à jour sans changer le mot de passe
             cur.execute("""
                 UPDATE switchs
-                SET reference=%s, nom=%s, ip=%s, masque=%s, username=%s,
+                SET reference_id=%s, nom=%s, ip=%s, masque=%s, username=%s,
                     nb_ports=COALESCE(%s, nb_ports)
                 WHERE id_switch=%s
-                RETURNING id_switch, nom, ip, masque, username, password, nb_ports, status, reference
+                RETURNING id_switch, nom, ip, masque, username, password, nb_ports, status, reference_id
             """, (reference, nom, ip, masque, username, nb_ports, switch_id))
 
         row = cur.fetchone()

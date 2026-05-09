@@ -110,3 +110,70 @@ Device settings: cisco_ios 10.10.10.50:22
 
 2026-04-29 11:38:41,183 -  nornir.core -     INFO -        run() - Running task 'Config Gi1/0/1' with args {'config_commands': ['interface Gi1/0/1', 'description Access Port', 'switchport mode access', 'switchport access vlan 129', 'switchport port-security', 'switchport port-security maximum 10', 'switchport port-security violation restrict', 'switchport port-security mac-address sticky', 'spanning-tree bpduguard enable', 'no shutdown', 'exit']} on 1 hosts
 2026-04-29 11:38:44,222 -  nornir.core -     INFO -        run() - Running task 'netmiko_save_config' with args {} on 1 hosts
+2026-05-03 16:39:37,118 -  nornir.core -     INFO -        run() - Running task 'Création VLAN 98 - it' with args {'config_commands': ['vlan 98', 'name it', 'exit']} on 1 hosts
+2026-05-03 16:39:47,232 - nornir.core.task -    ERROR -      start() - Host 'switch_cible': task 'Création VLAN 98 - it' failed with traceback:
+Traceback (most recent call last):
+  File "C:\Users\ADM\AppData\Roaming\Python\Python314\site-packages\netmiko\base_connection.py", line 1146, in establish_connection
+    self.remote_conn_pre.connect(**ssh_connect_params)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\ADM\AppData\Roaming\Python\Python314\site-packages\paramiko\client.py", line 384, in connect
+    sock.connect(addr)
+    ~~~~~~~~~~~~^^^^^^
+TimeoutError: timed out
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\ADM\AppData\Roaming\Python\Python314\site-packages\nornir\core\task.py", line 98, in start
+    r = self.task(self, **self.params)
+  File "C:\Users\ADM\AppData\Roaming\Python\Python314\site-packages\nornir_netmiko\tasks\netmiko_send_config.py", line 28, in netmiko_send_config
+    net_connect = task.host.get_connection(CONNECTION_NAME, task.nornir.config)
+  File "C:\Users\ADM\AppData\Roaming\Python\Python314\site-packages\nornir\core\inventory.py", line 476, in get_connection
+    self.open_connection(
+    ~~~~~~~~~~~~~~~~~~~~^
+        connection=connection,
+        ^^^^^^^^^^^^^^^^^^^^^^
+    ...<6 lines>...
+        extras=conn.extras,
+        ^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "C:\Users\ADM\AppData\Roaming\Python\Python314\site-packages\nornir\core\inventory.py", line 528, in open_connection
+    conn_obj.open(
+    ~~~~~~~~~~~~~^
+        hostname=hostname,
+        ^^^^^^^^^^^^^^^^^^
+    ...<5 lines>...
+        configuration=configuration,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "C:\Users\ADM\AppData\Roaming\Python\Python314\site-packages\nornir_netmiko\connections\netmiko.py", line 59, in open
+    connection = ConnectHandler(**parameters)
+  File "C:\Users\ADM\AppData\Roaming\Python\Python314\site-packages\netmiko\ssh_dispatcher.py", line 460, in ConnectHandler
+    return ConnectionClass(*args, **kwargs)
+  File "C:\Users\ADM\AppData\Roaming\Python\Python314\site-packages\netmiko\base_connection.py", line 495, in __init__
+    self._open()
+    ~~~~~~~~~~^^
+  File "C:\Users\ADM\AppData\Roaming\Python\Python314\site-packages\netmiko\base_connection.py", line 500, in _open
+    self.establish_connection()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\ADM\AppData\Roaming\Python\Python314\site-packages\netmiko\base_connection.py", line 1168, in establish_connection
+    raise NetmikoTimeoutException(msg)
+netmiko.exceptions.NetmikoTimeoutException: TCP connection to device failed.
+
+Common causes of this problem are:
+1. Incorrect hostname or IP address.
+2. Wrong TCP port.
+3. Intermediate firewall blocking access.
+
+Device settings: cisco_ios 10.10.10.50:22
+
+
+
+2026-05-07 16:24:38,892 -  nornir.core -     INFO -        run() - Running task 'TFTP Backup' with args {} on 1 hosts
+2026-05-07 16:25:04,535 -  nornir.core -     INFO -        run() - Running task 'TFTP Backup' with args {} on 1 hosts
+2026-05-07 16:37:22,157 -  nornir.core -     INFO -        run() - Running task 'Création VLAN 61 - it3' with args {'config_commands': ['vlan 61', 'name it3', 'exit']} on 1 hosts
+2026-05-07 16:37:26,390 -  nornir.core -     INFO -        run() - Running task 'netmiko_save_config' with args {} on 1 hosts
+2026-05-07 16:43:58,494 -  nornir.core -     INFO -        run() - Running task 'Création VLAN 62 - it4' with args {'config_commands': ['vlan 62', 'name it4', 'exit']} on 1 hosts
+2026-05-07 16:44:00,615 -  nornir.core -     INFO -        run() - Running task 'netmiko_save_config' with args {} on 1 hosts

@@ -174,6 +174,33 @@ def get_stats():
     finally:
         conn.close
         
+@alerts_bp.route("/api/regles/by-message", methods=["GET"])
+def get_regle_by_message():
+    """Cherche dans la table regles par le champ message (correspondant à attack_type)"""
+    message = request.args.get("message", "").strip()
+    if not message:
+        return jsonify({"success": False, "error": "Paramètre 'message' manquant"}), 400
+
+    conn = get_db_connection()
+    try:
+        cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+        cur.execute("""
+            SELECT id, sid, message, protocol, src_ip, src_port,
+                   dst_ip, dst_port, action, rule
+            FROM regles
+            WHERE LOWER(message) = LOWER(%s)
+            LIMIT 1
+        """, (message,))
+        row = cur.fetchone()
+        if not row:
+            return jsonify({"success": True, "found": False, "regle": None})
+        return jsonify({"success": True, "found": True, "regle": dict(row)})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+    finally:
+        conn.close()
+
+
 @alerts_bp.route("/api/last-triggered-rule", methods=["GET"])
 def get_last_triggered_rule():
     """Récupère la dernière alerte et retourne les infos de la règle Snort correspondante"""

@@ -73,42 +73,15 @@
       const ports = [];
       let interfaceId = 1;
       for (let i = 1; i <= 24; i++) {
-        const isConfigured = i <= 4 || i === 24;
-        const preferredVlan = i === 3 ? '20' : (i === 24 ? '30' : (isConfigured ? '10' : '1'));
         ports.push({
           id_interface: interfaceId++,
           id: `Gi1/0/${i}`,
           equipement_id: null,
-          status: i <= 4 ? 'UP' : 'DOWN',
-          vlan: pickDefaultAccessVlan(availableVlans, preferredVlan),
+          status: 'DOWN',
+          vlan: pickDefaultAccessVlan(availableVlans, '1'),
           mode: 'access',
           type: 'access',
-          speed: i <= 4 ? '1Gb' : '-',
-          devices: i <= 4 ? 1 : 0,
-          alert: i === 4,
-          srcIp: i === 4 ? '192.168.1.10' : '',
-          threat: i === 4 ? 'Port Scan Détecté' : '',
-          portSecurity: i <= 3,
-          securityViolation: 'shutdown',
-          maxMac: 1,
-          staticMac: '',
-          bpdu_guard: true,
-          configured: isConfigured,
-          allowedVlans: '',
-          dbExists: false
-        });
-      }
-      for (let i = 1; i <= 4; i++) {
-        const isConfigured = i <= 2;
-        ports.push({
-          id_interface: interfaceId++,
-          id: `Te1/1/${i}`,
-          equipement_id: null,
-          status: i === 1 ? 'UP' : 'DOWN',
-          vlan: isConfigured ? 'All' : pickDefaultAccessVlan(availableVlans, '1'),
-          mode: isConfigured ? 'trunk' : 'access',
-          type: 'uplink',
-          speed: i === 1 ? '10Gb' : '-',
+          speed: '-',
           devices: 0,
           alert: false,
           srcIp: '',
@@ -118,8 +91,32 @@
           maxMac: 1,
           staticMac: '',
           bpdu_guard: false,
-          configured: isConfigured,
-          allowedVlans: isConfigured ? 'All' : '',
+          configured: false,
+          allowedVlans: '',
+          dbExists: false
+        });
+      }
+      for (let i = 1; i <= 4; i++) {
+        ports.push({
+          id_interface: interfaceId++,
+          id: `Te1/1/${i}`,
+          equipement_id: null,
+          status: 'DOWN',
+          vlan: pickDefaultAccessVlan(availableVlans, '1'),
+          mode: 'access',
+          type: 'uplink',
+          speed: '-',
+          devices: 0,
+          alert: false,
+          srcIp: '',
+          threat: '',
+          portSecurity: false,
+          securityViolation: 'shutdown',
+          maxMac: 1,
+          staticMac: '',
+          bpdu_guard: false,
+          configured: false,
+          allowedVlans: '',
           dbExists: false
         });
       }
@@ -143,32 +140,31 @@
       portSecurity: Boolean(row.port_security),
       securityViolation: row.violation_mode || fallbackPort?.securityViolation || 'shutdown',
       maxMac: row.max_mac || fallbackPort?.maxMac || 1,
-      staticMac: row.static_mac || '',
       bpdu_guard: Boolean(row.bpdu_guard),
       configured: true,
       allowedVlans: row.allowed_vlans || '',
       dbExists: true
     });
 
-    const buildInterfacePayload = (port) => ({
-      id_interface: port.id_interface,
-      nom: port.id,
-      ip: port.srcIp || null,
-      vlan_id: port.mode === 'trunk' ? null : (port.vlan && port.vlan !== 'All' ? Number(port.vlan) : null),
-      equipement_id: port.equipement_id ?? null,
-      status: port.status,
-      mode: port.mode,
-      type: port.type,
-      speed: port.speed === '-' ? null : port.speed,
-      allowed_vlans: port.mode === 'trunk' ? (port.vlan || port.allowedVlans || 'All') : null,
-      port_security: port.portSecurity,
-      max_mac: Number(port.maxMac || 1),
-      static_mac: port.staticMac || null,
-      violation_mode: port.securityViolation || 'shutdown',
-      bpdu_guard: port.bpdu_guard,
-    });
-
     const InterfacesPage = () => {
+      // ✅ buildInterfacePayload maintenant DANS le composant pour accéder à selectedSwitchId
+      const buildInterfacePayload = (port) => ({
+        ...(port.dbExists && { id_interface: port.id_interface }),
+        nom: port.id,
+        ip: port.srcIp || null,
+        id_switch: selectedSwitchId,   // ← accessible car dans le même scope du composant
+        vlan_id: port.mode === 'trunk' ? null : (port.vlan && port.vlan !== 'All' ? Number(port.vlan) : null),
+        equipement_id: port.equipement_id ?? null,
+        status: port.status,
+        mode: port.mode,
+        type: port.type,
+        speed: port.speed === '-' ? null : port.speed,
+        allowed_vlans: port.mode === 'trunk' ? (port.vlan || port.allowedVlans || 'All') : null,
+        port_security: port.portSecurity,
+        max_mac: Number(port.maxMac || 1),
+        violation_mode: port.securityViolation || 'shutdown',
+        bpdu_guard: port.bpdu_guard,
+      });
       const [availableVlans, setAvailableVlans] = useState([]);
       const [isLoadingVlans, setIsLoadingVlans] = useState(false);
       const [ports, setPorts] = useState(generateInitialPorts());
@@ -181,10 +177,21 @@
       // TFTP
       const [tftpServer, setTftpServer] = useState('');
       const [tftpFilename, setTftpFilename] = useState('running-config.cfg');
+      const [tftpConfigType, setTftpConfigType] = useState('running'); // 'running' | 'startup'
       const [tftpResult, setTftpResult] = useState(null);
       const [isTftpRunning, setIsTftpRunning] = useState(false);
       const [tftpMode, setTftpMode] = useState('backup'); // 'backup' | 'restore'
       const [showTftp, setShowTftp] = useState(false);
+
+      // Port Mirroring
+      const [showMirroring, setShowMirroring] = useState(false);
+      const [mirroringSessionId, setMirroringSessionId] = useState('1');
+      const [mirroringSourceVlan, setMirroringSourceVlan] = useState('10');
+      const [mirroringDestination, setMirroringDestination] = useState('Gi1/0/19');
+      const [mirroringResult, setMirroringResult] = useState(null);
+      const [isMirroringRunning, setIsMirroringRunning] = useState(false);
+      const [isDeletingMirroring, setIsDeletingMirroring] = useState(false);
+      const [mirroringDeleteResult, setMirroringDeleteResult] = useState(null);
 
       // Switch config (lue depuis hosts.yaml, comme dans vlan.html)
       const [switchCfg, setSwitchCfg] = useState({
@@ -203,7 +210,7 @@
       const [isLoadingSwitches, setIsLoadingSwitches] = useState(true);
 
       const selectedPort = ports.find((p) => p.id === selectedPortId);
-      const configuredPorts = ports.filter((p) => p.configured);
+      const configuredPorts = ports.filter((p) => p.configured); // Cette variable est correcte pour la table
 
       const showToast = (message, type = 'success') => {
         setToast({ message, type });
@@ -214,17 +221,21 @@
       // ── Charger la liste des switches depuis la BDD ───────────────────────
       const loadSwitches = async () => {
         setIsLoadingSwitches(true);
+        console.log('[loadSwitches] Début du chargement des switches...');
+        setSwitches([]); // Clear switches before loading
         try {
-          const res = await fetch(`${API_BASE_URL}/api/switches`, {
-            headers: { 'Content-Type': 'application/json', ...auth.getAuthHeaders() }
+          const res = await fetch(`${API_BASE_URL}/api/switchs`, {
+            headers: auth.getAuthHeaders()
           });
           const data = await res.json();
           console.log('[loadSwitches]', data);
-          if (data.success && data.switches && data.switches.length > 0) {
-            setSwitches(data.switches);
-            setSelectedSwitchId(data.switches[0].id);
+          if (data.success && data.switchs && data.switchs.length > 0) {
+            console.log('[loadSwitches] Switches chargés:', data.switchs, 'Premier ID:', data.switchs[0].id);
+            setSwitches(data.switchs);
+            setSelectedSwitchId(Number(data.switchs[0].id)); // Ensure ID is a number
           }
         } catch (e) {
+          console.error('[loadSwitches] Erreur lors du chargement des switches:', e);
           console.error('Impossible de charger les switches:', e);
         } finally {
           setIsLoadingSwitches(false);
@@ -279,36 +290,42 @@
 
       const loadInterfaces = async (swId) => {
         setIsLoadingVlans(true);
-        setAvailableVlans([]); // Vider immédiatement les VLANs de l'ancien switch
+        console.log(`[loadInterfaces] Début du chargement des interfaces pour switch_id=${swId}`);
+        setPorts(generateInitialPorts(availableVlans)); // Reset ports to initial state before fetching
         try {
           const [intRes, vlanRes] = await Promise.all([
             fetch(`${API_BASE_URL}/api/interface?switch_id=${swId}`, { headers: auth.getAuthHeaders() }),
             fetch(`${API_BASE_URL}/api/vlan?switch_id=${swId}`,      { headers: auth.getAuthHeaders() })
           ]);
           const [intData, vlanData] = await Promise.all([intRes.json(), vlanRes.json()]);
+          
+          console.log(`[loadInterfaces] API call: ${API_BASE_URL}/api/interface?switch_id=${swId}`); // Log the actual API call
+          console.log('[loadInterfaces] Réponse API interfaces:', intData);
+          console.log('[loadInterfaces] Réponse API VLANs:', vlanData);
+          let currentVlans = [];
           if (vlanData.success) {
-            setAvailableVlans(vlanData.vlans.map(v => String(v.id_vlan ?? v.id)));
+            currentVlans = vlanData.vlans.map(v => String(v.id_vlan ?? v.id));
+            setAvailableVlans(currentVlans);
           }
+
           if (intData.success && intData.interfaces) {
-            setPorts(intData.interfaces.map(i => ({
-              ...i,
-              id: i.nom,
-              configured: true,
-              dbExists: true,
-              portSecurity: Boolean(i.port_security),
-              securityViolation: i.violation_mode || 'shutdown',
-              maxMac: i.max_mac || 1,
-              staticMac: i.static_mac || '',
-              vlan: i.mode === 'trunk' ? (i.allowed_vlans || 'All') : String(i.vlan_id ?? '1'),
-              allowedVlans: i.allowed_vlans || '',
-              alert: false,
-              srcIp: i.ip || '',
-              threat: '',
-              devices: 0,
-            })));
+            const basePorts = generateInitialPorts(currentVlans);
+            const mergedPorts = basePorts.map(p => {
+              const dbMatch = intData.interfaces.find(i => i.nom === p.id);
+              return dbMatch ? mapDbInterfaceToUi(dbMatch, p) : p;
+            });
+            console.log('[loadInterfaces] Interfaces fusionnées:', mergedPorts);
+            setPorts(mergedPorts);
+            if (intData.interfaces.length === 0) {
+                console.warn(`[loadInterfaces] Aucune interface configurée trouvée pour switch_id=${swId}.`);
+            }
+          } else {
+            console.log('[loadInterfaces] Aucune interface trouvée dans la BDD, initialisation des ports par défaut.');
+            setPorts(generateInitialPorts(currentVlans));
           }
         } catch (error) {
-          console.error('Erreur chargement interfaces:', error);
+          console.error('[loadInterfaces] Erreur chargement interfaces:', error);
+          setPorts(generateInitialPorts(availableVlans));
         } finally {
           setIsLoadingVlans(false);
         }
@@ -320,14 +337,17 @@
       }, []);
 
       useEffect(() => {
-        if (selectedSwitchId !== null) {
+        if (selectedSwitchId !== null && switches.length > 0) {
           loadInterfaces(selectedSwitchId);
+        } else {
+          setPorts(generateInitialPorts([]));
+          setAvailableVlans([]);
         }
-      }, [selectedSwitchId]);
+      }, [selectedSwitchId, switches.length]);
 
       const persistPort = async (port, successMessage) => {
         const payload = buildInterfacePayload(port);
-        const method = port.dbExists ? 'PUT' : 'POST';
+        const method = port.dbExists && port.id_interface ? 'PUT' : 'POST'; // Ensure id_interface exists for PUT
         const url = port.dbExists
           ? `${API_BASE_URL}/api/interface/${port.id_interface}`
           : `${API_BASE_URL}/api/interface`;
@@ -341,6 +361,7 @@
         if (!response.ok || !data.success) {
           throw new Error(data.error || 'Enregistrement impossible');
         }
+        console.log('[persistPort] Saved port data:', data);
         const savedPort = mapDbInterfaceToUi(data.interface || payload, port);
         setPorts((currentPorts) =>
           currentPorts.map((item) => item.id === port.id ? { ...savedPort, configured: true, dbExists: true } : item)
@@ -405,6 +426,7 @@
         setDeployResult(null);
 
         // ── Étape 1 : Sauvegarde en BDD ────────────────────────────────────
+        console.log('[handleApplyAndDeploy] Attempting to persist port to DB:', currentPort);
         try {
           await persistPort({ ...currentPort, configured: true }, null);
         } catch (error) {
@@ -415,6 +437,7 @@
 
         // ── Étape 2 : Déploiement SSH sur le switch ─────────────────────────
         setIsDeploying(true);
+        console.log('[handleApplyAndDeploy] Attempting SSH deployment for port:', currentPort.id);
         try {
           const deployPayload = {
             interface_name: currentPort.id,
@@ -428,8 +451,11 @@
             allowed_vlans:  currentPort.mode === 'trunk' ? (currentPort.vlan || 'All') : null,
             description:    currentPort.type === 'uplink' ? 'Uplink Port' : 'Access Port',
             static_mac:     currentPort.staticMac || null,
+            remove_port_security: !currentPort.portSecurity,
+            id_switch:      selectedSwitchId,
           };
 
+          console.log('[handleApplyAndDeploy] Deploy payload:', deployPayload);
           const res = await fetch(`${API_BASE_URL}/api/network/deploy-interface`, {
             method: 'POST',
             headers: auth.getAuthHeaders(),
@@ -440,6 +466,7 @@
 
           if (data.success) {
             showToast(`🎉 Interface ${id} enregistrée en BDD et déployée sur le switch !`);
+            if (window.NetGuardAudit) window.NetGuardAudit.interfaceDeployed({ name: id, mode: currentPort.mode, vlan: currentPort.vlan });
           } else {
             showToast(`⚠️ BDD OK — mais déploiement SSH échoué : ${data.error || 'Erreur inconnue'}`, 'error');
           }
@@ -468,12 +495,20 @@
           const res = await fetch(endpoint, {
             method: 'POST',
             headers: auth.getAuthHeaders(),
-            body: JSON.stringify({ tftp_server: tftpServer, filename: tftpFilename }),
+            body: JSON.stringify({ 
+              tftp_server: tftpServer, 
+              filename: tftpFilename,
+              config_type: tftpConfigType  // Ajouter le paramètre config_type
+            }),
           });
           const data = await res.json();
           setTftpResult(data);
           if (data.success) {
-            showToast(tftpMode === 'backup' ? `✅ Config sauvegardée sur ${tftpServer}` : `✅ Config restaurée depuis ${tftpServer}`);
+            showToast(tftpMode === 'backup' ? `✅ ${data.config_type}-config sauvegardée sur ${tftpServer}` : `✅ ${data.config_type}-config restaurée depuis ${tftpServer}`);
+            if (window.NetGuardAudit) {
+              if (tftpMode === 'backup') { window.NetGuardAudit.tftpBackup({ server: tftpServer, filename: tftpFilename, configType: tftpConfigType, success: true }); }
+              else { window.NetGuardAudit.tftpRestore({ server: tftpServer, filename: tftpFilename, configType: tftpConfigType, success: true }); }
+            }
           } else {
             showToast(`❌ TFTP échoué : ${data.error || 'Erreur inconnue'}`, 'error');
           }
@@ -485,15 +520,96 @@
         }
       };
 
-      // ── Suppression config interface ──────────────────────────────────────
-      const handleDeleteInterface = async (portId, e) => {
-        e.stopPropagation();
-        if (!window.confirm(`Supprimer la configuration de l'interface ${portId} ?\nCela va réinitialiser le port sur le switch (shutdown, VLAN 1, sans sécurité).`)) return;
+      // ── Port Mirroring (SPAN) ─────────────────────────────────────────────
+      const handlePortMirroring = async () => {
+        if (!mirroringSessionId.trim() || Number.isNaN(Number(mirroringSessionId))) {
+          showToast('Entrez un identifiant de session valide.', 'error');
+          return;
+        }
+        if (!mirroringSourceVlan.trim() || Number.isNaN(Number(mirroringSourceVlan))) {
+          showToast('Entrez un VLAN source valide.', 'error');
+          return;
+        }
+        if (!mirroringDestination.trim()) {
+          showToast('Entrez l\'interface de destination SPAN.', 'error');
+          return;
+        }
+        setIsMirroringRunning(true);
+        setMirroringResult(null);
+        try {
+          const res = await fetch(`${API_BASE_URL}/api/network/port-mirroring`, {
+            method: 'POST',
+            headers: auth.getAuthHeaders(),
+            body: JSON.stringify({
+              session_id: Number(mirroringSessionId),
+              source_vlan: mirroringSourceVlan.trim(),
+              destination_interface: mirroringDestination.trim(),
+            }),
+          });
+          const data = await res.json();
+          setMirroringResult(data);
+          if (data.success) {
+            showToast(`✅ Port mirroring déployé : VLAN ${mirroringSourceVlan} → ${mirroringDestination}`);
+            if (window.NetGuardAudit) window.NetGuardAudit.portMirroringCreated({ sessionId: mirroringSessionId, sourceVlan: mirroringSourceVlan, destination: mirroringDestination });
+          } else {
+            showToast(`❌ Échec port mirroring : ${data.error || 'Erreur inconnue'}`, 'error');
+          }
+        } catch (e) {
+          setMirroringResult({ success: false, error: e.message });
+          showToast(`❌ Erreur réseau : ${e.message}`, 'error');
+        } finally {
+          setIsMirroringRunning(false);
+        }
+      };
 
-        showToast(`🔄 Suppression de ${portId} en cours...`);
+      const handleDeletePortMirroring = async () => {
+        if (!mirroringSessionId.trim() || Number.isNaN(Number(mirroringSessionId))) {
+          showToast('Entrez un identifiant de session valide.', 'error');
+          return;
+        }
+        setIsDeletingMirroring(true);
+        setMirroringDeleteResult(null);
+        try {
+          const res = await fetch(`${API_BASE_URL}/api/network/port-mirroring/delete`, {
+            method: 'POST',
+            headers: auth.getAuthHeaders(),
+            body: JSON.stringify({ session_id: Number(mirroringSessionId) }),
+          });
+          const data = await res.json();
+          setMirroringDeleteResult(data);
+          setMirroringResult(null);
+          if (data.success) {
+            showToast(`✅ Session SPAN ${mirroringSessionId} supprimée du switch`);
+            if (window.NetGuardAudit) window.NetGuardAudit.portMirroringDeleted({ sessionId: mirroringSessionId });
+          } else {
+            showToast(`❌ Échec suppression SPAN : ${data.error || 'Erreur inconnue'}`, 'error');
+          }
+        } catch (e) {
+          setMirroringDeleteResult({ success: false, error: e.message });
+          showToast(`❌ Erreur réseau : ${e.message}`, 'error');
+        } finally {
+          setIsDeletingMirroring(false);
+        }
+      };
+
+      // ── Modal suppression ─────────────────────────────────────────────────
+      const [deleteModal, setDeleteModal] = useState(null); // { portId, port } | null
+      const [isDeleting, setIsDeleting] = useState(false);
+      const [deleteResult, setDeleteResult] = useState(null);
+
+      const handleDeleteInterface = (portId, e) => {
+        e.stopPropagation();
+        setDeleteResult(null);
+        setDeleteModal({ portId, port: getPort(portId) });
+      };
+
+      const confirmDeleteInterface = async () => {
+        if (!deleteModal) return;
+        const { portId, port } = deleteModal;
+        setIsDeleting(true);
+        setDeleteResult(null);
 
         // 1. Supprimer en BDD si existant
-        const port = getPort(portId);
         if (port && port.dbExists && port.id_interface) {
           try {
             await fetch(`${API_BASE_URL}/api/interface/${port.id_interface}`, {
@@ -506,31 +622,30 @@
         }
 
         // 2. Reset sur le switch via SSH
+        let result = null;
         try {
           const res = await fetch(`${API_BASE_URL}/api/network/reset-interface`, {
             method: 'POST',
             headers: auth.getAuthHeaders(),
             body: JSON.stringify({ interface_name: portId }),
           });
-          const data = await res.json();
-          if (data.success) {
-            showToast(`✅ Interface ${portId} supprimée et réinitialisée sur le switch`);
-          } else {
-            showToast(`⚠️ BDD supprimée — Reset SSH échoué : ${data.error || 'Erreur inconnue'}`, 'error');
-          }
+          result = await res.json();
+          setDeleteResult(result);
         } catch (err) {
-          showToast(`❌ Erreur réseau lors du reset SSH : ${err.message}`, 'error');
+          setDeleteResult({ success: false, error: err.message });
         }
 
-        // 3. Retirer localement du tableau
-        setPorts(prev => prev.map(p =>
-          p.id === portId
-            ? { ...p, configured: false, dbExists: false, id_interface: null }
-            : p
-        ));
-        if (selectedPortId === portId) {
-          setSelectedPortId(null);
-          setDeployResult(null);
+        setIsDeleting(false);
+
+        if (result && result.success) {
+          // 3. Retirer localement
+          setPorts(prev => prev.map(p =>
+            p.id === portId ? { ...p, configured: false, dbExists: false, id_interface: null } : p
+          ));
+          if (selectedPortId === portId) { setSelectedPortId(null); setDeployResult(null); }
+          showToast(`✅ Interface ${portId} supprimée et réinitialisée sur le switch`);
+          if (window.NetGuardAudit) window.NetGuardAudit.interfaceDeleted({ name: portId });
+          setTimeout(() => { setDeleteModal(null); setDeleteResult(null); }, 1800);
         }
       };
 
@@ -610,8 +725,8 @@
             ) : switches.length === 0 ? (
               <span className="text-sm font-bold text-rose-500">Aucun switch configuré</span>
             ) : (
-            <select
-              value={selectedSwitchId ?? ''}
+            <select // Ensure selectedSwitchId is always a number
+              value={selectedSwitchId !== null ? selectedSwitchId : ''}
               onChange={(e) => { setSelectedSwitchId(Number(e.target.value)); setSelectedPortId(null); setDeployResult(null); }}
               className="bg-transparent border-none font-bold text-indigo-600 outline-none cursor-pointer text-lg"
             >
@@ -638,8 +753,8 @@
               )}
             </div>
 
-            {/* Bouton TFTP */}
-            <div className="ml-auto">
+            {/* Boutons TFTP + Port Mirroring */}
+            <div className="ml-auto flex items-center gap-2">
               <button
                 onClick={() => { setShowTftp(v => !v); setTftpResult(null); }}
                 className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all border ${showTftp ? 'bg-cyan-600 text-white border-cyan-600 shadow-md' : 'bg-white text-cyan-700 border-cyan-200 hover:bg-cyan-50'}`}
@@ -649,6 +764,15 @@
                 </svg>
                 TFTP Config
               </button>
+              <button
+                onClick={() => { setShowMirroring(v => !v); setMirroringResult(null); }}
+                className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all border ${showMirroring ? 'bg-violet-600 text-white border-violet-600 shadow-md' : 'bg-white text-violet-700 border-violet-200 hover:bg-violet-50'}`}
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M17 8h2a2 2 0 012 2v6a2 2 0 01-2 2h-2M7 8H5a2 2 0 00-2 2v6a2 2 0 002 2h2m3-10v10m4-8l-4 4-4-4" />
+                </svg>
+                Port Mirroring
+              </button>
             </div>
           </div>
 
@@ -656,30 +780,70 @@
           {showTftp && (
             <div className="mb-6 bg-white rounded-2xl border border-cyan-200 shadow-lg shadow-cyan-600/10 overflow-hidden animate-in">
               <div className="p-4 bg-cyan-50/60 border-b border-cyan-100 flex items-center gap-3">
-                <div className="p-2 bg-cyan-100 rounded-lg text-cyan-600 text-lg">📤</div>
+                <div className="p-2 bg-cyan-100 rounded-lg text-cyan-600 text-lg"></div>
                 <div>
                   <h3 className="font-bold text-cyan-800 text-sm">Transfert TFTP — Configuration Switch</h3>
                   <p className="text-[11px] text-cyan-600 mt-0.5">Sauvegardez ou restaurez la running-config du switch via un serveur TFTP.</p>
                 </div>
               </div>
-              <div className="p-5 grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
+              {/* ── Avertissement ICMP/ACL ── */}
+              <div className="mx-5 mt-4 p-3 bg-amber-50 border border-amber-200 rounded-xl flex items-start gap-3">
+                <span className="text-amber-500 text-lg mt-0.5">⚠️</span>
+                <div className="w-full">
+                  <p className="text-[11px] font-bold text-amber-800 uppercase tracking-wide mb-1">Pré-requis TFTP — Ping bloqué ?</p>
+                  <p className="text-[10px] text-amber-700 leading-relaxed mb-2">
+                    Si le switch ne peut pas pinguer le serveur TFTP, le transfert échouera silencieusement. Vérifiez qu'aucune ACL ne bloque ICMP sur l'interface de management, puis testez depuis le switch :
+                  </p>
+                  <pre className="text-[10px] font-mono text-amber-900 bg-amber-100 rounded p-2 whitespace-pre-wrap">{`! 1. Tester la connectivité (depuis le switch en mode enable) :
+ping ${tftpServer || '<IP-serveur-TFTP>'}
+
+! 2. Si le ping échoue → lever l'ACL sur l'interface de management :
+conf t
+  interface vlan 1
+    no ip access-group <nom-acl> in
+    no ip access-group <nom-acl> out
+end
+
+! 3. Vérifier qu'une route existe vers le serveur TFTP :
+show ip route ${tftpServer || '<IP-serveur-TFTP>'}
+
+! 4. Vérifier les ACLs actives :
+show ip access-lists`}</pre>
+                </div>
+              </div>
+
+              <div className="p-5 grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
                 {/* Mode */}
                 <div>
                   <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2">Opération</label>
                   <div className="flex rounded-xl overflow-hidden border border-slate-200">
                     <button onClick={() => setTftpMode('backup')}
                       className={`flex-1 py-2.5 text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${tftpMode === 'backup' ? 'bg-cyan-600 text-white' : 'bg-white text-slate-500 hover:bg-slate-50'}`}>
-                      ⬆️ Backup
+                      ⬆ Backup
                     </button>
                     <button onClick={() => setTftpMode('restore')}
                       className={`flex-1 py-2.5 text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${tftpMode === 'restore' ? 'bg-amber-500 text-white' : 'bg-white text-slate-500 hover:bg-slate-50'}`}>
-                      ⬇️ Restore
+                      ⬇ Restore
                     </button>
                   </div>
                   <p className="mt-1.5 text-[10px] text-slate-400 italic">
-                    {tftpMode === 'backup' ? 'copy running-config → TFTP' : 'copy TFTP → running-config'}
+                    {tftpMode === 'backup' ? 'copy config → TFTP' : 'copy TFTP → config'}
                   </p>
                 </div>
+
+                {/* Type de config */}
+                <div>
+                  <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2">Type Config</label>
+                  <select value={tftpConfigType} onChange={(e) => setTftpConfigType(e.target.value)}
+                    className="w-full border border-slate-200 rounded-xl p-2.5 text-sm font-mono outline-none focus:border-cyan-400 bg-white">
+                    <option value="running">running-config</option>
+                    <option value="startup">startup-config</option>
+                  </select>
+                  <p className="mt-1.5 text-[10px] text-slate-400 italic">
+                    {tftpConfigType === 'running' ? 'RAM (live)' : 'NVRAM (persistent)'}
+                  </p>
+                </div>
+
                 {/* IP serveur TFTP */}
                 <div>
                   <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2">Serveur TFTP (IP)</label>
@@ -688,6 +852,7 @@
                     placeholder="192.168.1.100"
                     className="w-full border border-slate-200 rounded-xl p-2.5 text-sm font-mono outline-none focus:border-cyan-400" />
                 </div>
+
                 {/* Nom de fichier */}
                 <div>
                   <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2">Nom du fichier</label>
@@ -700,7 +865,7 @@
                       className={`px-5 py-2.5 rounded-xl text-xs font-bold text-white transition-all disabled:opacity-50 shadow-md flex items-center gap-2 whitespace-nowrap ${tftpMode === 'backup' ? 'bg-cyan-600 hover:bg-cyan-700 shadow-cyan-600/25' : 'bg-amber-500 hover:bg-amber-600 shadow-amber-500/25'}`}>
                       {isTftpRunning
                         ? <><svg className="animate-spin w-3.5 h-3.5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg> En cours...</>
-                        : tftpMode === 'backup' ? '⬆️ Lancer Backup' : '⬇️ Lancer Restore'
+                        : tftpMode === 'backup' ? '⬆ Lancer Backup' : '⬇ Lancer Restore'
                       }
                     </button>
                   </div>
@@ -722,6 +887,139 @@
                     <div className="mt-3 p-3 bg-slate-800 rounded-lg">
                       <p className="text-[9px] font-bold text-slate-400 uppercase mb-1">Sortie switch :</p>
                       <pre className="deploy-log text-cyan-300 whitespace-pre-wrap">{tftpResult.output}</pre>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* ── PANNEAU PORT MIRRORING ── */}
+          {showMirroring && (
+            <div className="mb-6 bg-white rounded-2xl border border-violet-200 shadow-lg shadow-violet-600/10 overflow-hidden animate-in">
+              <div className="p-4 bg-violet-50/70 border-b border-violet-100 flex items-center gap-3">
+                <div className="p-2 bg-violet-100 rounded-lg text-violet-600 text-lg"></div>
+                <div>
+                  <h3 className="font-bold text-violet-800 text-sm">Port Mirroring — Session SPAN</h3>
+                  <p className="text-[11px] text-violet-600 mt-0.5">Applique automatiquement les commandes SPAN pour dupliquer le VLAN source vers le port Snort.</p>
+                </div>
+              </div>
+
+              <div className="p-5 grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+                <div>
+                  <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2">Session</label>
+                  <input
+                    type="number" min="1"
+                    value={mirroringSessionId}
+                    onChange={(e) => setMirroringSessionId(e.target.value)}
+                    className="w-full border border-slate-200 rounded-xl p-2.5 text-sm font-mono outline-none focus:border-violet-400"
+                    placeholder="1"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2">VLAN source</label>
+                  <input
+                    type="number" min="1"
+                    value={mirroringSourceVlan}
+                    onChange={(e) => setMirroringSourceVlan(e.target.value)}
+                    className="w-full border border-slate-200 rounded-xl p-2.5 text-sm font-mono outline-none focus:border-violet-400"
+                    placeholder="10"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2">Port destination</label>
+                  <input
+                    type="text"
+                    value={mirroringDestination}
+                    onChange={(e) => setMirroringDestination(e.target.value)}
+                    className="w-full border border-slate-200 rounded-xl p-2.5 text-sm font-mono outline-none focus:border-violet-400"
+                    placeholder="Gi1/0/19"
+                  />
+                </div>
+                <div>
+                  <button
+                    onClick={handlePortMirroring}
+                    disabled={isMirroringRunning || isDeletingMirroring}
+                    className="w-full px-5 py-2.5 rounded-xl text-xs font-bold text-white transition-all disabled:opacity-50 shadow-md flex items-center justify-center gap-2 whitespace-nowrap bg-violet-600 hover:bg-violet-700 shadow-violet-600/25"
+                  >
+                    {isMirroringRunning
+                      ? <><svg className="animate-spin w-3.5 h-3.5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg> Déploiement...</>
+                      : ' Appliquer SPAN'
+                    }
+                  </button>
+                  <button
+                    onClick={handleDeletePortMirroring}
+                    disabled={isMirroringRunning || isDeletingMirroring}
+                    className="w-full mt-2 px-5 py-2.5 rounded-xl text-xs font-bold transition-all disabled:opacity-50 border flex items-center justify-center gap-2 whitespace-nowrap text-rose-600 border-rose-200 bg-white hover:bg-rose-50"
+                  >
+                    {isDeletingMirroring
+                      ? <><svg className="animate-spin w-3.5 h-3.5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg> Suppression...</>
+                      : ' Supprimer session'
+                    }
+                  </button>
+                </div>
+              </div>
+
+              <div className="px-5 pb-5">
+                <div className="p-3 bg-slate-900 rounded-xl">
+                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">Commandes prévues</p>
+                  <pre className="text-[10px] font-mono text-violet-300 whitespace-pre-wrap">
+{`conf t
+no monitor session ${mirroringSessionId || '1'}
+monitor session ${mirroringSessionId || '1'} source vlan ${mirroringSourceVlan || '10'} both
+monitor session ${mirroringSessionId || '1'} destination interface ${mirroringDestination || 'Gi1/0/19'} ingress
+end`}
+                  </pre>
+                </div>
+              </div>
+
+              {mirroringResult && (
+                <div className={`mx-5 mb-5 p-4 rounded-xl border animate-in ${mirroringResult.success ? 'bg-emerald-50 border-emerald-200' : 'bg-rose-50 border-rose-200'}`}>
+                  <div className="flex items-center gap-2 mb-2">
+                    <span>{mirroringResult.success ? '✅' : '⚠️'}</span>
+                    <p className={`text-xs font-bold uppercase tracking-wider ${mirroringResult.success ? 'text-emerald-700' : 'text-rose-700'}`}>
+                      {mirroringResult.success ? 'Port mirroring configuré' : 'Échec port mirroring'}
+                    </p>
+                  </div>
+                  <p className={`text-[11px] font-medium ${mirroringResult.success ? 'text-emerald-600' : 'text-rose-600'}`}>
+                    {mirroringResult.message || mirroringResult.error}
+                  </p>
+                  {mirroringResult.commands && mirroringResult.commands.length > 0 && (
+                    <div className="mt-3 p-3 bg-slate-800 rounded-lg">
+                      <p className="text-[9px] font-bold text-slate-400 uppercase mb-1">Commandes envoyées :</p>
+                      <pre className="deploy-log text-violet-300 whitespace-pre-wrap">{mirroringResult.commands.join('\n')}</pre>
+                    </div>
+                  )}
+                  {mirroringResult.verification && (
+                    <div className="mt-3 p-3 bg-slate-900 rounded-lg">
+                      <p className="text-[9px] font-bold text-slate-400 uppercase mb-1">Vérification switch :</p>
+                      <pre className="deploy-log text-cyan-300 whitespace-pre-wrap">{mirroringResult.verification}</pre>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {mirroringDeleteResult && (
+                <div className={`mx-5 mb-5 p-4 rounded-xl border animate-in ${mirroringDeleteResult.success ? 'bg-slate-50 border-slate-200' : 'bg-rose-50 border-rose-200'}`}>
+                  <div className="flex items-center gap-2 mb-2">
+                    <span>{mirroringDeleteResult.success ? '🗑️' : '⚠️'}</span>
+                    <p className={`text-xs font-bold uppercase tracking-wider ${mirroringDeleteResult.success ? 'text-slate-700' : 'text-rose-700'}`}>
+                      {mirroringDeleteResult.success ? `Session SPAN ${mirroringSessionId} supprimée` : 'Échec suppression SPAN'}
+                    </p>
+                  </div>
+                  <p className={`text-[11px] font-medium ${mirroringDeleteResult.success ? 'text-slate-600' : 'text-rose-600'}`}>
+                    {mirroringDeleteResult.message || mirroringDeleteResult.error}
+                  </p>
+                  {mirroringDeleteResult.commands && (
+                    <div className="mt-3 p-3 bg-slate-800 rounded-lg">
+                      <p className="text-[9px] font-bold text-slate-400 uppercase mb-1">Commande envoyée :</p>
+                      <pre className="deploy-log text-rose-300 whitespace-pre-wrap">{mirroringDeleteResult.commands.join('\n')}</pre>
+                    </div>
+                  )}
+                  {mirroringDeleteResult.verification && (
+                    <div className="mt-3 p-3 bg-slate-900 rounded-lg">
+                      <p className="text-[9px] font-bold text-slate-400 uppercase mb-1">Vérification switch :</p>
+                      <pre className="deploy-log text-cyan-300 whitespace-pre-wrap">{mirroringDeleteResult.verification}</pre>
                     </div>
                   )}
                 </div>
@@ -858,67 +1156,22 @@
 
                   <div className="space-y-5">
 
-                    {/* ── SECTION SWITCH CIBLE (hosts.yaml) ── */}
-                    <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200 mb-2">
-                      <div className="flex items-center justify-between mb-3">
-                        <div className="flex items-center gap-2">
-                          <span className="text-base">🔒</span>
-                          <h3 className="text-xs font-bold text-indigo-600 uppercase tracking-wider">Switch Cible (hosts.yaml)</h3>
+                    {/* ── SWITCH CIBLE (depuis la selection BDD) ── */}
+                    {switches.find(sw => sw.id === selectedSwitchId) ? (
+                      <div className="p-3 bg-indigo-50 rounded-xl border border-indigo-100 flex items-center gap-3 mb-2">
+                        <span className="text-lg">📡</span>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-[10px] font-bold text-indigo-500 uppercase tracking-wider">Switch cible</p>
+                          <p className="text-sm font-bold text-indigo-700 truncate">{switches.find(sw => sw.id === selectedSwitchId).nom}</p>
+                          <p className="text-[11px] font-mono text-indigo-400">{switches.find(sw => sw.id === selectedSwitchId).ip}</p>
                         </div>
-                        <button onClick={saveSwitchConfig} disabled={isSavingSwitch}
-                          className="text-[10px] font-bold px-3 py-1.5 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50 transition-all">
-                          {isSavingSwitch ? 'Sauvegarde...' : '💾 Sauvegarder'}
-                        </button>
+                        <span className="px-2 py-1 bg-emerald-100 text-emerald-700 text-[10px] font-bold rounded-lg">BDD ✓</span>
                       </div>
-                      {!switchCfgLoaded ? (
-                        <p className="text-[11px] text-slate-400 italic">Chargement depuis hosts.yaml...</p>
-                      ) : (
-                        <div className="grid grid-cols-2 gap-2">
-                          <div>
-                            <label className="block text-[10px] font-bold text-slate-500 mb-1">IP du Switch</label>
-                            <input type="text" value={switchCfg.hostname}
-                              onChange={(e) => setSwitchCfg({...switchCfg, hostname: e.target.value})}
-                              className="w-full border border-slate-200 rounded-lg p-2 text-sm font-mono outline-none focus:border-indigo-500"
-                              placeholder="10.10.10.50" />
-                          </div>
-                          <div>
-                            <label className="block text-[10px] font-bold text-slate-500 mb-1">Utilisateur SSH</label>
-                            <input type="text" value={switchCfg.username}
-                              onChange={(e) => setSwitchCfg({...switchCfg, username: e.target.value})}
-                              className="w-full border border-slate-200 rounded-lg p-2 text-sm outline-none focus:border-indigo-500"
-                              placeholder="admin" />
-                          </div>
-                          <div>
-                            <label className="block text-[10px] font-bold text-slate-500 mb-1">Mot de passe SSH</label>
-                            <input type="password" value={switchCfg.password}
-                              onChange={(e) => setSwitchCfg({...switchCfg, password: e.target.value})}
-                              className="w-full border border-slate-200 rounded-lg p-2 text-sm outline-none focus:border-indigo-500"
-                              placeholder="••••••" />
-                          </div>
-                          <div>
-                            <label className="block text-[10px] font-bold text-slate-500 mb-1">Enable Secret</label>
-                            <input type="password" value={switchCfg.secret}
-                              onChange={(e) => setSwitchCfg({...switchCfg, secret: e.target.value})}
-                              className="w-full border border-slate-200 rounded-lg p-2 text-sm outline-none focus:border-indigo-500"
-                              placeholder="enable secret" />
-                          </div>
-                          <div>
-                            <label className="block text-[10px] font-bold text-slate-500 mb-1">Port SSH</label>
-                            <input type="number" value={switchCfg.port}
-                              onChange={(e) => setSwitchCfg({...switchCfg, port: parseInt(e.target.value)||22})}
-                              className="w-full border border-slate-200 rounded-lg p-2 text-sm font-mono outline-none focus:border-indigo-500"
-                              placeholder="22" />
-                          </div>
-                          <div>
-                            <label className="block text-[10px] font-bold text-slate-500 mb-1">Nom inventaire</label>
-                            <input type="text" value={switchCfg.host_key}
-                              onChange={(e) => setSwitchCfg({...switchCfg, host_key: e.target.value})}
-                              className="w-full border border-slate-200 rounded-lg p-2 text-sm font-mono outline-none focus:border-indigo-500"
-                              placeholder="switch_cible" />
-                          </div>
-                        </div>
-                      )}
-                    </div>
+                    ) : (
+                      <div className="p-3 bg-amber-50 rounded-xl border border-amber-200 text-xs text-amber-700 font-semibold mb-2">
+                        ⚠️ Aucun switch selectionne — choisissez-en un en haut de page.
+                      </div>
+                    )}
 
                     {/* ── PORT STATUS ── */}
                     <div className="p-4 bg-slate-50 rounded-xl border border-slate-100 flex items-center justify-between">
@@ -1001,21 +1254,6 @@
                               </select>
                             </div>
                           </div>
-                          <div>
-                            <label className="block text-[10px] font-bold text-slate-500 mb-1">
-                              MAC Statique <span className="text-slate-400 font-normal">(optionnel — sinon sticky)</span>
-                            </label>
-                            <input
-                              type="text"
-                              value={selectedPort.staticMac || ''}
-                              onChange={(e) => updatePortParam(selectedPort.id, 'staticMac', e.target.value)}
-                              placeholder="ex. 00:1A:2B:3C:4D:5E"
-                              className="w-full border border-slate-200 rounded-lg p-2 text-xs font-mono outline-none focus:border-indigo-400 placeholder:text-slate-300"
-                            />
-                            {selectedPort.staticMac && !/^([0-9A-Fa-f]{2}[:\-.]){5}[0-9A-Fa-f]{2}$/.test(selectedPort.staticMac) && (
-                              <p className="mt-1 text-[10px] text-rose-500 font-medium">Format invalide. Ex : 00:1A:2B:3C:4D:5E</p>
-                            )}
-                          </div>
                         </div>
                       )}
                       <div className="flex justify-between items-center mt-4 pt-4 border-t border-indigo-100/50">
@@ -1039,8 +1277,8 @@
    ? `switchport access vlan ${selectedPort.vlan}`
    : `switchport trunk allowed vlan ${selectedPort.vlan || 'all'}`}
 ${selectedPort.portSecurity && selectedPort.mode === 'access'
-   ? ` switchport port-security\n switchport port-security maximum ${selectedPort.maxMac}\n switchport port-security violation ${selectedPort.securityViolation}\n switchport port-security mac-address ${selectedPort.staticMac ? selectedPort.staticMac : 'sticky'}`
-   : ''}
+   ? ` switchport port-security\n switchport port-security maximum ${selectedPort.maxMac}\n switchport port-security violation ${selectedPort.securityViolation}\n switchport port-security mac-address sticky`
+   : ` no switchport port-security\n no switchport port-security maximum\n no switchport port-security violation\n no switchport port-security mac-address sticky`}
  ${selectedPort.bpdu_guard ? 'spanning-tree bpduguard enable' : 'no spanning-tree bpduguard enable'}
  ${selectedPort.status === 'UP' ? 'no shutdown' : 'shutdown'}
  exit`.replace(/^\s*[\r\n]/gm, '')}
@@ -1082,6 +1320,82 @@ ${selectedPort.portSecurity && selectedPort.mode === 'access'
               </div>
             )}
           </div>
+
+          {/* ── MODAL SUPPRESSION ── */}
+          {deleteModal && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{background: 'rgba(15,23,42,0.6)', backdropFilter: 'blur(4px)'}}>
+              <div className="bg-white rounded-[2rem] shadow-2xl shadow-rose-600/20 w-full max-w-lg border border-slate-200 overflow-hidden animate-in">
+
+                {/* Header */}
+                <div className="flex items-center gap-4 p-6 border-b border-slate-100 bg-rose-50/60">
+                  <div className="w-11 h-11 rounded-2xl bg-rose-100 flex items-center justify-center text-xl flex-shrink-0">🗑️</div>
+                  <div>
+                    <h3 className="text-base font-black text-slate-800">Supprimer la configuration</h3>
+                    <p className="text-xs text-rose-600 font-semibold mt-0.5 font-mono">Interface {deleteModal.portId}</p>
+                  </div>
+                  <button onClick={() => { if (!isDeleting) { setDeleteModal(null); setDeleteResult(null); } }}
+                    className="ml-auto w-8 h-8 flex items-center justify-center rounded-full bg-white hover:bg-slate-100 text-slate-400 transition-colors">✕</button>
+                </div>
+
+                {/* Commandes */}
+                <div className="p-6 space-y-4">
+                  <p className="text-xs text-slate-500 font-medium">
+                    {deleteResult ? 'Commandes envoyées sur le switch via SSH :' : 'Les commandes suivantes seront envoyées sur le switch via SSH :'}
+                  </p>
+                  <div className="bg-slate-900 rounded-xl p-4">
+                    <p className="text-[9px] font-bold text-slate-500 uppercase tracking-widest mb-3">
+                      {deleteResult ? 'Commandes exécutées' : 'Commandes de reset'}
+                    </p>
+                    <pre className="text-[11px] font-mono leading-relaxed whitespace-pre"
+                      style={{color: deleteResult ? (deleteResult.success ? '#34d399' : '#f87171') : '#34d399'}}>
+{(deleteResult && deleteResult.commands ? deleteResult.commands : [
+  `interface ${deleteModal.portId}`,
+  ' no description',
+  ' switchport mode access',
+  ' switchport access vlan 1',
+  ' no switchport port-security',
+  ' no switchport port-security maximum',
+  ' no switchport port-security violation',
+  ' no switchport port-security mac-address sticky',
+  ' no spanning-tree bpduguard enable',
+  ' shutdown',
+  ' exit',
+]).join('\n')}
+                    </pre>
+                  </div>
+
+                  {/* Résultat SSH */}
+                  {deleteResult && (
+                    <div className={`p-3 rounded-xl border animate-in ${deleteResult.success ? 'bg-emerald-50 border-emerald-200' : 'bg-rose-50 border-rose-200'}`}>
+                      <div className="flex items-center gap-2">
+                        <span>{deleteResult.success ? '✅' : '⚠️'}</span>
+                        <p className={`text-xs font-bold ${deleteResult.success ? 'text-emerald-700' : 'text-rose-700'}`}>
+                          {deleteResult.success ? 'Reset effectué avec succès' : `Erreur SSH : ${deleteResult.error}`}
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Boutons */}
+                <div className="flex gap-3 px-6 pb-6">
+                  <button onClick={() => { if (!isDeleting) { setDeleteModal(null); setDeleteResult(null); } }}
+                    disabled={isDeleting}
+                    className="flex-1 py-3 rounded-xl border border-slate-200 text-slate-600 font-bold text-sm hover:bg-slate-50 transition-all disabled:opacity-40">
+                    Annuler
+                  </button>
+                  <button onClick={confirmDeleteInterface}
+                    disabled={isDeleting || (deleteResult && deleteResult.success)}
+                    className="flex-1 py-3 rounded-xl bg-rose-600 text-white font-bold text-sm hover:bg-rose-700 active:scale-95 transition-all disabled:opacity-50 shadow-lg shadow-rose-600/25 flex items-center justify-center gap-2">
+                    {isDeleting
+                      ? <><svg className="animate-spin w-4 h-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg> Suppression...</>
+                      : deleteResult && deleteResult.success ? '✅ Supprimé'
+                      : '🗑️ Confirmer la suppression'}
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
 
           {toast && (
             <div className={`fixed bottom-6 right-6 px-6 py-4 rounded-xl shadow-2xl font-bold text-sm text-white z-50 animate-in ${toast.type === 'error' ? 'bg-rose-600' : 'bg-emerald-600'}`}>
