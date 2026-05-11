@@ -172,7 +172,7 @@ def get_stats():
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 500
     finally:
-        conn.close
+        conn.close()
         
 @alerts_bp.route("/api/regles/by-message", methods=["GET"])
 def get_regle_by_message():

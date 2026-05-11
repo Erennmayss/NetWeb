@@ -270,7 +270,24 @@ function randHex(len){let r="";for(let i=0;i<len;i++)r+=Math.floor(Math.random()
 const SEV_MAP={critical:0,medium:1,low:2},SEV_LABELS={critical:"Critique",medium:"Moyen",low:"Faible"};
 let alerts=[],filteredAlerts=[],currentSev="all",paused=false,critNotifCount=0,selectedAlert=null,alertId=0;
 function fmtTime(d){return d.toLocaleDateString("fr-FR",{day:"2-digit",month:"2-digit"})+" "+d.toLocaleTimeString("fr-FR",{hour:"2-digit",minute:"2-digit",second:"2-digit"})} function rateLastMinute(){return alerts.filter(a=>Date.now()-a.ts.getTime()<60000).length}
-function updateStats(){document.getElementById("stat-total").textContent=alerts.length;document.getElementById("stat-crit").textContent=alerts.filter(a=>a.sev==="critical").length;document.getElementById("stat-med").textContent=alerts.filter(a=>a.sev==="medium").length;document.getElementById("stat-low").textContent=alerts.filter(a=>a.sev==="low").length;document.getElementById("stat-src").textContent=new Set(alerts.map(a=>a.src.split(":")[0])).size;document.getElementById("stat-rate").textContent=`${rateLastMinute()}/min`}
+function updateStats(){
+  document.getElementById("stat-rate").textContent=`${rateLastMinute()}/min`;
+}
+async function fetchAndUpdateStats(){
+  try{
+    const res = await fetch("http://localhost:5000/api/stats");
+    const data = await res.json();
+    if(data.success && data.stats){
+      const s = data.stats;
+      document.getElementById("stat-total").textContent = Number(s.total).toLocaleString("fr-FR");
+      document.getElementById("stat-crit").textContent  = Number(s.critical).toLocaleString("fr-FR");
+      document.getElementById("stat-med").textContent   = Number(s.medium).toLocaleString("fr-FR");
+      document.getElementById("stat-low").textContent   = Number(s.low).toLocaleString("fr-FR");
+      document.getElementById("stat-src").textContent   = Number(s.unique_sources).toLocaleString("fr-FR");
+      document.getElementById("stat-rate").textContent  = `${s.rate_per_minute}/min`;
+    }
+  }catch(e){ console.error("Erreur stats BDD:", e); }
+}
 function applyFilters(){const q=document.getElementById("search").value.toLowerCase(),sort=document.getElementById("sort-sel").value;let arr=alerts.filter(a=>{if(currentSev!=="all"&&a.sev!==currentSev)return false;return !q||a.name.toLowerCase().includes(q)||a.src.toLowerCase().includes(q)||a.dst.toLowerCase().includes(q)||a.proto.toLowerCase().includes(q)});if(sort==="oldest")arr.sort((a,b)=>a.ts-b.ts);else if(sort==="sev")arr.sort((a,b)=>SEV_MAP[a.sev]-SEV_MAP[b.sev]);else arr.sort((a,b)=>b.ts-a.ts);filteredAlerts=arr;renderList()}
 function renderList(){const list=document.getElementById("alerts-list");document.getElementById("visible-count").textContent=filteredAlerts.length;if(!filteredAlerts.length){list.innerHTML='<div class="empty-state">Aucune alerte ne correspond aux filtres actifs.</div>';return} const top=list.scrollTop;list.innerHTML=filteredAlerts.map(a=>`<div class="alert-row" onclick="showDetail(${a.id})"><div class="sev-dot-wrap"><div class="sev-pill ${a.sev}"></div></div><div class="cell ts">${fmtTime(a.ts)}</div><div class="cell cell-mono src">${a.src}</div><div class="cell cell-mono dst">${a.dst}</div><div class="attack-name"><strong>${a.name}</strong><span>Signature ${a.sid}</span></div><div class="cell cell-mono proto">${a.proto}</div><div><span class="sev-badge ${a.sev}">${SEV_LABELS[a.sev]}</span></div></div>`).join("");list.scrollTop=top;setTimeout(()=>alerts.forEach(a=>a.isNew=false),1800)}
 function setSev(sev,btn){currentSev=sev;document.querySelectorAll(".filter-btn").forEach(b=>b.className="filter-btn");if(sev==="all")btn.classList.add("active-all");else if(sev==="critical")btn.classList.add("active-crit");else if(sev==="medium")btn.classList.add("active-med");else btn.classList.add("active-low");applyFilters()}
@@ -296,9 +313,9 @@ async function showDetail(id){const a=alerts.find(x=>x.id===id);if(!a)return;sel
 }
 function closeDetail(){selectedAlert=null;document.getElementById("d-title").textContent="Detail d'alerte";document.getElementById("d-time").textContent="Selectionnez une alerte pour afficher ses details.";["d-src","d-dst","d-proto","d-sid","d-rule","d-payload"].forEach(id=>document.getElementById(id).textContent="--");drawSparkline("low")}
 function showCritBanner(a){const b=document.getElementById("banner");b.style.display="flex";b.innerHTML=`<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>Alerte critique detectee : ${a.name} depuis ${a.src.split(":")[0]}<button class="bar-close" onclick="document.getElementById('banner').style.display='none'">×</button>`;setTimeout(()=>{if(b.style.display!=="none")b.style.display="none"},4500)}
-function clearAll(){alerts=[];filteredAlerts=[];critNotifCount=0;const n=document.getElementById("notif-count");if(n){n.textContent="0";n.style.display="none"}updateStats();closeDetail();renderList()} 
+function clearAll(){alerts=[];filteredAlerts=[];critNotifCount=0;const n=document.getElementById("notif-count");if(n){n.textContent="0";n.style.display="none"}fetchAndUpdateStats();closeDetail();renderList()} 
 function togglePause(){paused=!paused;const bar=document.getElementById("paused-bar");if(bar)bar.style.display=paused?"flex":"none";}
-function addAlert(a){alerts.unshift(a);if(alerts.length>500)alerts.pop();updateStats();applyFilters();if(a.sev==="critical"){showCritBanner(a);critNotifCount++;const n=document.getElementById("notif-count");if(n){n.textContent=critNotifCount;n.style.display="flex"}} if(!selectedAlert)showDetail(a.id)}
+function addAlert(a){alerts.unshift(a);if(alerts.length>2000)alerts.pop();fetchAndUpdateStats();applyFilters();if(a.sev==="critical"){showCritBanner(a);critNotifCount++;const n=document.getElementById("notif-count");if(n){n.textContent=critNotifCount;n.style.display="flex"}} if(!selectedAlert)showDetail(a.id)}
 
 function updatePrintData(){
   const genDate=new Date().toLocaleDateString("fr-FR")+" "+new Date().toLocaleTimeString("fr-FR");
@@ -339,10 +356,12 @@ async function loadRealAlerts() {
       isNew: false
     });
   });
-  updateStats(); applyFilters();
+  applyFilters(); fetchAndUpdateStats();
   if (alerts.length > 0) showDetail(alerts[0].id);
 }
+// Rafraîchissement stats BDD toutes les 30 secondes
 loadRealAlerts();
+setInterval(fetchAndUpdateStats, 30000);
 
 </script>
 <script src="sidebar.js"></script>

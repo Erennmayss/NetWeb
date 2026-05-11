@@ -177,4 +177,11 @@ Device settings: cisco_ios 10.10.10.50:22
 2026-05-07 16:37:26,390 -  nornir.core -     INFO -        run() - Running task 'netmiko_save_config' with args {} on 1 hosts
 2026-05-07 16:43:58,494 -  nornir.core -     INFO -        run() - Running task 'Création VLAN 62 - it4' with args {'config_commands': ['vlan 62', 'name it4', 'exit']} on 1 hosts
 2026-05-07 16:44:00,615 -  nornir.core -     INFO -        run() - Running task 'netmiko_save_config' with args {} on 1 hosts
+<<<<<<< HEAD
 2026-05-11 14:54:58,662 -  nornir.core -     INFO -        run() - Running task 'Création VLAN 123 - Rh1' with args {'config_commands': ['vlan 123', 'name Rh1', 'exit']} on 1 hosts
+=======
+2026-05-11 15:42:18,072 -  nornir.core -     INFO -        run() - Running task 'Reset Gi1/0/3' with args {'config_commands': ['interface Gi1/0/3', 'no description', 'switchport mode access', 'switchport access vlan 1', 'no switchport port-security', 'no switchport port-security maximum', 'no switchport port-security violation', 'no switchport port-security mac-address sticky', 'no spanning-tree bpduguard enable', 'shutdown', 'exit']} on 1 hosts
+2026-05-11 15:42:23,013 -  nornir.core -     INFO -        run() - Running task 'netmiko_save_config' with args {} on 1 hosts
+2026-05-11 15:54:17,306 -  nornir.core -     INFO -        run() - Running task 'Reset Gi1/0/10' with args {'config_commands': ['interface Gi1/0/10', 'no description', 'switchport mode access', 'switchport access vlan 1', 'no switchport port-security', 'no switchport port-security maximum', 'no switchport port-security violation', 'no switchport port-security mac-address sticky', 'no spanning-tree bpduguard enable', 'shutdown', 'exit']} on 1 hosts
+2026-05-11 15:54:21,153 -  nornir.core -     INFO -        run() - Running task 'netmiko_save_config' with args {} on 1 hosts
+>>>>>>> 91b5c75d48f5a2f8c1c765287e720784f5237140
