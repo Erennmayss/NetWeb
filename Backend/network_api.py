@@ -257,10 +257,13 @@ def api_remove_port_security():
 
     remove_commands = [
         f"interface {interface_name}",
+        "shutdown",
         "no switchport port-security mac-address sticky",
         "no switchport port-security maximum",
         "no switchport port-security violation",
         "no switchport port-security",
+        "no shutdown",
+
         "exit",
     ]
 
