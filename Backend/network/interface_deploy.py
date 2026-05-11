@@ -148,16 +148,44 @@ def run_deploy(interface_name, mode="access", vlan_id=1, status="UP",
         try:
             from netmiko import ConnectHandler
             device = {
-                "device_type": "cisco_ios",
-                "host":        switch_ip,
-                "username":    switch_user,
-                "password":    switch_password,
-                "port":        22,
+                "device_type":        "cisco_ios",
+                "host":               switch_ip,
+                "username":           switch_user,
+                "password":           switch_password,
+                "port":               22,
+                "global_delay_factor": 2,      # plus de temps entre chaque commande
+                "read_timeout_override": 60,   # timeout lecture étendu
+                "fast_cli":           False,    # désactive le mode rapide (évite les erreurs de prompt)
             }
             net_connect = ConnectHandler(**device)
-            output = net_connect.send_config_set(commands)
-            net_connect.send_command("end")
-            net_connect.send_command("write memory")
+
+            # Récupère le prompt réel du switch (ex: "switch1#", "SW-CORE#", etc.)
+            actual_prompt = net_connect.find_prompt()
+            print(f"  Prompt détecté : {actual_prompt}")
+
+            # Envoi des commandes de config
+            output = net_connect.send_config_set(
+                commands,
+                cmd_verify=False,   # ne vérifie pas chaque écho de commande
+            )
+
+            # Retour en mode exec privilégié
+            net_connect.send_command("end", expect_string=r"#")
+
+            # Sauvegarde — gère aussi la question "Overwrite? [yes/no]"
+            save_output = net_connect.send_command(
+                "write memory",
+                expect_string=r"(\[OK\]|Building configuration|Overwrite|#)",
+                read_timeout=60,
+            )
+            # Si le switch demande confirmation
+            if "Overwrite" in save_output or "confirm" in save_output.lower():
+                net_connect.send_command(
+                    "y",
+                    expect_string=r"#",
+                    read_timeout=60,
+                )
+
             net_connect.disconnect()
             print(f"🎉 Interface {interface_name} configurée et sauvegardée sur {switch_ip} !")
             return {
