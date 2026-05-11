@@ -209,10 +209,10 @@ def api_deploy_interface():
                 if nr.inventory.hosts:
                     no_ps_commands = [
                         f"interface {interface_name}",
-                        "no switchport port-security",
+                        "no switchport port-security mac-address sticky",
                         "no switchport port-security maximum",
                         "no switchport port-security violation",
-                        "no switchport port-security mac-address sticky",
+                        "no switchport port-security",
                         "exit",
                     ]
                     nr.run(task=netmiko_send_config, config_commands=no_ps_commands,
@@ -257,10 +257,10 @@ def api_remove_port_security():
 
     remove_commands = [
         f"interface {interface_name}",
-        "no switchport port-security",
+        "no switchport port-security mac-address sticky",
         "no switchport port-security maximum",
         "no switchport port-security violation",
-        "no switchport port-security mac-address sticky",
+        "no switchport port-security",
         "exit",
     ]
 
@@ -324,10 +324,10 @@ def api_reset_interface():
         "no description",
         "switchport mode access",
         "switchport access vlan 1",
-        "no switchport port-security",
+        "no switchport port-security mac-address sticky",
         "no switchport port-security maximum",
         "no switchport port-security violation",
-        "no switchport port-security mac-address sticky",
+        "no switchport port-security",
         "no spanning-tree bpduguard enable",
         "shutdown",
         "exit",
