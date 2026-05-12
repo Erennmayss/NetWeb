@@ -6,18 +6,18 @@ import threading
 import re
 import os
 import sys
+import json
+import urllib.error
+import urllib.request
 from datetime import datetime
 import psutil  # pip install psutil
-
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from Database.db import get_db_connection as connect_db
-
 
 REMOTE_SNORT_USER = "Aya"
 REMOTE_SNORT_HOST = "10.10.10.31"
 REMOTE_SNORT_CONFIG = "/etc/snort/snort.conf"
 REMOTE_SNORT_LOG_DIR = "/var/log/snort"
 REMOTE_SNORT_ALERT_FILE = "/var/log/snort/alert"
+ALERTS_API_URL = os.getenv("ALERTS_API_URL", "http://127.0.0.1:5000/api/alerts")
 SSH_OPTIONS = ["-o", "BatchMode=yes", "-o", "ConnectTimeout=10"]
 SAFE_INTERFACE_PATTERN = re.compile(r"^[A-Za-z0-9_.:-]+$")
 
@@ -54,9 +54,7 @@ class SnortManager:
         self.alert_tail_process = None
         self.snort_running = False
         self.alert_count = 0
-        self.db_connection = None
-        self.db_cursor = None
-        self.db_insert_count = 0
+        self.api_insert_count = 0
         self.packet_count = 0
         
         # Créer le dossier des logs
@@ -72,39 +70,12 @@ class SnortManager:
         self.init_database()
     
     def init_database(self):
-        """Initialise la connexion PostgreSQL"""
-        try:
-            self.db_connection = connect_db()
-            if self.db_connection:
-                self.db_cursor = self.db_connection.cursor()
-                print("✅ Connexion à PostgreSQL établie")
-                self.create_tables_if_not_exists()
-        except Exception as e:
-            print(f"⚠️ Base de données non disponible: {e}")
+        """Initialise la cible API utilisee pour enregistrer les alertes."""
+        print(f"API alertes: {ALERTS_API_URL}")
     
     def create_tables_if_not_exists(self):
-        """Crée les tables nécessaires si elles n'existent pas"""
-        try:
-            self.db_cursor.execute("""
-                CREATE TABLE IF NOT EXISTS alertes (
-                    id SERIAL PRIMARY KEY,
-                    timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                    source_ip INET,
-                    destination_ip INET,
-                    attack_type VARCHAR(500),
-                    severity VARCHAR(50),
-                    detection_engine VARCHAR(100),
-                    details TEXT,
-                    protocol VARCHAR(10),
-                    source_port INTEGER,
-                    destination_port INTEGER,
-                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-                )
-            """)
-            self.db_connection.commit()
-            print("✅ Tables vérifiées/créées")
-        except Exception as e:
-            print(f"⚠️ Erreur création table: {e}")
+        """La creation des tables est geree cote API/base de donnees."""
+        return None
     
     def convert_timestamp(self, timestamp_str):
         """Convertit le timestamp Snort (MM/DD-HH:MM:SS) en format PostgreSQL"""
@@ -187,11 +158,8 @@ class SnortManager:
             'detection_engine': sid.split(':')[0] if sid else 'Snort'
         }
     
-    def save_to_db(self, alert):
-        """Sauvegarde l'alerte dans PostgreSQL"""
-        if not self.db_connection:
-            return False
-        
+    def send_alert_to_api(self, alert):
+        """Envoie l'alerte a l'API alertes; l'API se charge de la BDD."""
         try:
             severity_text = self.convert_severity(alert['severity'])
             
@@ -203,34 +171,42 @@ class SnortManager:
             if details and len(details) > 500:
                 details = details[:500]
             
-            self.db_cursor.execute("""
-                INSERT INTO alertes (
-                    timestamp, source_ip, destination_ip,
-                    attack_type, severity, detection_engine,
-                    details, protocol, source_port, destination_port
-                )
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-            """, (
-                alert['timestamp'],
-                alert['src_ip'],
-                alert['dst_ip'],
-                attack_type,
-                severity_text,
-                alert['detection_engine'],
-                details,
-                alert['protocol'],
-                alert['src_port'],
-                alert['dst_port']
-            ))
-            self.db_connection.commit()
-            self.db_insert_count += 1
+            payload = {
+                "timestamp": alert['timestamp'],
+                "source_ip": alert['src_ip'],
+                "destination_ip": alert['dst_ip'],
+                "attack_type": attack_type,
+                "severity": severity_text,
+                "detection_engine": alert['detection_engine'],
+                "details": details,
+                "protocol": alert['protocol'],
+                "source_port": alert['src_port'],
+                "destination_port": alert['dst_port'],
+            }
+            data = json.dumps(payload).encode("utf-8")
+            request = urllib.request.Request(
+                ALERTS_API_URL,
+                data=data,
+                headers={"Content-Type": "application/json"},
+                method="POST"
+            )
+
+            with urllib.request.urlopen(request, timeout=10) as response:
+                if response.status >= 400:
+                    print(f"   Erreur API alertes: HTTP {response.status}")
+                    return False
+
+            self.api_insert_count += 1
             return True
+        except urllib.error.HTTPError as e:
+            body = e.read().decode("utf-8", errors="ignore")
+            print(f"   Erreur API alertes: HTTP {e.code} {body}")
+            return False
+        except urllib.error.URLError as e:
+            print(f"   API alertes indisponible: {e.reason}")
+            return False
         except Exception as e:
-            print(f"   ❌ Erreur DB: {e}")
-            try:
-                self.db_connection.rollback()
-            except:
-                pass
+            print(f"   Erreur envoi alerte API: {e}")
             return False
     
     def start_snort(self):
@@ -256,7 +232,7 @@ class SnortManager:
             print(f"Serveur: {remote_target}")
             print(f"Interface distante: {self.interface}")
             print(f"Alertes distantes: {REMOTE_SNORT_ALERT_FILE}")
-            print(f"Base de donnees: {'Activee' if self.db_connection else 'Desactivee'}")
+            print(f"API alertes: {ALERTS_API_URL}")
             print(f"{'=' * 80}\n")
             
             # La commande Snort distante est lancee en daemon avec -D.
@@ -353,8 +329,7 @@ class SnortManager:
                 print(f"\nALERTE #{self.alert_count}: {alert['attack_type']} [{severity_text}]")
                 print(f"   {alert['src_ip']}:{alert['src_port']} -> {alert['dst_ip']}:{alert['dst_port']}")
 
-                if self.db_connection:
-                    self.save_to_db(alert)
+                self.send_alert_to_api(alert)
 
             if self.snort_running and self.alert_tail_process.returncode:
                 error = self.alert_tail_process.stderr.read().strip()
@@ -392,8 +367,7 @@ class SnortManager:
                                     print(f"   📍 {alert['src_ip']}:{alert['src_port']} -> {alert['dst_ip']}:{alert['dst_port']}")
                                     
                                     # Sauvegarde en BDD
-                                    if self.db_connection:
-                                        self.save_to_db(alert)
+                                    self.send_alert_to_api(alert)
                 except Exception as e:
                     print(f"⚠️ Erreur lecture alertes: {e}")
             else:
@@ -431,7 +405,7 @@ class SnortManager:
         print(f"\n🛑 Snort arrêté")
         print(f"📊 Statistiques finales:")
         print(f"   - Alertes détectées: {self.alert_count}")
-        print(f"   - Alertes sauvegardées: {self.db_insert_count}")
+        print(f"   - Alertes envoyees a l'API: {self.api_insert_count}")
         print(f"   - Paquets estimés: {self.packet_count}")
     
     def is_running(self):
@@ -501,7 +475,7 @@ if __name__ == "__main__":
             time.sleep(1)
             # Afficher statut périodique
             if manager.alert_count > 0:
-                print(f"\r📊 Alertes: {manager.alert_count} | DB: {manager.db_insert_count}", end="")
+                print(f"\r📊 Alertes: {manager.alert_count} | API: {manager.api_insert_count}", end="")
     except KeyboardInterrupt:
         print("\n\nArrêt demandé...")
         manager.stop_snort()

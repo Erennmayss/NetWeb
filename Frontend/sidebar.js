@@ -42,10 +42,21 @@
     icons[type] +
     '</svg>';
 
+  const renderLogo = () => `
+    <span class="sidebar-logo-pulse sidebar-logo-pulse-1"></span>
+    <span class="sidebar-logo-pulse sidebar-logo-pulse-2"></span>
+    <span class="sidebar-logo-inner">
+      <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#818cf8" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+        <polyline points="9 12 11 14 15 10" stroke="#a78bfa" stroke-width="1.8"></polyline>
+      </svg>
+    </span>
+  `;
+
   host.innerHTML = `
     <aside class="app-sidebar">
       <a class="sidebar-logo" href="${window.NetGuardAuth.getDefaultPage(session?.role)}" aria-label="Go to home">
-        ${renderIcon('vlan')}
+        ${renderLogo()}
       </a>
       <nav class="sidebar-nav" aria-label="Main navigation">
         ${links.map(

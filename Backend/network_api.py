@@ -5,6 +5,7 @@ import subprocess
 import sys
 import yaml, os
 import logging
+import shutil
 from datetime import datetime
 
 network_bp = Blueprint('network', __name__)
@@ -12,6 +13,10 @@ logger = logging.getLogger(__name__)
 
 HOSTS_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "network", "hosts.yaml")
 RECUPERATION_SCRIPT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "Snort", "Recuperation.py")
+REMOTE_SNORT_USER = os.getenv("REMOTE_SNORT_USER", "Aya")
+REMOTE_SNORT_HOST = os.getenv("REMOTE_SNORT_HOST", "10.10.10.31")
+SSH_OPTIONS = ["-o", "BatchMode=yes", "-o", "ConnectTimeout=10"]
+DETECTION_PROCESS = None
 
 
 def _load_hosts():
@@ -27,17 +32,39 @@ def _save_hosts(data):
 @network_bp.route("/start-detection", methods=["POST"])
 def start_detection():
     """Lance Snort et le script de recuperation sans bloquer Flask."""
+    global DETECTION_PROCESS
     try:
-        subprocess.Popen([
-            "sudo", "snort", "-D", "-i", "enp0s8", "-c", "/etc/snort/snort.conf"
-        ])
-        subprocess.Popen([sys.executable, RECUPERATION_SCRIPT])
+        if DETECTION_PROCESS and DETECTION_PROCESS.poll() is None:
+            return jsonify({
+                "status": "ok",
+                "message": "Detection deja lancee",
+            })
+
+        if not os.path.exists(RECUPERATION_SCRIPT):
+            return jsonify({
+                "status": "error",
+                "message": f"Script introuvable: {RECUPERATION_SCRIPT}",
+            }), 500
+
+        if not shutil.which("ssh"):
+            return jsonify({
+                "status": "error",
+                "message": "Commande ssh introuvable. Installez OpenSSH Client ou ajoutez ssh.exe au PATH.",
+            }), 500
+
+        creationflags = subprocess.CREATE_NEW_PROCESS_GROUP if os.name == "nt" else 0
+        DETECTION_PROCESS = subprocess.Popen(
+            [sys.executable, RECUPERATION_SCRIPT],
+            cwd=os.path.dirname(RECUPERATION_SCRIPT),
+            creationflags=creationflags,
+        )
 
         return jsonify({
             "status": "ok",
             "message": "Détection lancée",
         })
     except Exception as e:
+        logger.exception("Erreur lancement detection")
         return jsonify({
             "status": "error",
             "message": str(e),
@@ -47,14 +74,31 @@ def start_detection():
 @network_bp.route("/stop-detection", methods=["POST"])
 def stop_detection():
     """Arrete Snort sans bloquer Flask."""
+    global DETECTION_PROCESS
     try:
-        subprocess.Popen(["sudo", "pkill", "snort"])
+        if shutil.which("ssh"):
+            remote_target = f"{REMOTE_SNORT_USER}@{REMOTE_SNORT_HOST}"
+            subprocess.run(
+                ["ssh", *SSH_OPTIONS, remote_target, "sudo -n pkill snort"],
+                capture_output=True,
+                text=True,
+                timeout=30,
+            )
+
+        if DETECTION_PROCESS and DETECTION_PROCESS.poll() is None:
+            DETECTION_PROCESS.terminate()
+            try:
+                DETECTION_PROCESS.wait(timeout=5)
+            except subprocess.TimeoutExpired:
+                DETECTION_PROCESS.kill()
+        DETECTION_PROCESS = None
 
         return jsonify({
             "status": "ok",
             "message": "Détection arrêtée",
         })
     except Exception as e:
+        logger.exception("Erreur arret detection")
         return jsonify({
             "status": "error",
             "message": str(e),
