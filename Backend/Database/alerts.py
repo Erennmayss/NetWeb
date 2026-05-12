@@ -47,9 +47,15 @@ def get_alerts():
     search   = request.args.get("search", "").strip()
     sort     = request.args.get("sort", "newest")
     try:
-        limit = int(request.args.get("limit", 500))
+        limit = int(request.args.get("limit", 100))
+        limit = max(1, min(limit, 10000))   # entre 1 et 10 000 par page
     except ValueError:
-        limit = 500
+        limit = 100
+    try:
+        offset = int(request.args.get("offset", 0))
+        offset = max(0, offset)
+    except ValueError:
+        offset = 0
 
     conn = get_db_connection()
     try:
@@ -79,6 +85,12 @@ def get_alerts():
         order_map = {"newest": "timestamp DESC", "oldest": "timestamp ASC", "sev": "severity ASC, timestamp DESC"}
         order_clause = order_map.get(sort, "timestamp DESC")
 
+        # Compter le total (sans LIMIT/OFFSET) pour la pagination
+        count_query = f"SELECT COUNT(*) AS total FROM alertes {where_clause}"
+        cur.execute(count_query, params)
+        total_row = cur.fetchone()
+        total = int(total_row["total"]) if total_row else 0
+
         query = f"""
             SELECT id, timestamp, source_ip, destination_ip,
                    attack_type, severity, detection_engine,
@@ -87,13 +99,21 @@ def get_alerts():
             FROM alertes
             {where_clause}
             ORDER BY {order_clause}
-            LIMIT %s
+            LIMIT %s OFFSET %s
         """
         params.append(limit)
+        params.append(offset)
         cur.execute(query, params)
         rows = cur.fetchall()
         alerts = [row_to_alert(r) for r in rows]
-        return jsonify({"success": True, "count": len(alerts), "alerts": alerts})
+        return jsonify({
+            "success": True,
+            "count":   len(alerts),
+            "total":   total,
+            "limit":   limit,
+            "offset":  offset,
+            "alerts":  alerts,
+        })
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 500
     finally:
