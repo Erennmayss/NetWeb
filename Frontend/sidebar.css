@@ -16,8 +16,21 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-bottom: 30px;
+  margin-bottom: 7px;
   text-decoration: none;
+}
+
+.sidebar-brand-name {
+  margin-bottom: 24px;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: 0;
+  color: #f8fafc;
+}
+
+.sidebar-brand-name span {
+  color: #a78bfa;
 }
 
 .sidebar-logo-inner {
@@ -121,6 +134,10 @@
   .sidebar-logo {
     margin-bottom: 0;
     margin-right: 12px;
+  }
+
+  .sidebar-brand-name {
+    display: none;
   }
 
   .sidebar-nav {

@@ -120,6 +120,50 @@ def get_alerts():
         conn.close()
 
 
+@alerts_bp.route("/api/alerts", methods=["POST"])
+def create_alert():
+    data = request.get_json(silent=True) or {}
+
+    conn = get_db_connection()
+    try:
+        cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+        cur.execute("""
+            INSERT INTO alertes (
+                timestamp, source_ip, destination_ip,
+                attack_type, severity, detection_engine,
+                details, protocol, source_port, destination_port
+            )
+            VALUES (
+                COALESCE(%s::timestamp, NOW()), %s, %s,
+                %s, %s, %s,
+                %s, %s, %s, %s
+            )
+            RETURNING id, timestamp, source_ip, destination_ip,
+                      attack_type, severity, detection_engine,
+                      details, protocol, source_port, destination_port,
+                      loss, volume, service
+        """, (
+            data.get("timestamp"),
+            data.get("source_ip"),
+            data.get("destination_ip"),
+            data.get("attack_type") or "Unknown",
+            data.get("severity") or "inconnue",
+            data.get("detection_engine") or "Snort",
+            data.get("details") or data.get("attack_type") or "",
+            data.get("protocol") or "N/A",
+            data.get("source_port"),
+            data.get("destination_port"),
+        ))
+        row = cur.fetchone()
+        conn.commit()
+        return jsonify({"success": True, "alert": row_to_alert(row)}), 201
+    except Exception as e:
+        conn.rollback()
+        return jsonify({"success": False, "error": str(e)}), 500
+    finally:
+        conn.close()
+
+
 @alerts_bp.route("/api/alerts/recent", methods=["GET"])
 def get_recent_alerts():
     try:

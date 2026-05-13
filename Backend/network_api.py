@@ -7,6 +7,7 @@ import yaml, os
 import logging
 import re
 import shutil
+import signal
 from datetime import datetime
 
 network_bp = Blueprint('network', __name__)
@@ -162,11 +163,22 @@ def stop_detection():
             )
 
         if DETECTION_PROCESS and DETECTION_PROCESS.poll() is None:
-            DETECTION_PROCESS.terminate()
+            if os.name == "nt":
+                DETECTION_PROCESS.send_signal(signal.CTRL_BREAK_EVENT)
+            else:
+                DETECTION_PROCESS.terminate()
             try:
-                DETECTION_PROCESS.wait(timeout=5)
+                DETECTION_PROCESS.wait(timeout=8)
             except subprocess.TimeoutExpired:
-                DETECTION_PROCESS.kill()
+                if os.name == "nt":
+                    subprocess.run(
+                        ["taskkill", "/PID", str(DETECTION_PROCESS.pid), "/T", "/F"],
+                        capture_output=True,
+                        text=True,
+                        timeout=10,
+                    )
+                else:
+                    DETECTION_PROCESS.kill()
         DETECTION_PROCESS = None
 
         return jsonify({

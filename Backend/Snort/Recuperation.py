@@ -7,6 +7,7 @@ import re
 import os
 import sys
 import json
+import signal
 import urllib.error
 import urllib.request
 from datetime import datetime
@@ -143,6 +144,12 @@ class SnortManager:
         if len(ip_ports) >= 2:
             dst_ip = ip_ports[1][0]
             dst_port = int(ip_ports[1][1]) if ip_ports[1][1].isdigit() else None
+
+        if not src_ip or not dst_ip:
+            ip_pair = re.search(r'(\d+\.\d+\.\d+\.\d+)\s*->\s*(\d+\.\d+\.\d+\.\d+)', ip_line)
+            if ip_pair:
+                src_ip = src_ip or ip_pair.group(1)
+                dst_ip = dst_ip or ip_pair.group(2)
         
         return {
             'timestamp_raw': timestamp,
@@ -468,6 +475,16 @@ if __name__ == "__main__":
         sys.exit(0)
     
     manager = SnortManager(interface=args.interface, log_dir=args.log_dir)
+
+    def handle_stop_signal(signum, frame):
+        print("\n\nArret demande...")
+        manager.stop_snort()
+        sys.exit(0)
+
+    signal.signal(signal.SIGTERM, handle_stop_signal)
+    if hasattr(signal, "SIGBREAK"):
+        signal.signal(signal.SIGBREAK, handle_stop_signal)
+
     try:
         manager.start_snort()
         print("Snort en cours d'exécution. Appuyez sur Ctrl+C pour arrêter.")

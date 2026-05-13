@@ -58,6 +58,7 @@
       <a class="sidebar-logo" href="${window.NetGuardAuth.getDefaultPage(session?.role)}" aria-label="Go to home">
         ${renderLogo()}
       </a>
+      <div class="sidebar-brand-name">Net<span>Guard</span></div>
       <nav class="sidebar-nav" aria-label="Main navigation">
         ${links.map(
           (link) => `
