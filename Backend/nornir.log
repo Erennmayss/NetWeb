@@ -377,3 +377,67 @@ Device settings: cisco_ios 10.10.10.50:22
 2026-05-13 15:38:18,728 -  nornir.core -     INFO -        run() - Running task 'netmiko_save_config' with args {} on 1 hosts
 2026-05-13 15:38:46,790 -  nornir.core -     INFO -        run() - Running task 'Port Mirroring Session 1' with args {} on 1 hosts
 2026-05-13 15:38:52,138 -  nornir.core -     INFO -        run() - Running task 'netmiko_save_config' with args {} on 1 hosts
+2026-05-13 16:03:43,028 -  nornir.core -     INFO -        run() - Running task 'Port Mirroring Session 1' with args {} on 1 hosts
+2026-05-13 16:03:53,087 - nornir.core.task -    ERROR -      start() - Host 'switch_cible': task 'Port Mirroring Session 1' failed with traceback:
+Traceback (most recent call last):
+  File "C:\Users\ADM\AppData\Roaming\Python\Python314\site-packages\netmiko\base_connection.py", line 1146, in establish_connection
+    self.remote_conn_pre.connect(**ssh_connect_params)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\ADM\AppData\Roaming\Python\Python314\site-packages\paramiko\client.py", line 384, in connect
+    sock.connect(addr)
+    ~~~~~~~~~~~~^^^^^^
+TimeoutError: timed out
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\ADM\AppData\Roaming\Python\Python314\site-packages\nornir\core\task.py", line 98, in start
+    r = self.task(self, **self.params)
+  File "C:\Users\ADM\Desktop\NetWeb\Backend\network_api.py", line 543, in port_mirroring_task
+    conn = task.host.get_connection("netmiko", task.nornir.config)
+  File "C:\Users\ADM\AppData\Roaming\Python\Python314\site-packages\nornir\core\inventory.py", line 476, in get_connection
+    self.open_connection(
+    ~~~~~~~~~~~~~~~~~~~~^
+        connection=connection,
+        ^^^^^^^^^^^^^^^^^^^^^^
+    ...<6 lines>...
+        extras=conn.extras,
+        ^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "C:\Users\ADM\AppData\Roaming\Python\Python314\site-packages\nornir\core\inventory.py", line 528, in open_connection
+    conn_obj.open(
+    ~~~~~~~~~~~~~^
+        hostname=hostname,
+        ^^^^^^^^^^^^^^^^^^
+    ...<5 lines>...
+        configuration=configuration,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "C:\Users\ADM\AppData\Roaming\Python\Python314\site-packages\nornir_netmiko\connections\netmiko.py", line 59, in open
+    connection = ConnectHandler(**parameters)
+  File "C:\Users\ADM\AppData\Roaming\Python\Python314\site-packages\netmiko\ssh_dispatcher.py", line 460, in ConnectHandler
+    return ConnectionClass(*args, **kwargs)
+  File "C:\Users\ADM\AppData\Roaming\Python\Python314\site-packages\netmiko\base_connection.py", line 495, in __init__
+    self._open()
+    ~~~~~~~~~~^^
+  File "C:\Users\ADM\AppData\Roaming\Python\Python314\site-packages\netmiko\base_connection.py", line 500, in _open
+    self.establish_connection()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\ADM\AppData\Roaming\Python\Python314\site-packages\netmiko\base_connection.py", line 1168, in establish_connection
+    raise NetmikoTimeoutException(msg)
+netmiko.exceptions.NetmikoTimeoutException: TCP connection to device failed.
+
+Common causes of this problem are:
+1. Incorrect hostname or IP address.
+2. Wrong TCP port.
+3. Intermediate firewall blocking access.
+
+Device settings: cisco_ios 10.10.10.50:22
+
+
+
+2026-05-13 16:04:39,954 -  nornir.core -     INFO -        run() - Running task 'Port Mirroring Session 1' with args {} on 1 hosts
+2026-05-13 16:04:46,876 -  nornir.core -     INFO -        run() - Running task 'netmiko_save_config' with args {} on 1 hosts
+2026-05-13 16:06:32,833 -  nornir.core -     INFO -        run() - Running task 'TFTP Backup running-config' with args {} on 1 hosts
