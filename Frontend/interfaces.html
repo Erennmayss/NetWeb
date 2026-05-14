@@ -405,7 +405,7 @@
         updatePortLocally(id, updates);
       };
 
-      // ── Un seul bouton : Sauvegarde BDD + Déploiement SSH ──────────────────
+      // ── Un seul bouton : Déploiement SSH d'abord, puis BDD seulement si SSH OK ──
       const handleApplyAndDeploy = async (id) => {
         const currentPort = getPort(id);
         if (!currentPort) return;
@@ -422,22 +422,14 @@
           }
         }
 
-        setIsApplying(true);
+        setIsDeploying(true);
         setDeployResult(null);
 
-        // ── Étape 1 : Sauvegarde en BDD ────────────────────────────────────
-        console.log('[handleApplyAndDeploy] Attempting to persist port to DB:', currentPort);
-        try {
-          await persistPort({ ...currentPort, configured: true }, null);
-        } catch (error) {
-          showToast(`❌ Erreur BDD : ${error.message}`, 'error');
-          setIsApplying(false);
-          return;
-        }
-
-        // ── Étape 2 : Déploiement SSH sur le switch ─────────────────────────
-        setIsDeploying(true);
-        console.log('[handleApplyAndDeploy] Attempting SSH deployment for port:', currentPort.id);
+        // ── Étape 1 : Déploiement SSH sur le switch ─────────────────────────
+        // On tente d'abord le SSH. Si ça échoue, on ne touche PAS à la BDD.
+        console.log('[handleApplyAndDeploy] Étape 1 — Tentative SSH pour:', currentPort.id);
+        let sshSuccess = false;
+        let sshData = null;
         try {
           const deployPayload = {
             interface_name: currentPort.id,
@@ -461,21 +453,50 @@
             headers: auth.getAuthHeaders(),
             body: JSON.stringify(deployPayload),
           });
-          const data = await res.json();
-          setDeployResult(data);
-
-          if (data.success) {
-            showToast(`🎉 Interface ${id} enregistrée en BDD et déployée sur le switch !`);
-            if (window.NetGuardAudit) window.NetGuardAudit.interfaceDeployed({ name: id, mode: currentPort.mode, vlan: currentPort.vlan });
-          } else {
-            showToast(`⚠️ BDD OK — mais déploiement SSH échoué : ${data.error || 'Erreur inconnue'}`, 'error');
-          }
+          sshData = await res.json();
+          sshSuccess = sshData.success === true;
         } catch (e) {
-          showToast(`❌ Erreur réseau SSH : ${e.message}`, 'error');
-          setDeployResult({ success: false, error: e.message });
+          sshData = { success: false, error: e.message };
+          sshSuccess = false;
+        }
+
+        // ── SSH échoué → on affiche l'erreur, la BDD reste intacte ──────────
+        if (!sshSuccess) {
+          console.warn('[handleApplyAndDeploy] SSH échoué — BDD NON modifiée.', sshData?.error);
+          setDeployResult({
+            success: false,
+            error: sshData?.error || 'Erreur SSH inconnue',
+            commands: sshData?.commands || [],
+          });
+          showToast(`❌ SSH échoué — BDD non modifiée : ${sshData?.error || 'Erreur inconnue'}`, 'error');
+          setIsDeploying(false);
+          return;
+        }
+
+        // ── Étape 2 : SSH OK → Sauvegarde en BDD ────────────────────────────
+        console.log('[handleApplyAndDeploy] SSH OK — Étape 2 : sauvegarde BDD pour:', currentPort.id);
+        setIsDeploying(false);
+        setIsApplying(true);
+        try {
+          await persistPort({ ...currentPort, configured: true }, null);
+          setDeployResult({
+            success: true,
+            message: `Interface ${id} déployée sur le switch et enregistrée en BDD.`,
+            commands: sshData?.commands || [],
+          });
+          showToast(`🎉 Interface ${id} déployée sur le switch et enregistrée en BDD !`);
+          if (window.NetGuardAudit) window.NetGuardAudit.interfaceDeployed({ name: id, mode: currentPort.mode, vlan: currentPort.vlan });
+        } catch (error) {
+          // SSH a réussi mais BDD a échoué — cas rare, on l'indique clairement
+          console.error('[handleApplyAndDeploy] SSH OK mais BDD échouée:', error.message);
+          setDeployResult({
+            success: false,
+            error: `Switch déployé avec succès, mais erreur BDD : ${error.message}`,
+            commands: sshData?.commands || [],
+          });
+          showToast(`⚠️ Switch OK mais BDD échouée : ${error.message}`, 'error');
         } finally {
           setIsApplying(false);
-          setIsDeploying(false);
         }
       };
 
@@ -1300,7 +1321,7 @@ ${selectedPort.portSecurity && selectedPort.mode === 'access'
                         <div className="flex items-center gap-2 mb-2">
                           <span>{deployResult.success ? '✅' : '⚠️'}</span>
                           <p className={`text-xs font-bold uppercase tracking-wider ${deployResult.success ? 'text-emerald-700' : 'text-rose-700'}`}>
-                            {deployResult.success ? 'BDD enregistrée + Switch déployé' : 'BDD OK — Déploiement SSH échoué'}
+                            {deployResult.success ? 'Switch déployé + BDD enregistrée' : 'Échec SSH — BDD non modifiée'}
                           </p>
                         </div>
                         <p className={`text-[11px] font-medium ${deployResult.success ? 'text-emerald-600' : 'text-rose-600'}`}>
