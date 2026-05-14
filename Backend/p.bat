@@ -298,7 +298,7 @@ echo.
 echo %BLUE%[CONFIGURATION EMAIL]%RESET%
 echo.
 echo Les emails seront envoyes aux utilisateurs avec role='admin'
-echo et un email valide dans la table 'utilisateur'.
+echo ou role='security_admin' et un email valide dans la table 'utilisateur'.
 echo.
 
 set "CONFIG_DIR=%APPDATA%\IDS_Notifier"

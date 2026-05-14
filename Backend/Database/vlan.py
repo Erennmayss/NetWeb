@@ -267,13 +267,17 @@ def get_switchs():
 def create_vlan():
     """
     Crée un VLAN en base de données ET le déploie sur le switch via SSH.
+    Ordre : SSH d'abord → BDD ensuite (atomique).
+    Si le déploiement SSH échoue, la BDD n'est PAS modifiée.
     """
     try:
         payload = normalize_vlan_payload(request.get_json())
     except ValueError as e:
         return jsonify({"success": False, "error": str(e)}), 400
 
-    # ── 1. Sauvegarde en BDD ──────────────────────────────────────────────────
+    # ── Pré-validation BDD (sans commit) ─────────────────────────────────────
+    # On valide les données et prépare l'INSERT AVANT d'aller sur le switch.
+    # Le commit n'aura lieu qu'après le succès SSH.
     conn = get_db_connection()
     try:
         columns = get_vlan_columns(conn)
@@ -311,6 +315,26 @@ def create_vlan():
             insert_columns.append("switch_ip")
             insert_values.append(payload["switch_ip"])
 
+        # ── 1. Déploiement SSH sur le switch (AVANT le commit BDD) ───────────
+        deploy_result = {"success": False, "error": "Déploiement non tenté"}
+        try:
+            from network.deploy_vlan import run_deploy
+            deploy_result = run_deploy(payload["id_vlan"], payload["nom"])
+        except ImportError:
+            deploy_result = {"success": False, "error": "Module network.deploy_vlan introuvable"}
+        except Exception as e:
+            deploy_result = {"success": False, "error": str(e)}
+
+        # Si le switch a échoué → rollback, rien en BDD
+        if not deploy_result.get("success"):
+            conn.rollback()
+            return jsonify({
+                "success":    False,
+                "error":      "Le VLAN n'a pas été créé : le déploiement SSH a échoué.",
+                "ssh_deploy": deploy_result,
+            }), 502
+
+        # ── 2. SSH réussi → INSERT en BDD puis commit ─────────────────────────
         placeholders = ", ".join(["%s"] * len(insert_columns))
         cur.execute(f"""
             INSERT INTO vlan ({", ".join(insert_columns)})
@@ -326,31 +350,13 @@ def create_vlan():
     finally:
         conn.close()
 
-    # ── 2. Déploiement SSH sur le switch ──────────────────────────────────────
-    deploy_result = {"success": False, "error": "Déploiement non tenté"}
-    try:
-        from network.deploy_vlan import run_deploy
-        deploy_result = run_deploy(payload["id_vlan"], payload["nom"])
-    except ImportError:
-        deploy_result = {"success": False, "error": "Module network.deploy_vlan introuvable"}
-    except Exception as e:
-        deploy_result = {"success": False, "error": str(e)}
-
-    # ── 3. Réponse unifiée ────────────────────────────────────────────────────
-    response = {
-        "success":     True,
-        "message":     "VLAN créé en base de données.",
-        "vlan":        build_vlan_response(row),
-        "ssh_deploy":  deploy_result,
-    }
-
-    if not deploy_result.get("success"):
-        response["warning"] = (
-            f"VLAN enregistré en BDD mais le déploiement SSH a échoué : "
-            f"{deploy_result.get('error', 'Erreur inconnue')}"
-        )
-
-    return jsonify(response), 201
+    # ── 3. Réponse unifiée (les deux ont réussi) ──────────────────────────────
+    return jsonify({
+        "success":    True,
+        "message":    f"VLAN {payload['id_vlan']} '{payload['nom']}' créé sur le switch et enregistré en base de données.",
+        "vlan":       build_vlan_response(row),
+        "ssh_deploy": deploy_result,
+    }), 201
 
 
 # ─── PUT ──────────────────────────────────────────────────────────────────────

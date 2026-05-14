@@ -151,52 +151,7 @@
                   </button>
                 </div>
 
-                <div class="notif-config-divider"></div>
 
-                <!-- Section : Email SMTP -->
-                <div class="notif-config-section">
-                  <div class="notif-config-section-label">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
-                    Configuration email (SMTP)
-                  </div>
-                  <p class="notif-config-hint">Configure le serveur SMTP pour envoyer des alertes par email aux administrateurs.</p>
-
-                  <div class="notif-config-fields">
-                    <div class="notif-config-field-group">
-                      <label class="notif-config-label">Serveur SMTP</label>
-                      <input type="text" id="nc-smtp-server" class="notif-config-input" placeholder="smtp.gmail.com" />
-                    </div>
-                    <div class="notif-config-field-group notif-config-field-group--half">
-                      <label class="notif-config-label">Port</label>
-                      <input type="number" id="nc-smtp-port" class="notif-config-input" placeholder="587" value="587" />
-                    </div>
-                    <div class="notif-config-field-group">
-                      <label class="notif-config-label">Email expéditeur</label>
-                      <input type="email" id="nc-smtp-user" class="notif-config-input" placeholder="ids@mondomaine.com" />
-                    </div>
-                    <div class="notif-config-field-group">
-                      <label class="notif-config-label">Mot de passe / Clé d'application</label>
-                      <input type="password" id="nc-smtp-password" class="notif-config-input" placeholder="••••••••••••" />
-                    </div>
-                    <div class="notif-config-field-group">
-                      <label class="notif-config-label">Nom affiché</label>
-                      <input type="text" id="nc-smtp-fromname" class="notif-config-input" placeholder="IDS Monitoring System" />
-                    </div>
-                  </div>
-
-                  <div class="notif-config-smtp-examples">
-                    <span class="notif-config-hint-label">Exemples :</span>
-                    <button type="button" class="notif-smtp-preset" data-server="smtp.gmail.com" data-port="587">Gmail</button>
-                    <button type="button" class="notif-smtp-preset" data-server="smtp-mail.outlook.com" data-port="587">Outlook</button>
-                    <button type="button" class="notif-smtp-preset" data-server="smtp.mail.yahoo.com" data-port="587">Yahoo</button>
-                    <button type="button" class="notif-smtp-preset" data-server="smtp.orange.fr" data-port="465">Orange</button>
-                  </div>
-
-                  <button type="button" class="notif-config-action-btn notif-config-action-btn--primary" id="notif-run-email-config">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
-                    Configurer les emails
-                  </button>
-                </div>
 
               </div>
 
@@ -762,38 +717,12 @@
     });
   }
 
-  document.querySelectorAll('.notif-smtp-preset').forEach(function(btn) {
-    btn.addEventListener('click', function() {
-      var s = document.getElementById('nc-smtp-server');
-      var p = document.getElementById('nc-smtp-port');
-      if (s) s.value = btn.dataset.server;
-      if (p) p.value = btn.dataset.port;
-    });
-  });
-
-  var _installBtn = document.getElementById('notif-run-install');
+var _installBtn = document.getElementById('notif-run-install');
   if (_installBtn) {
     _installBtn.addEventListener('click', function() { _launchPBat('1', null, _installBtn, 'Installer le notifier', 'Installation lancée ✅'); });
   }
 
-  var _emailConfigBtn = document.getElementById('notif-run-email-config');
-  if (_emailConfigBtn) {
-    _emailConfigBtn.addEventListener('click', function() {
-      var server   = (document.getElementById('nc-smtp-server')   || {}).value || '';
-      var port     = (document.getElementById('nc-smtp-port')     || {}).value || '587';
-      var user     = (document.getElementById('nc-smtp-user')     || {}).value || '';
-      var password = (document.getElementById('nc-smtp-password') || {}).value || '';
-      var fromname = (document.getElementById('nc-smtp-fromname') || {}).value || 'IDS Monitoring System';
-      if (!server || !user || !password) {
-        showDetectionToast('Veuillez remplir le serveur, email et mot de passe.', true);
-        return;
-      }
-      _launchPBat('8', { server: server, port: port, user: user, password: password, fromname: fromname },
-        _emailConfigBtn, 'Configurer les emails', 'Configuration email appliquée ✅');
-    });
-  }
-
-  function _launchPBat(option, params, btn, originalLabel, successLabel) {
+function _launchPBat(option, params, btn, originalLabel, successLabel) {
     var body = { option: option };
     if (params) body.params = params;
 
@@ -826,11 +755,7 @@
         btn.disabled = false;
         btn.style.opacity = '';
         // Restaurer le label d'origine avec son icône
-        if (option === '1') {
-          btn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> ' + (originalLabel || 'Installer le notifier');
-        } else {
-          btn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg> ' + (originalLabel || 'Configurer les emails');
-        }
+        btn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> ' + (originalLabel || 'Installer le notifier');
       }
     });
   }

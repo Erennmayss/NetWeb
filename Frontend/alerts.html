@@ -172,7 +172,7 @@
         <button class="icon-btn icon-button" id="pause-btn" onclick="togglePause()" title="Pause ou reprise">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="6" y="4" width="4" height="16"></rect><rect x="14" y="4" width="4" height="16"></rect></svg>
         </button>
-        <button class="primary-btn" onclick="window.print()">Export PDF</button>
+        <button class="primary-btn" onclick="exportPDF()">Export PDF</button>
         <button class="primary-btn" onclick="clearAll()">Reinitialiser</button>
       </div>
     </div>
@@ -370,8 +370,21 @@ function updatePrintData(){
   document.getElementById("pp-events-tbody").innerHTML=evRows;
 }
 
-const origPrint=window.print.bind(window);
-window.print=function(){updatePrintData();origPrint();};
+// ── Export PDF ────────────────────────────────────────────────────
+function exportPDF() {
+  // Utiliser directement les alertes déjà chargées (pas de fetch)
+  const printData = allAlerts.length ? allAlerts : alerts;
+
+  if (!printData.length) {
+    alert("Aucune alerte à exporter. Veuillez d'abord charger des alertes.");
+    return;
+  }
+
+  if (!allAlerts.length) allAlerts = [...alerts];
+
+  updatePrintData();
+  window.print();
+}
 async function loadRealAlerts() {
   await fetchPage(0);
 }

@@ -70,10 +70,13 @@ def _load_runtime_env():
                 "from_email": "SMTP_FROM",
             }
 
-            os.environ.setdefault("SMTP_ENABLED", "true")
+            # email_config.json est la source de vérité pour le SMTP :
+            # on force SMTP_ENABLED=true et on écrase les variables SMTP
+            # même si .env ou notifier.conf les avaient définies autrement.
+            os.environ["SMTP_ENABLED"] = "true"
             for src_key, env_key in mapping.items():
                 if src_key in data and data[src_key] is not None:
-                    os.environ.setdefault(env_key, str(data[src_key]))
+                    os.environ[env_key] = str(data[src_key])
         except Exception as exc:
             print(f"[WARN] Impossible de charger {email_config_path}: {exc}")
 
@@ -177,7 +180,7 @@ class AdminEmailNotifier:
         return self.enabled and bool(self.smtp_host and self.smtp_from)
 
     def _fetch_admin_emails(self):
-        """Récupère les emails des utilisateurs avec le rôle ADMIN"""
+        """Récupère les emails des utilisateurs avec le rôle ADMIN ou SECURITY_ADMIN"""
         try:
             import psycopg2
         except ImportError:
@@ -188,19 +191,19 @@ class AdminEmailNotifier:
         try:
             conn = psycopg2.connect(**self.db_cfg, connect_timeout=5)
             cur = conn.cursor()
-            # Requête adaptée à votre table utilisateur
+            # Récupère les emails des rôles 'admin' ET 'security_admin'
             cur.execute("""
                 SELECT DISTINCT TRIM(email)
                 FROM utilisateur
-                WHERE LOWER(TRIM(role)) = 'admin'
+                WHERE LOWER(TRIM(role)) IN ('admin', 'security_admin')
                   AND email IS NOT NULL
                   AND TRIM(email) <> ''
             """)
             emails = [row[0] for row in cur.fetchall() if row[0]]
             if emails:
-                log.info(f"📧 {len(emails)} email(s) admin trouvé(s) dans la base")
+                log.info(f"📧 {len(emails)} email(s) admin/security_admin trouvé(s) dans la base")
             else:
-                log.warning("⚠️ Aucun email admin trouvé - Vérifiez la table utilisateur")
+                log.warning("⚠️ Aucun email admin ou security_admin trouvé - Vérifiez la table utilisateur")
             return emails
         except Exception as exc:
             log.error(f"Impossible de récupérer les emails admin: {exc}")
@@ -301,8 +304,8 @@ class AdminEmailNotifier:
 
         recipients = self._fetch_admin_emails()
         if not recipients:
-            log.warning("⚠️ Aucun utilisateur ADMIN avec email trouvé")
-            log.warning("   Vérifiez que des utilisateurs ont role='admin' et un email valide")
+            log.warning("⚠️ Aucun utilisateur ADMIN ou SECURITY_ADMIN avec email trouvé")
+            log.warning("   Vérifiez que des utilisateurs ont role='admin' ou role='security_admin' et un email valide")
             return
 
         subject = self._build_subject(alert)
