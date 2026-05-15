@@ -1,7 +1,7 @@
 (function () {
   // ========================================================
   // MODE DESIGN : Mettre à true pour désactiver la sécurité
-  const DEV_MODE = true; 
+  const DEV_MODE = false; 
   // ========================================================
 
   const STORAGE_KEY = 'netguardSession';

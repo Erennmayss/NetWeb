@@ -140,6 +140,20 @@
         }
       }, [sessionChecked, currentUser]);
 
+      // ✅ Écouter la barre de recherche de la topbar
+      useEffect(() => {
+        const searchInput = document.getElementById('topbar-search-input');
+        if (!searchInput) return;
+
+        const handleSearchChange = () => {
+          // Si la requête de la topbar contient du texte, filtrer les utilisateurs
+          setSearchQuery(searchInput.value || '');
+        };
+
+        searchInput.addEventListener('input', handleSearchChange);
+        return () => searchInput.removeEventListener('input', handleSearchChange);
+      }, []);
+
       // ✅ Réinitialiser le mot de passe à l'ouverture/fermeture du modal
       const openCreateModal = () => {
         setEditingUser(null);
@@ -220,16 +234,6 @@
               <p className="text-slate-500 mt-1">Gérez les accès de l'équipe SOC &amp; NOC.</p>
             </div>
             <div className="flex flex-wrap gap-3 items-center">
-              <div className="relative">
-                <span className="absolute inset-y-0 left-3 flex items-center text-slate-400"></span>
-                <input 
-                  type="text" 
-                  placeholder="Rechercher..." 
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-9 pr-4 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:border-indigo-500 text-sm font-medium w-64 shadow-sm"
-                />
-              </div>
               <button 
                 onClick={openCreateModal}
                 className="px-5 py-2.5 bg-indigo-600 text-white rounded-xl font-bold shadow-md shadow-indigo-600/15 hover:bg-indigo-700 transition-all flex items-center gap-2"
