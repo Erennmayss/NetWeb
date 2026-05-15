@@ -62,6 +62,30 @@
     return '??';
   }
 
+  // Déterminer s'il faut afficher le bouton de détection
+  function shouldShowDetectionButton() {
+    var role = '';
+    try {
+      if (window.NetGuardAuth && typeof window.NetGuardAuth.getRole === 'function') {
+        role = (window.NetGuardAuth.getRole() || '').toUpperCase();
+      }
+    } catch (e) {
+      // Si erreur, on affiche par défaut
+      return true;
+    }
+    // Masquer pour AUDITOR et NETWORK_ADMIN
+    return role !== 'AUDITOR' && role !== 'NETWORK_ADMIN';
+  }
+
+  const detectionButtonHTML = shouldShowDetectionButton() ? `
+        <button type="button" id="topbar-detection-toggle" class="detection-btn detection-btn--start" aria-label="Lancer la detection" data-active="false">
+          <svg id="topbar-detection-icon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+            <path d="M8 5v14l11-7z"></path>
+          </svg>
+          <span id="topbar-detection-label">Start detection</span>
+        </button>
+  ` : '';
+
   root.innerHTML = `
     <header class="topbar">
       <div class="topbar-section">
@@ -81,12 +105,7 @@
           <div id="topbar-search-results" class="topbar-search-results" role="listbox" hidden></div>
         </div>
 
-        <button type="button" id="topbar-detection-toggle" class="detection-btn detection-btn--start" aria-label="Lancer la detection" data-active="false">
-          <svg id="topbar-detection-icon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-            <path d="M8 5v14l11-7z"></path>
-          </svg>
-          <span id="topbar-detection-label">Start detection</span>
-        </button>
+        ${detectionButtonHTML}
 
         <div class="notif-wrapper">
           <button type="button" id="topbar-notif-button" class="icon-button" aria-label="Notifications">
@@ -622,6 +641,24 @@
   initTheme();
   initUserAvatar();
   initGlobalSearch();
+
+  // ========== INITIALISER LA VISIBILITÉ DU BOUTON DE DÉTECTION ==========
+  function initDetectionButtonVisibility() {
+    if (!detectionToggleBtn) return;
+    
+    // Obtenir le rôle directement depuis NetGuardAuth
+    var role = '';
+    if (window.NetGuardAuth && typeof window.NetGuardAuth.getRole === 'function') {
+      role = (window.NetGuardAuth.getRole() || '').toUpperCase();
+    }
+    
+    // Masquer le bouton pour les rôles "AUDITOR" et "NETWORK_ADMIN"
+    if (role === 'AUDITOR' || role === 'NETWORK_ADMIN') {
+      detectionToggleBtn.style.display = 'none';
+    }
+  }
+
+  initDetectionButtonVisibility();
 
   // ========== ÉVÉNEMENTS ==========
   window.addEventListener('storage', function (e) {
