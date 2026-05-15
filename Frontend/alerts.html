@@ -15,7 +15,6 @@
 .topbar{animation:slideDown .4s ease}
 .app-shell{display:flex;height:100vh}.main-shell{flex:1;display:flex;flex-direction:column;min-width:0}
 
-/* Style des boutons d'origine */
 .topbar-secondary {
   padding: 12px 24px;
   background: rgba(255,255,255,0.72);
@@ -73,14 +72,16 @@
 .stats-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:18px;margin-bottom:20px}.stat-card{padding:20px;transition:all .25s ease;cursor:default;animation:fadeInUp .4s ease backwards}.stat-card:hover{transform:translateY(-4px);box-shadow:0 20px 30px -18px rgba(100,108,255,.15)}.stat-card:nth-child(1){animation-delay:0s}.stat-card:nth-child(2){animation-delay:0.05s}.stat-card:nth-child(3){animation-delay:0.1s}.stat-card:nth-child(4){animation-delay:0.15s}.stat-card:nth-child(5){animation-delay:0.2s}.stat-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}.stat-icon{width:44px;height:44px;border-radius:14px;display:flex;align-items:center;justify-content:center;transition:transform .2s}.stat-card:hover .stat-icon{transform:rotate(5deg) scale(1.05)}.stat-label{font-size:12px;color:var(--muted);margin-bottom:8px}.stat-value{font-size:28px;font-weight:700;line-height:1;transition:color .2s}.stat-delta{margin-top:8px;font-size:12px;color:var(--dim)}
 .filters-panel{padding:18px;margin-bottom:20px;animation:fadeInUp .4s ease .1s backwards}.filters-head{margin-bottom:14px}.filters-head h3{font-size:15px}.filters-head p{font-size:12px;color:var(--muted)}.controls-grid{display:grid;grid-template-columns:minmax(220px,1.4fr) auto auto;gap:12px;align-items:center}.search-wrap{position:relative}.search-wrap svg{position:absolute;left:14px;top:50%;transform:translateY(-50%);color:var(--dim)}.search-input-inline{width:100%;border:1px solid var(--border);background:rgba(255,255,255,0.9);color:var(--text);border-radius:14px;padding:12px 14px 12px 42px;outline:none;transition:all .2s ease}.search-input-inline:focus{border-color:var(--primary);box-shadow:0 0 0 3px rgba(99,102,241,.2)}.sort-select{height:46px;border:1px solid var(--border);background:var(--soft);border-radius:14px;color:var(--text);outline:none;transition:all .2s ease;min-width:160px;padding:0 14px;cursor:pointer}.sort-select:focus{border-color:var(--primary);box-shadow:0 0 0 3px rgba(99,102,241,.2)}.filter-group{display:flex;align-items:center;gap:8px;flex-wrap:wrap}.filter-btn{height:40px;padding:0 14px;border:1px solid var(--border);background:var(--soft);border-radius:999px;cursor:pointer;font-size:12px;font-weight:600;color:var(--muted);display:inline-flex;align-items:center;gap:8px;transition:all .2s ease}.filter-btn:hover{transform:translateY(-2px);box-shadow:0 4px 12px rgba(100,108,255,.1)}.filter-btn.active-all{background:var(--primary-soft);border-color:rgba(99,102,241,.24);color:var(--primary)}.filter-btn.active-crit{background:var(--crit-soft);border-color:#fecaca;color:var(--crit)}.filter-btn.active-med{background:var(--med-soft);border-color:#fde68a;color:#b45309}.filter-btn.active-low{background:var(--low-soft);border-color:#bbf7d0;color:#15803d}.filter-dot{width:8px;height:8px;border-radius:50%}
 .table-layout{display:grid;grid-template-columns:minmax(0,1.8fr) 360px;gap:20px}.table-panel{overflow:hidden;animation:fadeInUp .4s ease .15s backwards}.panel-header{padding:18px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;gap:12px}.panel-title{display:flex;align-items:center;gap:10px}.panel-title h3{font-size:15px}.panel-count{padding:5px 10px;border-radius:999px;background:var(--soft);border:1px solid var(--border);font:500 11px "DM Mono",monospace;color:var(--muted);transition:all .2s}.clear-btn{border:none;background:transparent;color:var(--primary);font-size:12px;font-weight:700;cursor:pointer;transition:transform .2s}.clear-btn:hover{transform:scale(1.05);text-decoration:underline}
-.table-head,.alert-row{display:grid;grid-template-columns:44px 120px 1fr 1fr 1.2fr 90px 90px;gap:12px;align-items:center;padding:0 20px}
+.table-head,.alert-row{display:grid;grid-template-columns:44px 120px 1fr 1fr 1.2fr 80px 90px 90px;gap:12px;align-items:center;padding:0 20px}
 .table-head{height:42px;background:var(--soft);border-bottom:1px solid var(--border)}
 .table-col{font:700 11px "DM Mono",monospace;color:var(--text);text-transform:uppercase;letter-spacing:.04em}
 .alerts-list{max-height:640px;overflow:auto}
 .alert-row{min-height:72px;border-bottom:1px solid var(--soft);cursor:pointer;animation:rowSlideIn .35s cubic-bezier(0.2, 0.9, 0.4, 1.1) both;transition:background .18s, transform .15s, box-shadow .15s}
 .alert-row:hover{background:rgba(99,102,241,.07);transform:scale(1.002);box-shadow:inset 3px 0 0 var(--primary)}
-.sev-dot-wrap{display:flex;justify-content:center}.sev-pill{width:12px;height:12px;border-radius:50%;transition:all .2s ease}.alert-row:hover .sev-pill{transform:scale(1.3)}.sev-pill.critical{background:var(--crit);box-shadow:0 0 0 5px var(--crit-soft);animation:pulseGlow 2s infinite}.sev-pill.medium{background:var(--med);box-shadow:0 0 0 5px var(--med-soft)}.sev-pill.low{background:var(--low);box-shadow:0 0 0 5px var(--low-soft)}.cell{font-size:12px;color:var(--muted);min-width:0}.cell-mono{font-family:"DM Mono",monospace;font-size:11.5px;color:var(--text);word-break:break-word}.attack-name{display:flex;flex-direction:column;gap:4px}.attack-name strong{font-size:13px;color:var(--text);transition:color .15s}.alert-row:hover .attack-name strong{color:var(--primary)}.attack-name span{font-size:11px;color:var(--dim)}.sev-badge{display:inline-flex;align-items:center;justify-content:center;min-width:82px;padding:7px 10px;border-radius:999px;font:700 10px "DM Mono",monospace;letter-spacing:.05em;text-transform:uppercase;border:1px solid transparent;transition:all .2s ease}.sev-badge.critical{color:#991b1b;background:var(--crit-soft);border-color:#fecaca}.sev-badge.medium{color:#92400e;background:var(--med-soft);border-color:#fde68a}.sev-badge.low{color:#166534;background:var(--low-soft);border-color:#bbf7d0}.alert-row:hover .sev-badge{transform:scale(1.02)}.empty-state{padding:56px 20px;text-align:center;color:var(--dim);font-size:13px;animation:fadeIn .5s}
-.detail-panel{padding:20px;align-self:start;position:sticky;top:0;animation:fadeInUp .4s ease .2s backwards;transition:all .2s}.detail-header{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;padding-bottom:16px;border-bottom:1px solid var(--border);margin-bottom:16px}.detail-header h3{font-size:16px;line-height:1.3;animation:glowText .6s ease}.detail-time{margin-top:4px;font:500 11px "DM Mono",monospace;color:var(--dim)}.detail-close{border:none;background:var(--soft);width:34px;height:34px;border-radius:10px;color:var(--muted);font-size:18px;cursor:pointer;transition:all .2s ease}.detail-close:hover{background:#e2e8f0;transform:rotate(90deg) scale(1.1)}.detail-field{margin-bottom:14px;animation:fadeInRight .3s ease backwards}.detail-field:nth-child(1){animation-delay:0s}.detail-field:nth-child(2){animation-delay:0.05s}.detail-field:nth-child(3){animation-delay:0.1s}.detail-field:nth-child(4){animation-delay:0.15s}.detail-field:nth-child(5){animation-delay:0.2s}.detail-field:nth-child(6){animation-delay:0.25s}.detail-field label{display:block;font:600 11px "DM Mono",monospace;letter-spacing:.04em;text-transform:uppercase;color:var(--dim);margin-bottom:6px}.detail-field p{background:var(--soft);border:1px solid var(--border);border-radius:12px;padding:11px 12px;font-size:12px;line-height:1.5;word-break:break-word;transition:all .2s}.detail-field p:hover{background:#fff;border-color:var(--primary-soft)}.sparkline{margin-top:6px;background:linear-gradient(180deg,#f8fbff 0%,#f1f5f9 100%);border:1px solid var(--border);border-radius:14px;padding:14px;transition:all .2s}.sparkline:hover{box-shadow:0 4px 12px rgba(100,108,255,.1);transform:translateY(-2px)}.sparkline-title{margin-bottom:8px;font:600 11px "DM Mono",monospace;letter-spacing:.04em;text-transform:uppercase;color:var(--dim)} .sparkline canvas{width:100%!important;display:block;transition:all .3s}
+.sev-dot-wrap{display:flex;justify-content:center}.sev-pill{width:12px;height:12px;border-radius:50%;transition:all .2s ease}.alert-row:hover .sev-pill{transform:scale(1.3)}.sev-pill.critical{background:var(--crit);box-shadow:0 0 0 5px var(--crit-soft);animation:pulseGlow 2s infinite}.sev-pill.medium{background:var(--med);box-shadow:0 0 0 5px var(--med-soft)}.sev-pill.low{background:var(--low);box-shadow:0 0 0 5px var(--low-soft)}.cell{font-size:12px;color:var(--muted);min-width:0}.cell-mono{font-family:"DM Mono",monospace;font-size:11.5px;color:var(--text);word-break:break-word}
+.ports-info{font-family:"DM Mono",monospace;font-size:10px;color:var(--primary);background:var(--primary-soft);padding:4px 8px;border-radius:8px;display:inline-block;white-space:nowrap}
+.attack-name{display:flex;flex-direction:column;gap:4px}.attack-name strong{font-size:13px;color:var(--text);transition:color .15s}.alert-row:hover .attack-name strong{color:var(--primary)}.attack-name span{font-size:11px;color:var(--dim)}.sev-badge{display:inline-flex;align-items:center;justify-content:center;min-width:82px;padding:7px 10px;border-radius:999px;font:700 10px "DM Mono",monospace;letter-spacing:.05em;text-transform:uppercase;border:1px solid transparent;transition:all .2s ease}.sev-badge.critical{color:#991b1b;background:var(--crit-soft);border-color:#fecaca}.sev-badge.medium{color:#92400e;background:var(--med-soft);border-color:#fde68a}.sev-badge.low{color:#166534;background:var(--low-soft);border-color:#bbf7d0}.alert-row:hover .sev-badge{transform:scale(1.02)}.empty-state{padding:56px 20px;text-align:center;color:var(--dim);font-size:13px;animation:fadeIn .5s}
+.detail-panel{padding:20px;align-self:start;position:sticky;top:0;animation:fadeInUp .4s ease .2s backwards;transition:all .2s}.detail-header{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;padding-bottom:16px;border-bottom:1px solid var(--border);margin-bottom:16px}.detail-header h3{font-size:16px;line-height:1.3;animation:glowText .6s ease}.detail-time{margin-top:4px;font:500 11px "DM Mono",monospace;color:var(--dim)}.detail-close{border:none;background:var(--soft);width:34px;height:34px;border-radius:10px;color:var(--muted);font-size:18px;cursor:pointer;transition:all .2s ease}.detail-close:hover{background:#e2e8f0;transform:rotate(90deg) scale(1.1)}.detail-field{margin-bottom:14px;animation:fadeInRight .3s ease backwards}.detail-field:nth-child(1){animation-delay:0s}.detail-field:nth-child(2){animation-delay:0.05s}.detail-field:nth-child(3){animation-delay:0.1s}.detail-field:nth-child(4){animation-delay:0.15s}.detail-field:nth-child(5){animation-delay:0.2s}.detail-field:nth-child(6){animation-delay:0.25s}.detail-field:nth-child(7){animation-delay:0.3s}.detail-field label{display:block;font:600 11px "DM Mono",monospace;letter-spacing:.04em;text-transform:uppercase;color:var(--dim);margin-bottom:6px}.detail-field p{background:var(--soft);border:1px solid var(--border);border-radius:12px;padding:11px 12px;font-size:12px;line-height:1.5;word-break:break-word;transition:all .2s}.detail-field p:hover{background:#fff;border-color:var(--primary-soft)}.sparkline{margin-top:6px;background:linear-gradient(180deg,#f8fbff 0%,#f1f5f9 100%);border:1px solid var(--border);border-radius:14px;padding:14px;transition:all .2s}.sparkline:hover{box-shadow:0 4px 12px rgba(100,108,255,.1);transform:translateY(-2px)}.sparkline-title{margin-bottom:8px;font:600 11px "DM Mono",monospace;letter-spacing:.04em;text-transform:uppercase;color:var(--dim)} .sparkline canvas{width:100%!important;display:block;transition:all .3s}
 @keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.45;transform:scale(.78)}} @keyframes pulseGlow{0%,100%{box-shadow:0 0 0 5px var(--crit-soft)}50%{box-shadow:0 0 0 8px rgba(239,68,68,.3)}} @keyframes rowSlideIn{from{opacity:0;transform:translateX(-12px)}to{opacity:1;transform:translateX(0)}} @keyframes fadeInUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}} @keyframes fadeInRight{from{opacity:0;transform:translateX(-10px)}to{opacity:1;transform:translateX(0)}} @keyframes slideDown{from{opacity:0;transform:translateY(-30px)}to{opacity:1;transform:translateY(0)}} @keyframes bounceIn{0%{opacity:0;transform:scale(0.3)}50%{opacity:1;transform:scale(1.2)}100%{opacity:1;transform:scale(1)}} @keyframes fadeIn{from{opacity:0}to{opacity:1}} @keyframes glowText{0%{text-shadow:0 0 0 rgba(99,102,241,0)}50%{text-shadow:0 0 8px rgba(99,102,241,.4)}100%{text-shadow:0 0 0 rgba(99,102,241,0)}}
 
 /* PRINT STYLES */
@@ -140,7 +141,7 @@
   .sidebar-host, aside#sidebar-root { display: none !important; }
 }
 
-@media(max-width:1280px){.stats-grid{grid-template-columns:repeat(3,1fr)}.table-layout{grid-template-columns:1fr}.detail-panel{position:static}} @media(max-width:1080px){.controls-grid{grid-template-columns:1fr}.stats-grid{grid-template-columns:repeat(2,1fr)}} @media(max-width:820px){body{overflow:auto}.app-shell{height:auto;min-height:100vh;flex-direction:column}.stats-grid{grid-template-columns:1fr}.table-head{display:none}.alert-row{grid-template-columns:28px 1fr auto;gap:8px 10px;padding:14px 16px}.alert-row .ts,.alert-row .dst,.alert-row .proto{display:none}.alert-row .attack-name,.alert-row .src{grid-column:2}}
+@media(max-width:1280px){.stats-grid{grid-template-columns:repeat(3,1fr)}.table-layout{grid-template-columns:1fr}.detail-panel{position:static}} @media(max-width:1080px){.controls-grid{grid-template-columns:1fr}.stats-grid{grid-template-columns:repeat(2,1fr)}} @media(max-width:820px){body{overflow:auto}.app-shell{height:auto;min-height:100vh;flex-direction:column}.stats-grid{grid-template-columns:1fr}.table-head{display:none}.alert-row{grid-template-columns:28px 1fr auto;gap:8px 10px;padding:14px 16px}.alert-row .ts,.alert-row .dst,.alert-row .proto,.alert-row .ports{display:none}.alert-row .attack-name,.alert-row .src{grid-column:2}}
 
 /* ── Pagination ── */
 .pagination-bar{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;padding:14px 20px;border-top:1px solid var(--border);background:var(--soft)}
@@ -163,10 +164,8 @@
   <aside id="sidebar-root" class="sidebar-host" data-page="alerts"></aside>
 
   <main class="main-shell">
-    <!-- TOPBAR IDENTIQUE A NETWORK-DASHBOARD -->
     <div id="topbar-root" data-title="Snort Alerts Dashboard" data-subtitle="Surveillance active des alertes Snort" data-notifications="0"></div>
 
-    <!-- BARRE SECONDAIRE AVEC BOUTONS (sans statut ni notifications) -->
     <div class="topbar-secondary">
       <div class="topbar-actions">
         <button class="icon-btn icon-button" id="pause-btn" onclick="togglePause()" title="Pause ou reprise">
@@ -175,13 +174,12 @@
         <select id="pdf-month-sel" onchange="onMonthChange()" style="height:36px;border:1px solid var(--border);background:var(--soft);border-radius:12px;color:var(--text);padding:0 12px;font-size:12px;font-weight:600;cursor:pointer;outline:none;" title="Filtrer par mois">
           <option value="">Tous les mois</option>
         </select>
-        <button class="primary-btn" onclick="exportPDF()" id="pdf-btn">&#128196; Export PDF</button>
+        <button class="primary-btn" onclick="exportPDF()" id="pdf-btn">📄 Export PDF</button>
         <button class="primary-btn" onclick="clearAll()">Reinitialiser</button>
       </div>
     </div>
 
     <section class="content">
-      <!-- PAGE DE TITRE POUR PRINT -->
       <div class="print-cover" id="print-cover">
         <div class="print-cover-logo-row">
           <div class="print-cover-logo-icon">
@@ -199,7 +197,6 @@
         </div>
       </div>
 
-      <!-- RAPPORT STRUCTURÉ POUR PRINT -->
       <div class="print-pdf-page" id="print-pdf-page">
         <div class="pp-header">
           <div><div class="pp-header-title">Rapport de Sécurité - Mars 2026</div><div class="pp-header-sub" id="pb-date">Généré le : 12/04/2026 13:34</div></div>
@@ -210,7 +207,7 @@
         <div class="pp-section-title">Statistiques par adresse IP source</div>
         <div id="pp-ip-blocks"></div>
         <div class="pp-section-title">Détail des événements</div>
-        <table class="pp-table" id="pp-events-table"><thead><tr><th style="width:11%">Date</th><th style="width:26%">Type</th><th style="width:14%">Source IP</th><th style="width:14%">Destination IP</th><th style="width:9%">Sévérité</th><th style="width:8%">Protocole</th><th style="width:18%">Ports</th></tr></thead><tbody id="pp-events-tbody"></tbody></table>
+        <table class="pp-table" id="pp-events-table"><thead><tr><th style="width:10%">Date</th><th style="width:22%">Type</th><th style="width:12%">Source IP</th><th style="width:12%">Destination IP</th><th style="width:8%">Sévérité</th><th style="width:7%">Proto</th><th style="width:15%">Ports</th><th style="width:14%">Signature</th></tr></thead><tbody id="pp-events-tbody"></tbody></table>
         <div class="pp-footer"><span>Snort IDS — Rapport de Sécurité</span><span id="pp-footer-date">12/04/2026 13:34</span></div>
       </div>
 
@@ -235,7 +232,12 @@
             <button class="filter-btn" onclick="setSev('medium',this)"><span class="filter-dot" style="background:var(--med)"></span>Moyen</button>
             <button class="filter-btn" onclick="setSev('low',this)"><span class="filter-dot" style="background:var(--low)"></span>Faible</button>
           </div>
-          <select class="sort-select" id="sort-sel" onchange="applyFilters()"><option value="newest">Plus recent</option><option value="oldest">Plus ancien</option><option value="sev">Par severite</option></select>
+          <!-- ✅ FIX : "newest" sélectionné par défaut — dernière alerte en premier -->
+          <select class="sort-select" id="sort-sel" onchange="applyFilters()">
+            <option value="newest" selected>Plus récent</option>
+            <option value="oldest">Plus ancien</option>
+            <option value="sev">Par sévérité</option>
+          </select>
         </div>
       </div>
 
@@ -245,10 +247,11 @@
           <div class="table-head">
             <div class="table-col" style="text-align:center">Niv</div>
             <div class="table-col">Date / heure</div>
-            <div class="table-col">Source</div>
-            <div class="table-col">Destination</div>
+            <div class="table-col">Source IP</div>
+            <div class="table-col">Destination IP</div>
             <div class="table-col">Signature</div>
             <div class="table-col">Proto</div>
+            <div class="table-col">Ports</div>
             <div class="table-col">Sévérité</div>
           </div>
           <div class="alerts-list" id="alerts-list"><div class="empty-state">En attente des premieres alertes Snort...</div></div>
@@ -274,7 +277,9 @@
         <aside class="detail-panel">
           <div class="detail-header"><div><h3 id="d-title">Detail d'alerte</h3><div class="detail-time" id="d-time">Selectionnez une alerte pour afficher ses details.</div></div><button class="detail-close" onclick="closeDetail()">&times;</button></div>
           <div class="detail-field"><label>IP source</label><p class="mono" id="d-src">--</p></div>
+          <div class="detail-field"><label>Port source</label><p class="mono" id="d-src-port">--</p></div>
           <div class="detail-field"><label>IP destination</label><p class="mono" id="d-dst">--</p></div>
+          <div class="detail-field"><label>Port destination</label><p class="mono" id="d-dst-port">--</p></div>
           <div class="detail-field"><label>Protocole</label><p class="mono" id="d-proto">--</p></div>
           <div class="detail-field"><label>SID Snort</label><p class="mono" id="d-sid">--</p></div>
           <div class="detail-field"><label>Regle declenchee</label><p class="mono" id="d-rule">--</p></div>
@@ -287,33 +292,52 @@
 </div>
 
 <script>
-const REAL_ALERTS_DATA = [
-  { name:"Auto-FTP-Patator-HighPacketRate", src:"192.168.56.106:46166", dst:"192.168.56.104:22", proto:"TCP", sid:"1:2100498", rule:"alert tcp $EXTERNAL_NET any -> $HOME_NET 21 (msg:\"Auto-FTP-Patator-HighPacketRate\"; threshold:type both,track by_src,count 50,seconds 10; sid:2100498; rev:1;)", date:"2026-03-26T08:12:04" },
-  { name:"Auto-Heartbleed-HighPacketRate",  src:"192.168.56.106:46180", dst:"192.168.56.104:22", proto:"TCP", sid:"1:2100499", rule:"alert tcp $EXTERNAL_NET any -> $HOME_NET 443 (msg:\"Auto-Heartbleed-HighPacketRate\"; threshold:type both,track by_src,count 50,seconds 10; sid:2100499; rev:1;)", date:"2026-03-26T08:14:17" },
-  { name:"Auto-Heartbleed-SYN",             src:"192.168.56.106:46190", dst:"192.168.56.104:22", proto:"TCP", sid:"1:2100500", rule:"alert tcp $EXTERNAL_NET any -> $HOME_NET 443 (flags:S; msg:\"Auto-Heartbleed-SYN\"; threshold:type both,track by_src,count 20,seconds 5; sid:2100500; rev:1;)", date:"2026-03-26T08:16:33" },
-  { name:"Auto-Infiltration-Portscan-SYN",  src:"192.168.56.106:46190", dst:"192.168.56.104:22", proto:"TCP", sid:"1:2100501", rule:"alert tcp $EXTERNAL_NET any -> $HOME_NET any (flags:S; msg:\"Auto-Infiltration-Portscan-SYN\"; threshold:type both,track by_src,count 30,seconds 5; sid:2100501; rev:1;)", date:"2026-03-26T08:18:09" },
-  { name:"Auto-Botnet-SYN",                 src:"192.168.56.106:46170", dst:"192.168.56.104:22", proto:"TCP", sid:"1:2100502", rule:"alert tcp $EXTERNAL_NET any -> $HOME_NET any (flags:S; msg:\"Auto-Botnet-SYN\"; threshold:type both,track by_src,count 40,seconds 10; sid:2100502; rev:1;)", date:"2026-03-26T08:21:45" },
-  { name:"Auto-Infiltration-SYN",           src:"192.168.56.106:46154", dst:"192.168.56.104:22", proto:"TCP", sid:"1:2100503", rule:"alert tcp $EXTERNAL_NET any -> $HOME_NET any (flags:S; msg:\"Auto-Infiltration-SYN\"; threshold:type both,track by_src,count 20,seconds 5; sid:2100503; rev:1;)", date:"2026-03-26T08:24:52" },
-  { name:"Auto-Infiltration-Portscan-ACK",  src:"192.168.56.106:46154", dst:"192.168.56.104:22", proto:"TCP", sid:"1:2100504", rule:"alert tcp $EXTERNAL_NET any -> $HOME_NET any (flags:A; msg:\"Auto-Infiltration-Portscan-ACK\"; threshold:type both,track by_src,count 30,seconds 5; sid:2100504; rev:1;)", date:"2026-03-26T08:27:18" },
-  { name:"Auto-Botnet-HighPacketRate",      src:"192.168.56.106:44614", dst:"192.168.56.104:22", proto:"TCP", sid:"1:2100505", rule:"alert tcp $EXTERNAL_NET any -> $HOME_NET any (msg:\"Auto-Botnet-HighPacketRate\"; threshold:type both,track by_src,count 50,seconds 10; sid:2100505; rev:1;)", date:"2026-03-26T08:30:05" },
-  { name:"Auto-FTP-Patator-HighPacketRate", src:"192.168.56.106:44666", dst:"192.168.56.104:22", proto:"TCP", sid:"1:2100498", rule:"alert tcp $EXTERNAL_NET any -> $HOME_NET 21 (msg:\"Auto-FTP-Patator-HighPacketRate\"; threshold:type both,track by_src,count 50,seconds 10; sid:2100498; rev:1;)", date:"2026-03-26T08:33:41" },
-  { name:"Auto-Infiltration-HighPacketRate",src:"192.168.56.106:44678", dst:"192.168.56.104:22", proto:"TCP", sid:"1:2100506", rule:"alert tcp $EXTERNAL_NET any -> $HOME_NET any (msg:\"Auto-Infiltration-HighPacketRate\"; threshold:type both,track by_src,count 50,seconds 10; sid:2100506; rev:1;)", date:"2026-03-26T08:36:29" },
-  { name:"Auto-FTP-Patator-ACK",            src:"192.168.56.106:44678", dst:"192.168.56.104:22", proto:"TCP", sid:"1:2100507", rule:"alert tcp $EXTERNAL_NET any -> $HOME_NET 21 (flags:A; msg:\"Auto-FTP-Patator-ACK\"; threshold:type both,track by_src,count 20,seconds 5; sid:2100507; rev:1;)", date:"2026-03-26T08:39:14" },
-  { name:"Auto-Infiltration-HighPacketRate",src:"192.168.56.106:44558", dst:"192.168.56.104:22", proto:"TCP", sid:"1:2100506", rule:"alert tcp $EXTERNAL_NET any -> $HOME_NET any (msg:\"Auto-Infiltration-HighPacketRate\"; threshold:type both,track by_src,count 50,seconds 10; sid:2100506; rev:1;)", date:"2026-03-26T08:42:07" }
-];
-
-function randHex(len){let r="";for(let i=0;i<len;i++)r+=Math.floor(Math.random()*16).toString(16);return r.match(/.{1,2}/g).join(" ").toUpperCase()}
-const SEV_MAP={critical:0,medium:1,low:2},SEV_LABELS={critical:"Critique",medium:"Moyen",low:"Faible"};
-let alerts=[],filteredAlerts=[],currentSev="all",paused=false,critNotifCount=0,selectedAlert=null,alertId=0;
-function fmtTime(d){return d.toLocaleDateString("fr-FR",{day:"2-digit",month:"2-digit"})+" "+d.toLocaleTimeString("fr-FR",{hour:"2-digit",minute:"2-digit",second:"2-digit"})} function rateLastMinute(){return alerts.filter(a=>Date.now()-a.ts.getTime()<60000).length}
-function updateStats(){
-  document.getElementById("stat-rate").textContent=`${rateLastMinute()}/min`;
+// ─────────────────────────────────────────────
+// Utilitaires IP / Port
+// ─────────────────────────────────────────────
+function extractPort(ipPortStr) {
+  if (!ipPortStr) return "—";
+  const parts = ipPortStr.split(":");
+  return parts.length > 1 ? parts[1] : "—";
 }
-async function fetchAndUpdateStats(){
-  try{
-    const res = await fetch("http://localhost:5000/api/stats");
+function extractIP(ipPortStr) {
+  if (!ipPortStr) return "—";
+  return ipPortStr.split(":")[0];
+}
+
+// ─────────────────────────────────────────────
+// État global
+// ─────────────────────────────────────────────
+const SEV_LABELS = { critical: "Critique", medium: "Moyen", low: "Faible" };
+
+let alerts        = [];   // alertes de la page courante
+let filteredAlerts = [];
+let currentSev    = "all";
+let paused        = false;
+let critNotifCount = 0;
+let selectedAlert = null;
+let allAlerts     = [];   // cache global pour le PDF
+let pgOffset      = 0;
+let pgLimit       = 100;
+let pgTotal       = 0;
+let pgLoading     = false;
+
+// ─────────────────────────────────────────────
+// Formatage date
+// ─────────────────────────────────────────────
+function fmtTime(d) {
+  return d.toLocaleDateString("fr-FR", { day: "2-digit", month: "2-digit" })
+    + " " + d.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+}
+
+// ─────────────────────────────────────────────
+// Stats (endpoint /api/stats)
+// ─────────────────────────────────────────────
+async function fetchAndUpdateStats() {
+  try {
+    const res  = await fetch("http://localhost:5000/api/stats");
     const data = await res.json();
-    if(data.success && data.stats){
+    if (data.success && data.stats) {
       const s = data.stats;
       document.getElementById("stat-total").textContent = Number(s.total).toLocaleString("fr-FR");
       document.getElementById("stat-crit").textContent  = Number(s.critical).toLocaleString("fr-FR");
@@ -322,51 +346,390 @@ async function fetchAndUpdateStats(){
       document.getElementById("stat-src").textContent   = Number(s.unique_sources).toLocaleString("fr-FR");
       document.getElementById("stat-rate").textContent  = `${s.rate_per_minute}/min`;
     }
-  }catch(e){ console.error("Erreur stats BDD:", e); }
+  } catch (e) {
+    console.error("Erreur stats BDD:", e);
+  }
 }
-function applyFilters(){pgOffset=0;allAlerts=[];fetchPage(0);}
-function renderList(){const list=document.getElementById("alerts-list");document.getElementById("visible-count").textContent=filteredAlerts.length;if(!filteredAlerts.length){list.innerHTML='<div class="empty-state">Aucune alerte ne correspond aux filtres actifs.</div>';return} const top=list.scrollTop;list.innerHTML=filteredAlerts.map(a=>`<div class="alert-row" onclick="showDetail(${a.id})"><div class="sev-dot-wrap"><div class="sev-pill ${a.sev||'low'}"></div></div><div class="cell ts">${fmtTime(a.ts)}</div><div class="cell cell-mono src">${a.src||'N/A'}</div><div class="cell cell-mono dst">${a.dst||'N/A'}</div><div class="attack-name"><strong>${a.name||'Unknown'}</strong><span>Signature ${a.sid||'--'}</span></div><div class="cell cell-mono proto">${a.proto||'N/A'}</div><div><span class="sev-badge ${a.sev||'low'}">${SEV_LABELS[a.sev]||a.sev}</span></div></div>`).join("");list.scrollTop=top;setTimeout(()=>alerts.forEach(a=>a.isNew=false),1800)}
-function onMonthChange(){pgOffset=0;fetchPage(0);}
-function setSev(sev,btn){currentSev=sev;document.querySelectorAll(".filter-btn").forEach(b=>b.className="filter-btn");if(sev==="all")btn.classList.add("active-all");else if(sev==="critical")btn.classList.add("active-crit");else if(sev==="medium")btn.classList.add("active-med");else btn.classList.add("active-low");applyFilters()}
-function drawSparkline(sev){const canvas=document.getElementById("spark-canvas"),ctx=canvas.getContext("2d"),w=Math.max(canvas.parentElement.clientWidth-28,220);canvas.width=w;canvas.height=56;const data=Array.from({length:24},()=>Math.floor(Math.random()*10)+1),max=Math.max(...data,1),bw=canvas.width/data.length,palette={critical:"#ef4444",medium:"#f59e0b",low:"#6366f1"};ctx.clearRect(0,0,canvas.width,canvas.height);data.forEach((v,i)=>{const h=v/max*(canvas.height-10),x=i*bw+2,y=canvas.height-h-2;ctx.fillStyle=palette[sev]||palette.low;ctx.globalAlpha=.18+i/data.length*.65;ctx.beginPath();if(ctx.roundRect)ctx.roundRect(x,y,Math.max(bw-5,6),h,6);else ctx.rect(x,y,Math.max(bw-5,6),h);ctx.fill();ctx.globalAlpha=1})}
-async function showDetail(id){const a=alerts.find(x=>x.id===id);if(!a)return;selectedAlert=a;document.getElementById("d-title").textContent=a.name;document.getElementById("d-time").textContent=fmtTime(a.ts);document.getElementById("d-src").textContent=a.src;document.getElementById("d-dst").textContent=a.dst;document.getElementById("d-proto").textContent=a.proto;
-  // Valeurs par défaut depuis l'alerte en attendant la réponse API
-  document.getElementById("d-sid").textContent=a.sid||"--";
-  document.getElementById("d-rule").textContent=a.rule||"--";
-  document.getElementById("d-payload").textContent=a.payload||"--";
-  drawSparkline(a.sev);document.querySelectorAll('.detail-field p').forEach(el=>{el.style.animation='none';el.offsetHeight;el.style.animation='fadeInRight .3s ease'});
-  // Enrichissement depuis la table regles via l'API
+
+// ─────────────────────────────────────────────
+// Rendu de la liste
+// ─────────────────────────────────────────────
+function renderList() {
+  const list = document.getElementById("alerts-list");
+  document.getElementById("visible-count").textContent = filteredAlerts.length;
+
+  if (!filteredAlerts.length) {
+    list.innerHTML = '<div class="empty-state">Aucune alerte ne correspond aux filtres actifs.</div>';
+    return;
+  }
+
+  const top = list.scrollTop;
+  list.innerHTML = filteredAlerts.map(a => {
+    const srcPort     = extractPort(a.src);
+    const dstPort     = extractPort(a.dst);
+    const portsDisplay = `${srcPort} → ${dstPort}`;
+    return `<div class="alert-row" onclick="showDetail(${a.id})">
+      <div class="sev-dot-wrap"><div class="sev-pill ${a.sev || 'low'}"></div></div>
+      <div class="cell ts">${fmtTime(a.ts)}</div>
+      <div class="cell cell-mono src">${extractIP(a.src)}</div>
+      <div class="cell cell-mono dst">${extractIP(a.dst)}</div>
+      <div class="attack-name">
+        <strong>${a.name || 'Unknown'}</strong>
+        <span>Signature ${a.sid || '--'}</span>
+      </div>
+      <div class="cell cell-mono proto">${a.proto || 'N/A'}</div>
+      <div class="cell cell-mono ports"><span class="ports-info">${portsDisplay}</span></div>
+      <div><span class="sev-badge ${a.sev || 'low'}">${SEV_LABELS[a.sev] || a.sev}</span></div>
+    </div>`;
+  }).join("");
+  list.scrollTop = top;
+  setTimeout(() => alerts.forEach(a => a.isNew = false), 1800);
+}
+
+// ─────────────────────────────────────────────
+// Filtres / tri
+// ─────────────────────────────────────────────
+function applyFilters() {
+  pgOffset = 0;
+  allAlerts = [];
+  fetchPage(0);
+}
+
+function setSev(sev, btn) {
+  currentSev = sev;
+  document.querySelectorAll(".filter-btn").forEach(b => b.className = "filter-btn");
+  if (sev === "all")           btn.classList.add("active-all");
+  else if (sev === "critical") btn.classList.add("active-crit");
+  else if (sev === "medium")   btn.classList.add("active-med");
+  else                         btn.classList.add("active-low");
+  applyFilters();
+}
+
+function onMonthChange() {
+  pgOffset = 0;
+  fetchPage(0);
+}
+
+// ─────────────────────────────────────────────
+// ✅ FIX PRINCIPAL : fetchPage — tri par timestamp décroissant
+//    La dernière alerte déclenchée apparaît TOUJOURS en premier.
+// ─────────────────────────────────────────────
+async function fetchPage(offset) {
+  if (pgLoading) return;
+  pgLoading = true;
+
+  const list = document.getElementById("alerts-list");
+  list.innerHTML = '<div class="loading-row"><span class="spinner"></span>Chargement des alertes…</div>';
+
+  const sev      = currentSev !== "all" ? `&severity=${currentSev}` : "";
+  const q        = document.getElementById("search").value.trim();
+  const search   = q ? `&search=${encodeURIComponent(q)}` : "";
+  // ✅ On force toujours sort=newest pour que le backend renvoie timestamp DESC
+  const sort     = "newest";
+  const monthSel = document.getElementById("pdf-month-sel");
+  const month    = monthSel ? monthSel.value : "";
+  const monthP   = month ? `&month=${encodeURIComponent(month)}` : "";
+
+  // Synchroniser le select visuel avec la valeur forcée
+  const sortSel = document.getElementById("sort-sel");
+  if (sortSel && sortSel.value !== "oldest" && sortSel.value !== "sev") {
+    sortSel.value = "newest";
+  }
+
   try {
-    const res = await fetch(`http://localhost:5000/api/regles/by-message?message=${encodeURIComponent(a.name)}`);
+    // Utilise la valeur réelle du select pour l'ordre (newest/oldest/sev)
+    const sortParam = document.getElementById("sort-sel").value || "newest";
+    const res  = await fetch(
+      `http://localhost:5000/api/alerts?limit=${pgLimit}&offset=${offset}${sev}${search}${monthP}&sort=${sortParam}`
+    );
+    const data = await res.json();
+    if (!data.success) throw new Error(data.error);
+
+    pgOffset = offset;
+    pgTotal  = data.total;
+
+    // Mapper les alertes
+    alerts = data.alerts.map(a => ({
+      id:      a.id,
+      ts:      a.timestamp ? new Date(a.timestamp) : new Date(0),
+      src:     a.src     || "N/A",
+      dst:     a.dst     || "N/A",
+      name:    a.name    || "Unknown",
+      proto:   a.proto   || "N/A",
+      sid:     a.sid     || "--",
+      rule:    a.rule    || "",
+      payload: a.details || "",
+      sev:     a.severity || "low",
+      isNew:   false,
+    }));
+
+    // ✅ TRI GARANTI côté client : dernière alerte (timestamp le plus récent) = première ligne
+    alerts.sort((a, b) => b.ts - a.ts);
+
+    // Mettre à jour le cache global
+    alerts.forEach(a => {
+      if (!allAlerts.find(x => x.id === a.id)) allAlerts.push(a);
+    });
+
+    filteredAlerts = [...alerts];
+
+    renderList();
+    renderPagination();
+    fetchAndUpdateStats();
+
+    // Ouvrir automatiquement le détail de l'alerte la plus récente (index 0)
+    if (alerts.length > 0 && !selectedAlert) {
+      showDetail(alerts[0].id);
+    }
+
+  } catch (e) {
+    list.innerHTML = `<div class="empty-state">Erreur de chargement : ${e.message}</div>`;
+  } finally {
+    pgLoading = false;
+  }
+}
+
+// ─────────────────────────────────────────────
+// Pagination
+// ─────────────────────────────────────────────
+function renderPagination() {
+  const bar  = document.getElementById("pagination-bar");
+  const from = pgOffset + 1;
+  const to   = Math.min(pgOffset + pgLimit, pgTotal);
+
+  document.getElementById("pg-from").textContent  = pgTotal ? from.toLocaleString("fr-FR") : 0;
+  document.getElementById("pg-to").textContent    = to.toLocaleString("fr-FR");
+  document.getElementById("pg-total").textContent = pgTotal.toLocaleString("fr-FR");
+  document.getElementById("visible-count").textContent = pgTotal.toLocaleString("fr-FR");
+
+  bar.style.display = pgTotal > 0 ? "flex" : "none";
+
+  const totalPages = Math.ceil(pgTotal / pgLimit);
+  const curPage    = Math.floor(pgOffset / pgLimit);
+  const btns       = document.getElementById("page-btns");
+
+  let html = `<button class="page-btn" onclick="fetchPage(${Math.max(0, (curPage - 1) * pgLimit)})" ${curPage === 0 ? "disabled" : ""}>&#8592;</button>`;
+
+  let start = Math.max(0, curPage - 3);
+  let end   = Math.min(totalPages - 1, start + 6);
+  start     = Math.max(0, end - 6);
+
+  if (start > 0) {
+    html += `<button class="page-btn" onclick="fetchPage(0)">1</button>`;
+    if (start > 1) html += `<span style="color:var(--dim);padding:0 4px">…</span>`;
+  }
+
+  for (let p = start; p <= end; p++) {
+    html += `<button class="page-btn${p === curPage ? " active" : ""}" onclick="fetchPage(${p * pgLimit})">${p + 1}</button>`;
+  }
+
+  if (end < totalPages - 1) {
+    if (end < totalPages - 2) html += `<span style="color:var(--dim);padding:0 4px">…</span>`;
+    html += `<button class="page-btn" onclick="fetchPage(${(totalPages - 1) * pgLimit})">${totalPages}</button>`;
+  }
+
+  html += `<button class="page-btn" onclick="fetchPage(${Math.min((curPage + 1) * pgLimit, (totalPages - 1) * pgLimit)})" ${curPage === totalPages - 1 || totalPages === 0 ? "disabled" : ""}>&#8594;</button>`;
+  btns.innerHTML = html;
+}
+
+function changePerPage(val) {
+  pgLimit  = parseInt(val);
+  pgOffset = 0;
+  fetchPage(0);
+}
+
+// ─────────────────────────────────────────────
+// Détail d'alerte
+// ─────────────────────────────────────────────
+function drawSparkline(sev) {
+  const canvas = document.getElementById("spark-canvas");
+  const ctx    = canvas.getContext("2d");
+  const w      = Math.max(canvas.parentElement.clientWidth - 28, 220);
+  canvas.width  = w;
+  canvas.height = 56;
+  const data    = Array.from({ length: 24 }, () => Math.floor(Math.random() * 10) + 1);
+  const max     = Math.max(...data, 1);
+  const bw      = canvas.width / data.length;
+  const palette = { critical: "#ef4444", medium: "#f59e0b", low: "#6366f1" };
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  data.forEach((v, i) => {
+    const h = v / max * (canvas.height - 10);
+    const x = i * bw + 2;
+    const y = canvas.height - h - 2;
+    ctx.fillStyle    = palette[sev] || palette.low;
+    ctx.globalAlpha  = 0.18 + i / data.length * 0.65;
+    ctx.beginPath();
+    if (ctx.roundRect) ctx.roundRect(x, y, Math.max(bw - 5, 6), h, 6);
+    else               ctx.rect(x, y, Math.max(bw - 5, 6), h);
+    ctx.fill();
+    ctx.globalAlpha = 1;
+  });
+}
+
+async function showDetail(id) {
+  const a = alerts.find(x => x.id === id);
+  if (!a) return;
+  selectedAlert = a;
+
+  document.getElementById("d-title").textContent    = a.name;
+  document.getElementById("d-time").textContent     = fmtTime(a.ts);
+  document.getElementById("d-src").textContent      = extractIP(a.src);
+  document.getElementById("d-src-port").textContent = extractPort(a.src);
+  document.getElementById("d-dst").textContent      = extractIP(a.dst);
+  document.getElementById("d-dst-port").textContent = extractPort(a.dst);
+  document.getElementById("d-proto").textContent    = a.proto;
+  document.getElementById("d-sid").textContent      = a.sid   || "--";
+  document.getElementById("d-rule").textContent     = a.rule  || "--";
+  document.getElementById("d-payload").textContent  = a.payload || "--";
+  drawSparkline(a.sev);
+
+  document.querySelectorAll('.detail-field p').forEach(el => {
+    el.style.animation = 'none';
+    el.offsetHeight;
+    el.style.animation = 'fadeInRight .3s ease';
+  });
+
+  // Enrichissement depuis /api/regles/by-message
+  try {
+    const res  = await fetch(`http://localhost:5000/api/regles/by-message?message=${encodeURIComponent(a.name)}`);
     const data = await res.json();
     if (data.success && data.found && data.regle) {
       const r = data.regle;
-      document.getElementById("d-sid").textContent = r.sid ? `1:${r.sid}` : (a.sid||"--");
-      document.getElementById("d-rule").textContent = r.rule || r.message || a.rule || "--";
+      document.getElementById("d-sid").textContent    = r.sid ? `1:${r.sid}` : (a.sid || "--");
+      document.getElementById("d-rule").textContent   = r.rule || r.message || a.rule || "--";
       document.getElementById("d-payload").textContent = r.rule || a.payload || "--";
-      document.querySelectorAll('.detail-field p').forEach(el=>{el.style.animation='none';el.offsetHeight;el.style.animation='fadeInRight .3s ease'});
+      document.querySelectorAll('.detail-field p').forEach(el => {
+        el.style.animation = 'none';
+        el.offsetHeight;
+        el.style.animation = 'fadeInRight .3s ease';
+      });
     }
-  } catch(e) { /* Echec silencieux, les valeurs par défaut restent affichées */ }
+  } catch (e) { /* silencieux */ }
 }
-function closeDetail(){selectedAlert=null;document.getElementById("d-title").textContent="Detail d'alerte";document.getElementById("d-time").textContent="Selectionnez une alerte pour afficher ses details.";["d-src","d-dst","d-proto","d-sid","d-rule","d-payload"].forEach(id=>document.getElementById(id).textContent="--");drawSparkline("low")}
-function showCritBanner(a){const b=document.getElementById("banner");b.style.display="flex";const srcIp=(a.src||"").split(":")[0]||"?";b.innerHTML=`<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>Alerte critique detectee : ${a.name} depuis ${srcIp}<button class="bar-close" onclick="document.getElementById('banner').style.display='none'">×</button>`;setTimeout(()=>{if(b.style.display!=="none")b.style.display="none"},4500)}
-function clearAll(){alerts=[];filteredAlerts=[];allAlerts=[];pgOffset=0;pgTotal=0;critNotifCount=0;const n=document.getElementById("notif-count");if(n){n.textContent="0";n.style.display="none"}fetchAndUpdateStats();closeDetail();renderList();document.getElementById("pagination-bar").style.display="none";document.getElementById("visible-count").textContent="0"} 
-function togglePause(){paused=!paused;const bar=document.getElementById("paused-bar");if(bar)bar.style.display=paused?"flex":"none";}
-function addAlert(a){alerts.unshift(a);if(alerts.length>2000)alerts.pop();fetchAndUpdateStats();applyFilters();if(a.sev==="critical"){showCritBanner(a);critNotifCount++;const n=document.getElementById("notif-count");if(n){n.textContent=critNotifCount;n.style.display="flex"}} if(!selectedAlert)showDetail(a.id)}
 
+function closeDetail() {
+  selectedAlert = null;
+  document.getElementById("d-title").textContent = "Detail d'alerte";
+  document.getElementById("d-time").textContent  = "Selectionnez une alerte pour afficher ses details.";
+  ["d-src","d-src-port","d-dst","d-dst-port","d-proto","d-sid","d-rule","d-payload"]
+    .forEach(id => document.getElementById(id).textContent = "--");
+  drawSparkline("low");
+}
+
+// ─────────────────────────────────────────────
+// Bannière alerte critique
+// ─────────────────────────────────────────────
+function showCritBanner(a) {
+  const b    = document.getElementById("banner");
+  const srcIp = extractIP(a.src);
+  b.style.display = "flex";
+  b.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+    <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+    <line x1="12" y1="9" x2="12" y2="13"></line>
+    <line x1="12" y1="17" x2="12.01" y2="17"></line>
+  </svg>
+  Alerte critique détectée : ${a.name} depuis ${srcIp}
+  <button class="bar-close" onclick="document.getElementById('banner').style.display='none'">×</button>`;
+  setTimeout(() => { if (b.style.display !== "none") b.style.display = "none"; }, 4500);
+}
+
+// ─────────────────────────────────────────────
+// Ajout dynamique d'alerte (websocket / polling)
+// ─────────────────────────────────────────────
+function addAlert(a) {
+  // ✅ Insérer en tête de liste (alerte la plus récente en premier)
+  alerts.unshift(a);
+  if (alerts.length > 2000) alerts.pop();
+
+  // Re-trier pour garantir l'ordre
+  alerts.sort((b, c) => c.ts - b.ts);
+
+  fetchAndUpdateStats();
+  applyFilters();
+
+  if (a.sev === "critical") {
+    showCritBanner(a);
+    critNotifCount++;
+    const n = document.getElementById("notif-count");
+    if (n) { n.textContent = critNotifCount; n.style.display = "flex"; }
+  }
+
+  if (!selectedAlert) showDetail(a.id);
+}
+
+// ─────────────────────────────────────────────
+// Réinitialisation
+// ─────────────────────────────────────────────
+function clearAll() {
+  alerts = [];
+  filteredAlerts = [];
+  allAlerts  = [];
+  pgOffset   = 0;
+  pgTotal    = 0;
+  critNotifCount = 0;
+
+  const n = document.getElementById("notif-count");
+  if (n) { n.textContent = "0"; n.style.display = "none"; }
+
+  fetchAndUpdateStats();
+  closeDetail();
+  renderList();
+  document.getElementById("pagination-bar").style.display = "none";
+  document.getElementById("visible-count").textContent = "0";
+}
+
+function togglePause() {
+  paused = !paused;
+  const bar = document.getElementById("paused-bar");
+  if (bar) bar.style.display = paused ? "flex" : "none";
+}
+
+// ─────────────────────────────────────────────
+// Sélecteur de mois
+// ─────────────────────────────────────────────
+async function populateMonthSelector() {
+  const sel = document.getElementById("pdf-month-sel");
+  if (!sel) return;
+  try {
+    const res  = await fetch("http://localhost:5000/api/alerts?limit=99999&offset=0&sort=newest");
+    const data = await res.json();
+    if (!data.success) return;
+
+    const months = new Set();
+    data.alerts.forEach(a => {
+      const d = new Date(a.timestamp);
+      if (!isNaN(d)) months.add(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`);
+    });
+
+    const sorted = [...months].sort().reverse();
+    sel.innerHTML = '<option value="">Tous les mois</option>' + sorted.map(m => {
+      const [y, mo] = m.split("-");
+      let label = new Date(y, mo - 1).toLocaleDateString("fr-FR", { month: "long", year: "numeric" });
+      label = label.charAt(0).toUpperCase() + label.slice(1);
+      return `<option value="${m}">${label}</option>`;
+    }).join("");
+  } catch (e) {
+    console.warn("populateMonthSelector:", e.message);
+  }
+}
+
+// ─────────────────────────────────────────────
+// Export PDF
+// ─────────────────────────────────────────────
 function updatePrintData(printData, monthLabel) {
   const genDate = new Date().toLocaleDateString("fr-FR") + " " + new Date().toLocaleTimeString("fr-FR");
   document.getElementById("cover-gen-date").textContent = genDate;
-  document.getElementById("cover-total").textContent = printData.length.toLocaleString("fr-FR");
-  document.getElementById("pb-date").textContent = "Généré le : " + genDate;
+  document.getElementById("cover-total").textContent    = printData.length.toLocaleString("fr-FR");
+  document.getElementById("pb-date").textContent        = "Généré le : " + genDate;
   document.getElementById("pp-footer-date").textContent = genDate;
-  // Titre période
+
   const period = monthLabel || "Toutes périodes";
   document.querySelector(".print-cover-period").textContent = period;
   const coverPeriodEl = document.getElementById("cover-period");
   if (coverPeriodEl) coverPeriodEl.textContent = period;
   document.querySelector(".pp-header-title").textContent = "Rapport de Sécurité — " + period;
 
+  // Résumé par type
   const typeCounts = {};
   printData.forEach(a => { typeCounts[a.name] = (typeCounts[a.name] || 0) + 1; });
   document.getElementById("pp-summary-tbody").innerHTML = Object.entries(typeCounts)
@@ -374,38 +737,51 @@ function updatePrintData(printData, monthLabel) {
     .map(([name, count]) => `<tr><td class="label-col">${name}</td><td class="num-col">${count}</td></tr>`)
     .join("");
 
+  // Blocs par IP source
   const ipMap = {};
   printData.forEach(a => {
-    const ip = (a.src || "N/A").split(":")[0] || "N/A";
-    if (!ipMap[ip]) ipMap[ip] = { total:0, haute:0, moyenne:0, basse:0, types:{}, dsts:new Set() };
+    const ip = extractIP(a.src);
+    if (!ipMap[ip]) ipMap[ip] = { total: 0, haute: 0, moyenne: 0, basse: 0, types: {}, dsts: new Set() };
     ipMap[ip].total++;
-    if (a.sev === "critical") ipMap[ip].haute++;
-    else if (a.sev === "medium") ipMap[ip].moyenne++;
-    else ipMap[ip].basse++;
+    if      (a.sev === "critical") ipMap[ip].haute++;
+    else if (a.sev === "medium")   ipMap[ip].moyenne++;
+    else                           ipMap[ip].basse++;
     ipMap[ip].types[a.name] = (ipMap[ip].types[a.name] || 0) + 1;
-    ipMap[ip].dsts.add((a.dst || "N/A").split(":")[0] || "N/A");
+    ipMap[ip].dsts.add(extractIP(a.dst));
   });
   document.getElementById("pp-ip-blocks").innerHTML = Object.entries(ipMap).map(([ip, d]) =>
-    `<div class="pp-ip-section"><div class="pp-ip-section-header"><div class="pp-ip-addr">${ip}</div>` +
-    `<div class="pp-ip-badge">Total: <span>${d.total}</span> | Haute: <span>${d.haute}</span> | Moyenne: <span>${d.moyenne}</span> | Basse: <span>${d.basse}</span></div></div>` +
-    `<div class="pp-ip-tags">${Object.entries(d.types).map(([t,c]) => `<span class="pp-ip-tag">${t}: ${c}</span>`).join("")}</div>` +
-    `<div class="pp-ip-dest">Destinations : <span>${[...d.dsts].join(", ")}</span></div></div>`
+    `<div class="pp-ip-section">
+      <div class="pp-ip-section-header">
+        <div class="pp-ip-addr">${ip}</div>
+        <div class="pp-ip-badge">Total: <span>${d.total}</span> | Haute: <span>${d.haute}</span> | Moyenne: <span>${d.moyenne}</span> | Basse: <span>${d.basse}</span></div>
+      </div>
+      <div class="pp-ip-tags">${Object.entries(d.types).map(([t, c]) => `<span class="pp-ip-tag">${t}: ${c}</span>`).join("")}</div>
+      <div class="pp-ip-dest">Destinations : <span>${[...d.dsts].join(", ")}</span></div>
+    </div>`
   ).join("");
 
+  // Tableau détail — trié par timestamp croissant pour le rapport
   const sorted = [...printData].sort((a, b) => a.ts - b.ts);
   document.getElementById("pp-events-tbody").innerHTML = sorted.map((a, i) => {
-    const srcFull = a.src || "N/A", dstFull = a.dst || "N/A";
-    const date = a.ts ? a.ts.toISOString().split("T")[0] : "N/A";
-    const srcIp = srcFull.split(":")[0], srcPort = srcFull.includes(":") ? srcFull.split(":")[1] : "";
-    const dstIp = dstFull.split(":")[0], dstPort = dstFull.includes(":") ? dstFull.split(":")[1] : "";
+    const date     = a.ts ? a.ts.toISOString().split("T")[0] : "N/A";
+    const srcIp    = extractIP(a.src);
+    const srcPort  = extractPort(a.src);
+    const dstIp    = extractIP(a.dst);
+    const dstPort  = extractPort(a.dst);
     const sevLabel = a.sev === "critical" ? "Critique" : a.sev === "medium" ? "Moyen" : "Faible";
-    return `<tr style="${i%2===1?'background:#f8fafc':''}"><td>${date}</td><td class="label-col">${a.name}</td>` +
-      `<td>${srcIp}</td><td>${dstIp}</td><td><span class="pp-sev elevee">${sevLabel}</span></td>` +
-      `<td>${a.proto}</td><td>${srcPort}→${dstPort}</td></tr>`;
+    return `<tr style="${i % 2 === 1 ? 'background:#f8fafc' : ''}">
+      <td>${date}</td>
+      <td class="label-col">${a.name}</td>
+      <td>${srcIp}</td>
+      <td>${dstIp}</td>
+      <td><span class="pp-sev elevee">${sevLabel}</span></td>
+      <td>${a.proto}</td>
+      <td>${srcPort}→${dstPort}</td>
+      <td class="label-col">${a.sid}</td>
+    </tr>`;
   }).join("");
 }
 
-// ── Export PDF : récupère TOUTES les alertes page par page ──────────
 async function fetchAllForPDF(monthParam, sevParam) {
   const PAGE = 500;
   let offset = 0, all = [], total = null;
@@ -420,18 +796,23 @@ async function fetchAllForPDF(monthParam, sevParam) {
     const data = await res.json();
     if (!data.success) throw new Error(data.error);
 
-    // Mémoriser le total réel retourné par l'API
     if (total === null) total = data.total;
 
     const batch = data.alerts.map(a => ({
-      id: a.id, ts: new Date(a.timestamp), src: a.src, dst: a.dst,
-      name: a.name, proto: a.proto, sid: a.sid, rule: a.rule,
-      payload: a.details || "", sev: a.severity, isNew: false,
+      id:      a.id,
+      ts:      new Date(a.timestamp),
+      src:     a.src,
+      dst:     a.dst,
+      name:    a.name,
+      proto:   a.proto,
+      sid:     a.sid,
+      rule:    a.rule,
+      payload: a.details || "",
+      sev:     a.severity,
+      isNew:   false,
     }));
 
     all = all.concat(batch);
-
-    // Arrêt : plus rien à charger
     if (batch.length === 0 || all.length >= total) break;
     offset += PAGE;
   }
@@ -439,8 +820,8 @@ async function fetchAllForPDF(monthParam, sevParam) {
 }
 
 function exportPDF() {
-  const btn = document.getElementById("pdf-btn");
-  const sel = document.getElementById("pdf-month-sel");
+  const btn  = document.getElementById("pdf-btn");
+  const sel  = document.getElementById("pdf-month-sel");
   const month = sel ? sel.value : "";
 
   let monthLabel = "Toutes périodes";
@@ -472,147 +853,17 @@ function exportPDF() {
     });
 }
 
+// ─────────────────────────────────────────────
+// Initialisation
+// ─────────────────────────────────────────────
 async function loadRealAlerts() {
   await fetchPage(0);
   populateMonthSelector();
 }
 
-// Remplir le sélecteur de mois depuis l'API
-async function populateMonthSelector() {
-  const sel = document.getElementById("pdf-month-sel");
-  if (!sel) return;
-  try {
-    // Récupérer un grand échantillon pour lister les mois disponibles
-    const res = await fetch("http://localhost:5000/api/alerts?limit=99999&offset=0&sort=newest");
-    const data = await res.json();
-    if (!data.success) return;
-    const months = new Set();
-    data.alerts.forEach(a => {
-      const d = new Date(a.timestamp);
-      if (!isNaN(d)) months.add(`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}`);
-    });
-    const sorted = [...months].sort().reverse();
-    sel.innerHTML = '<option value="">Tous les mois</option>' + sorted.map(m => {
-      const [y, mo] = m.split("-");
-      let label = new Date(y, mo-1).toLocaleDateString("fr-FR", { month: "long", year: "numeric" });
-      label = label.charAt(0).toUpperCase() + label.slice(1);
-      return `<option value="${m}">${label}</option>`;
-    }).join("");
-  } catch(e) { console.warn("populateMonthSelector:", e.message); }
-}
-
-// ── État pagination ──────────────────────────────────────────────
-let pgOffset   = 0;
-let pgLimit    = 100;
-let pgTotal    = 0;
-let pgLoading  = false;
-
-// Pour le PDF : on garde toutes les alertes de la session dans allAlerts
-let allAlerts  = [];   // cache complet (pour print / stats locaux)
-
-async function fetchPage(offset) {
-  if (pgLoading) return;
-  pgLoading = true;
-
-  const list = document.getElementById("alerts-list");
-  list.innerHTML = '<div class="loading-row"><span class="spinner"></span>Chargement des alertes…</div>';
-
-  const sev       = currentSev !== "all" ? `&severity=${currentSev}` : "";
-  const q         = document.getElementById("search").value.trim();
-  const search    = q ? `&search=${encodeURIComponent(q)}` : "";
-  const sort      = document.getElementById("sort-sel").value;
-  const monthSel  = document.getElementById("pdf-month-sel");
-  const month     = monthSel ? monthSel.value : "";
-  const monthP    = month ? `&month=${encodeURIComponent(month)}` : "";
-
-  try {
-    const res  = await fetch(
-      `http://localhost:5000/api/alerts?limit=${pgLimit}&offset=${offset}${sev}${search}${monthP}&sort=${sort}`
-    );
-    const data = await res.json();
-    if (!data.success) throw new Error(data.error);
-
-    pgOffset = offset;
-    pgTotal  = data.total;
-
-    // Convertir et stocker la page courante
-    alerts = data.alerts.map(a => ({
-      id:      a.id,
-      ts:      a.timestamp ? new Date(a.timestamp) : new Date(0),
-      src:     a.src || "N/A",
-      dst:     a.dst || "N/A",
-      name:    a.name || "Unknown",
-      proto:   a.proto || "N/A",
-      sid:     a.sid || "--",
-      rule:    a.rule || "",
-      payload: a.details || "",
-      sev:     a.severity || "low",
-      isNew:   false,
-    }));
-
-    // Mettre à jour le cache complet (évite les doublons)
-    alerts.forEach(a => {
-      if (!allAlerts.find(x => x.id === a.id)) allAlerts.push(a);
-    });
-
-    filteredAlerts = [...alerts];
-    renderList();
-    renderPagination();
-    fetchAndUpdateStats();
-    if (alerts.length > 0 && !selectedAlert) showDetail(alerts[0].id);
-  } catch(e) {
-    list.innerHTML = `<div class="empty-state">Erreur de chargement : ${e.message}</div>`;
-  } finally {
-    pgLoading = false;
-  }
-}
-
-function renderPagination() {
-  const bar = document.getElementById("pagination-bar");
-  const from = pgOffset + 1;
-  const to   = Math.min(pgOffset + pgLimit, pgTotal);
-  document.getElementById("pg-from").textContent  = pgTotal ? from.toLocaleString("fr-FR") : 0;
-  document.getElementById("pg-to").textContent    = to.toLocaleString("fr-FR");
-  document.getElementById("pg-total").textContent = pgTotal.toLocaleString("fr-FR");
-  document.getElementById("visible-count").textContent = pgTotal.toLocaleString("fr-FR");
-
-  bar.style.display = pgTotal > 0 ? "flex" : "none";
-
-  // Boutons de pages
-  const totalPages = Math.ceil(pgTotal / pgLimit);
-  const curPage    = Math.floor(pgOffset / pgLimit);
-  const btns       = document.getElementById("page-btns");
-
-  let html = `<button class="page-btn" onclick="fetchPage(${Math.max(0,(curPage-1)*pgLimit)})" ${curPage===0?"disabled":""}>&#8592;</button>`;
-
-  // Afficher max 7 boutons de page
-  let start = Math.max(0, curPage - 3);
-  let end   = Math.min(totalPages - 1, start + 6);
-  start     = Math.max(0, end - 6);
-
-  if (start > 0) html += `<button class="page-btn" onclick="fetchPage(0)">1</button>${start>1?'<span style="color:var(--dim);padding:0 4px">…</span>':""}`;
-
-  for (let p = start; p <= end; p++) {
-    html += `<button class="page-btn${p===curPage?" active":""}" onclick="fetchPage(${p*pgLimit})">${p+1}</button>`;
-  }
-
-  if (end < totalPages - 1) {
-    html += `${end<totalPages-2?'<span style="color:var(--dim);padding:0 4px">…</span>':""}<button class="page-btn" onclick="fetchPage(${(totalPages-1)*pgLimit})">${totalPages}</button>`;
-  }
-
-  html += `<button class="page-btn" onclick="fetchPage(${Math.min((curPage+1)*pgLimit,(totalPages-1)*pgLimit)})" ${curPage===totalPages-1||totalPages===0?"disabled":""}>&#8594;</button>`;
-  btns.innerHTML = html;
-}
-
-function changePerPage(val) {
-  pgLimit = parseInt(val);
-  pgOffset = 0;
-  fetchPage(0);
-}
-// Rafraîchissement stats BDD toutes les 30 secondes
 loadRealAlerts();
+// Rafraîchir les stats toutes les 30 secondes
 setInterval(fetchAndUpdateStats, 30000);
-
 </script>
 <script src="sidebar.js"></script>
 <script src="topbar.js"></script>

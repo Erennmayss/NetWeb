@@ -1,5 +1,6 @@
 {
     "python.analysis.extraPaths": [
         "./Backend"
-    ]
+    ],
+    "liveServer.settings.port": 5501
 }

@@ -154,7 +154,9 @@ def get_top_ips():
                 COUNT(*) FILTER (WHERE LOWER(protocol)='icmp')  AS icmp,
                 MAX(timestamp)                                   AS last_seen,
                 MODE() WITHIN GROUP (ORDER BY protocol)         AS main_protocol,
-                array_agg(volume)                               AS volumes
+                array_agg(volume)                               AS volumes,
+                MODE() WITHIN GROUP (ORDER BY source_port::text)      AS main_src_port,
+                MODE() WITHIN GROUP (ORDER BY destination_port::text) AS main_dst_port
             FROM alertes
             GROUP BY source_ip
             ORDER BY total DESC
@@ -186,7 +188,9 @@ def get_top_ips():
                 "icmp":         r["icmp"],
                 "protocol":     (r["main_protocol"] or "TCP").upper(),
                 "share":        f"{share}%",
-                "lastActivity": r["last_seen"].strftime("%H:%M:%S") if r["last_seen"] else "--"
+                "lastActivity": r["last_seen"].strftime("%H:%M:%S") if r["last_seen"] else "--",
+                "src_port":     r["main_src_port"] or "--",
+                "dst_port":     r["main_dst_port"] or "--",
             })
 
         return jsonify({"success": True, "ips": result})
@@ -249,6 +253,67 @@ def get_ip_details():
             })
 
         return jsonify({"success": True, "ips": result})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+    finally:
+        conn.close()
+
+
+# ─────────────────────────────────────────────
+# GET /api/traffic/port-overview
+# Top ports source et destination (Vue d'ensemble)
+# ─────────────────────────────────────────────
+@traffic_bp.route("/api/traffic/port-overview", methods=["GET"])
+def get_port_overview():
+    conn = get_db_connection()
+    try:
+        cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+
+        # Top 5 ports source
+        cur.execute("""
+            SELECT source_port AS port, COUNT(*) AS cnt
+            FROM alertes
+            WHERE source_port IS NOT NULL
+            GROUP BY source_port
+            ORDER BY cnt DESC
+            LIMIT 5
+        """)
+        src_rows = cur.fetchall()
+
+        # Top 5 ports destination
+        cur.execute("""
+            SELECT destination_port AS port, service, COUNT(*) AS cnt
+            FROM alertes
+            WHERE destination_port IS NOT NULL
+            GROUP BY destination_port, service
+            ORDER BY cnt DESC
+            LIMIT 5
+        """)
+        dst_rows = cur.fetchall()
+
+        max_src = max((r["cnt"] for r in src_rows), default=1)
+        max_dst = max((r["cnt"] for r in dst_rows), default=1)
+
+        return jsonify({
+            "success": True,
+            "source_ports": [
+                {
+                    "port":  r["port"],
+                    "count": r["cnt"],
+                    "pct":   round(r["cnt"] / max_src * 100)
+                }
+                for r in src_rows
+            ],
+            "destination_ports": [
+                {
+                    "port":    r["port"],
+                    "service": r["service"] or "Inconnu",
+                    "count":   r["cnt"],
+                    "pct":     round(r["cnt"] / max_dst * 100)
+                }
+                for r in dst_rows
+            ]
+        })
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 500
     finally:

@@ -381,7 +381,7 @@ const ErrMsg = ({msg}) => (
 
 const OverviewPage = () => {
   const { data: statsData, loading: statsLoading, error: statsError } = useApi("/api/traffic/stats");
-  const { data: ipsData,   loading: ipsLoading,   error: ipsError   } = useApi("/api/traffic/top-ips?limit=5");
+  const { data: ipsData,   loading: ipsLoading,   error: ipsError   } = useApi("/api/traffic/top-ips?limit=9999");
 
   const s = statsData?.stats;
   const overviewStats = s ? [
@@ -450,7 +450,7 @@ const OverviewPage = () => {
       </div>
     </div>
 
-    <TableCard title="Top 5 IP" meta="Répartition du trafic réseau">
+    <TableCard title="Toutes les IPs" meta="Répartition du trafic réseau">
       {ipsLoading ? <Spinner /> : ipsError ? <ErrMsg msg={ipsError} /> : (
       <div className="table-wrap">
         <table>
@@ -460,6 +460,8 @@ const OverviewPage = () => {
               <th>Volume</th>
               <th>Paquets</th>
               <th>Protocole</th>
+              <th>Port Source</th>
+              <th>Port Destination</th>
               <th>% Trafic</th>
             </tr>
           </thead>
@@ -474,6 +476,8 @@ const OverviewPage = () => {
                     {row.protocol}
                   </span>
                 </td>
+                <td className="mono">{row.src_port}</td>
+                <td className="mono">{row.dst_port}</td>
                 <td>{row.share}</td>
               </tr>
             ))}
@@ -642,7 +646,6 @@ function App() {
 
   const pages = {
     overview: { label: 'Vue d\'ensemble' },
-    ip: { label: 'Adresses IP' },
     ports: { label: 'Ports' }
   };
 
@@ -664,14 +667,6 @@ function App() {
       {/* Zone scrollable unique - tout le contenu défile ici */}
       <div className="scrollable-content">
         {page === 'overview' && <OverviewPage />}
-        {page === 'ip' && (
-          <IpPage 
-            search={search} 
-            setSearch={setSearch} 
-            filter={filter} 
-            setFilter={setFilter} 
-          />
-        )}
         {page === 'ports' && <PortsPage />}
       </div>
     </div>
