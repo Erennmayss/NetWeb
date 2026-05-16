@@ -950,7 +950,42 @@
   var _notifConfigCloseBtn = document.getElementById('notif-config-close');
   var _notifConfigCloseBtnFooter = document.getElementById('notif-config-close-btn');
 
+  // Rôles autorisés à accéder à la configuration des notifications
+  function _canAccessNotifConfig() {
+    try {
+      var role = '';
+      if (window.NetGuardAuth && typeof window.NetGuardAuth.getRole === 'function') {
+        role = (window.NetGuardAuth.getRole() || '').toUpperCase();
+      } else {
+        var raw = localStorage.getItem('netguardSession');
+        if (raw) { role = (JSON.parse(raw).role || '').toUpperCase(); }
+      }
+      return role === 'ADMIN' || role === 'SECURITY_ADMIN';
+    } catch(e) { return false; }
+  }
+
+  // Masquer le bouton "Configurer" si le rôle n'est pas autorisé
+  if (_notifConfigOpenBtn && !_canAccessNotifConfig()) {
+    _notifConfigOpenBtn.style.display = 'none';
+  }
+
   function _openNotifConfig() {
+    if (!_canAccessNotifConfig()) {
+      // Afficher un message d'accès refusé discret dans le dropdown
+      var _deniedMsg = document.getElementById('_notif-access-denied');
+      if (!_deniedMsg) {
+        _deniedMsg = document.createElement('div');
+        _deniedMsg.id = '_notif-access-denied';
+        _deniedMsg.style.cssText = 'margin:8px 12px;padding:8px 12px;background:#fef2f2;border:1px solid #fecaca;border-radius:8px;font-size:11px;color:#dc2626;display:flex;align-items:center;gap:6px;';
+        _deniedMsg.innerHTML = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg> Accès réservé aux administrateurs.';
+        var _alertsList2 = document.getElementById('topbar-alerts-list');
+        if (_alertsList2 && _alertsList2.parentNode) {
+          _alertsList2.parentNode.insertBefore(_deniedMsg, _alertsList2);
+          setTimeout(function() { if (_deniedMsg && _deniedMsg.parentNode) _deniedMsg.parentNode.removeChild(_deniedMsg); }, 3000);
+        }
+      }
+      return;
+    }
     if (_notifConfigModal) _notifConfigModal.hidden = false;
     if (typeof _closeAlertsDropdown === 'function') _closeAlertsDropdown();
   }
