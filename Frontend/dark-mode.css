@@ -139,7 +139,7 @@ body.dark-mode,
   border-radius: 12px !important;
   box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3) !important;
   overflow: hidden !important;
-  z-index: 100 !important;
+  z-index: 10002 !important;
 }
 
 .dark-mode .user-menu-item {
@@ -1143,4 +1143,104 @@ body.dark-mode,
   width: 18px !important;
   height: 18px !important;
   flex-shrink: 0 !important;
+}
+
+/* Final user profile dropdown dark-mode overrides */
+body.dark-mode .user-dropdown > .icon-button.user-avatar-btn,
+html.dark-mode .user-dropdown > .icon-button.user-avatar-btn {
+  background:
+    linear-gradient(135deg, rgba(30,41,59,0.94), rgba(15,23,42,0.86)),
+    radial-gradient(circle at 20% 10%, rgba(129,140,248,0.22), transparent 38%) !important;
+  border-color: rgba(148,163,184,0.22) !important;
+  color: #cbd5e1 !important;
+  box-shadow: 0 16px 34px -24px rgba(0,0,0,0.78), inset 0 1px 0 rgba(255,255,255,0.08) !important;
+}
+
+body.dark-mode .user-dropdown > .icon-button.user-avatar-btn:hover,
+html.dark-mode .user-dropdown > .icon-button.user-avatar-btn:hover,
+body.dark-mode .user-dropdown > .icon-button.user-avatar-btn:focus-visible,
+html.dark-mode .user-dropdown > .icon-button.user-avatar-btn:focus-visible {
+  background:
+    linear-gradient(135deg, rgba(30,41,59,0.98), rgba(49,46,129,0.78)),
+    radial-gradient(circle at 20% 10%, rgba(129,140,248,0.28), transparent 42%) !important;
+  border-color: rgba(129,140,248,0.62) !important;
+  color: #eef2ff !important;
+  box-shadow: 0 20px 38px -24px rgba(99,102,241,0.7), 0 0 0 4px rgba(129,140,248,0.12) !important;
+}
+
+body.dark-mode .user-presence-dot,
+html.dark-mode .user-presence-dot {
+  border-color: #0f172a !important;
+}
+
+body.dark-mode .user-avatar-chevron,
+html.dark-mode .user-avatar-chevron {
+  color: #94a3b8 !important;
+}
+
+body.dark-mode .user-dropdown > .icon-button.user-avatar-btn:hover .user-avatar-chevron,
+html.dark-mode .user-dropdown > .icon-button.user-avatar-btn:hover .user-avatar-chevron,
+body.dark-mode .user-dropdown > .icon-button.user-avatar-btn:focus-visible .user-avatar-chevron,
+html.dark-mode .user-dropdown > .icon-button.user-avatar-btn:focus-visible .user-avatar-chevron {
+  color: #c7d2fe !important;
+}
+
+body.dark-mode .user-menu,
+html.dark-mode .user-menu {
+  background: rgba(15, 23, 42, 0.92) !important;
+  border-color: rgba(148,163,184,0.16) !important;
+  box-shadow: 0 28px 70px -26px rgba(0,0,0,0.86), 0 0 0 1px rgba(255,255,255,0.06) inset !important;
+}
+
+body.dark-mode .user-menu::before,
+html.dark-mode .user-menu::before {
+  background: rgba(15, 23, 42, 0.92) !important;
+  border-color: rgba(148,163,184,0.16) !important;
+}
+
+body.dark-mode .user-menu-info,
+html.dark-mode .user-menu-info {
+  background: linear-gradient(135deg, rgba(30,41,59,0.92), rgba(49,46,129,0.34)) !important;
+  border-color: rgba(148,163,184,0.15) !important;
+}
+
+body.dark-mode .user-menu-name,
+html.dark-mode .user-menu-name {
+  color: #f8fafc !important;
+}
+
+body.dark-mode .user-menu-role,
+html.dark-mode .user-menu-role {
+  color: #94a3b8 !important;
+}
+
+body.dark-mode .user-menu-divider,
+html.dark-mode .user-menu-divider {
+  background: linear-gradient(90deg, transparent, rgba(148,163,184,0.24), transparent) !important;
+}
+
+body.dark-mode .user-menu-item,
+html.dark-mode .user-menu-item {
+  color: #cbd5e1 !important;
+}
+
+body.dark-mode .user-menu-item:hover,
+html.dark-mode .user-menu-item:hover,
+body.dark-mode .user-menu-item:focus-visible,
+html.dark-mode .user-menu-item:focus-visible {
+  background: rgba(99,102,241,0.18) !important;
+  color: #e0e7ff !important;
+}
+
+body.dark-mode .user-menu-item--danger,
+html.dark-mode .user-menu-item--danger {
+  color: #fca5a5 !important;
+}
+
+body.dark-mode .user-menu-item--danger:hover,
+html.dark-mode .user-menu-item--danger:hover,
+body.dark-mode .user-menu-item--danger:focus-visible,
+html.dark-mode .user-menu-item--danger:focus-visible {
+  background: rgba(225,29,72,0.16) !important;
+  color: #fecdd3 !important;
 }

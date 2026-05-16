@@ -15,13 +15,13 @@
 
   const links = [
     { id: 'dashboard', label: 'Dashboard', href: 'dashboard.html', icon: 'monitor' },
+    { id: 'equipements', label: 'Switchs', href: 'equipements.html', icon: 'switch' },
     { id: 'vlan', label: 'VLAN', href: 'vlan.html', icon: 'vlan' },
     { id: 'interfaces', label: 'Interfaces', href: 'interfaces.html', icon: 'ports' },
-    { id: 'alerts', label: 'Alerts', href: 'alerts.html', icon: 'alert' },
-    { id: 'traffic', label: 'Traffic', href: 'traffic.html', icon: 'traffic' },
-    { id: 'configuration', label: 'Configuration', href: 'Configuration.html', icon: 'config' },
-    { id: 'users', label: 'Users', href: 'users.html', icon: 'users' },
-    { id: 'equipements', label: 'Équipements', href: 'equipements.html', icon: 'switch' },
+    { id: 'alerts', label: 'Alerte', href: 'alerts.html', icon: 'alert' },
+    { id: 'traffic', label: 'Trafic', href: 'traffic.html', icon: 'traffic' },
+    { id: 'configuration', label: 'Configuration IDS', href: 'Configuration.html', icon: 'config' },
+    { id: 'users', label: 'Utilisateurs', href: 'users.html', icon: 'users' },
     { id: 'logs', label: 'Logs', href: 'logs.html', icon: 'logs' }
   ].filter((link) => window.NetGuardAuth.canAccessPage(link.id));
 

@@ -1400,3 +1400,278 @@
   from { transform: rotate(0deg); }
   to   { transform: rotate(360deg); }
 }
+
+/* ============================================================
+   USER PROFILE MENU - PREMIUM DASHBOARD REFRESH
+   ============================================================ */
+
+.user-dropdown {
+  position: relative !important;
+  isolation: isolate !important;
+}
+
+.user-dropdown > .icon-button.user-avatar-btn {
+  width: auto !important;
+  min-width: 58px !important;
+  height: 44px !important;
+  padding: 4px 8px 4px 5px !important;
+  gap: 7px !important;
+  overflow: visible !important;
+  border: 1px solid rgba(148, 163, 184, 0.38) !important;
+  border-radius: 999px !important;
+  background:
+    linear-gradient(135deg, rgba(255,255,255,0.96), rgba(248,250,252,0.82)),
+    radial-gradient(circle at 20% 10%, rgba(99,102,241,0.18), transparent 36%) !important;
+  color: #475569 !important;
+  box-shadow: 0 10px 26px -18px rgba(15, 23, 42, 0.52), inset 0 1px 0 rgba(255,255,255,0.95) !important;
+  backdrop-filter: blur(12px) !important;
+  -webkit-backdrop-filter: blur(12px) !important;
+  transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease !important;
+}
+
+.user-dropdown > .icon-button.user-avatar-btn:hover,
+.user-dropdown > .icon-button.user-avatar-btn:focus-visible {
+  transform: translateY(-1px) !important;
+  border-color: rgba(99, 102, 241, 0.55) !important;
+  background:
+    linear-gradient(135deg, #ffffff, #eef2ff),
+    radial-gradient(circle at 20% 10%, rgba(99,102,241,0.22), transparent 40%) !important;
+  box-shadow: 0 18px 34px -22px rgba(79, 70, 229, 0.75), 0 0 0 4px rgba(99,102,241,0.10) !important;
+  color: #4338ca !important;
+}
+
+.user-avatar-shell {
+  position: relative !important;
+  width: 34px !important;
+  height: 34px !important;
+  border-radius: 50% !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  flex-shrink: 0 !important;
+  box-shadow: 0 8px 18px -10px rgba(79, 70, 229, 0.7) !important;
+}
+
+.user-avatar-icon {
+  position: absolute !important;
+  inset: 7px !important;
+  width: 20px !important;
+  height: 20px !important;
+  color: rgba(255,255,255,0.86) !important;
+  opacity: 0.42 !important;
+  pointer-events: none !important;
+}
+
+.user-initials-badge {
+  width: 34px !important;
+  height: 34px !important;
+  border-radius: 50% !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  color: #ffffff !important;
+  font-size: 12px !important;
+  font-weight: 800 !important;
+  letter-spacing: 0.04em !important;
+  font-family: 'DM Sans', system-ui, sans-serif !important;
+  border: 2px solid rgba(255,255,255,0.9) !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.28) !important;
+  position: relative !important;
+}
+
+.user-presence-dot {
+  position: absolute !important;
+  right: -1px !important;
+  bottom: -1px !important;
+  width: 10px !important;
+  height: 10px !important;
+  border-radius: 999px !important;
+  background: #22c55e !important;
+  border: 2px solid #ffffff !important;
+  box-shadow: 0 0 0 3px rgba(34,197,94,0.14) !important;
+}
+
+.user-avatar-chevron {
+  width: 13px !important;
+  height: 13px !important;
+  color: #64748b !important;
+  transition: transform 0.2s ease, color 0.2s ease !important;
+}
+
+.user-dropdown > .icon-button.user-avatar-btn:hover .user-avatar-chevron,
+.user-dropdown > .icon-button.user-avatar-btn:focus-visible .user-avatar-chevron {
+  transform: translateY(1px) !important;
+  color: #4338ca !important;
+}
+
+.user-menu {
+  top: calc(100% + 12px) !important;
+  right: 0 !important;
+  min-width: 248px !important;
+  padding: 8px !important;
+  border: 1px solid rgba(226, 232, 240, 0.86) !important;
+  border-radius: 18px !important;
+  background: rgba(255, 255, 255, 0.92) !important;
+  box-shadow: 0 24px 60px -24px rgba(15, 23, 42, 0.42), 0 0 0 1px rgba(255,255,255,0.7) inset !important;
+  backdrop-filter: blur(18px) saturate(1.15) !important;
+  -webkit-backdrop-filter: blur(18px) saturate(1.15) !important;
+  overflow: visible !important;
+  z-index: 10002 !important;
+  animation: user-menu-in 0.22s cubic-bezier(0.2, 0.9, 0.2, 1) both !important;
+  transform-origin: top right !important;
+}
+
+.user-menu::before {
+  content: "" !important;
+  position: absolute !important;
+  top: -7px !important;
+  right: 22px !important;
+  width: 14px !important;
+  height: 14px !important;
+  background: rgba(255,255,255,0.92) !important;
+  border-left: 1px solid rgba(226, 232, 240, 0.86) !important;
+  border-top: 1px solid rgba(226, 232, 240, 0.86) !important;
+  transform: rotate(45deg) !important;
+  backdrop-filter: blur(18px) !important;
+}
+
+.user-menu[hidden] {
+  display: none !important;
+}
+
+.user-menu-info {
+  display: flex !important;
+  align-items: center !important;
+  gap: 12px !important;
+  padding: 12px !important;
+  border-radius: 14px !important;
+  background: linear-gradient(135deg, rgba(248,250,252,0.96), rgba(238,242,255,0.74)) !important;
+  border: 1px solid rgba(226,232,240,0.8) !important;
+}
+
+.user-menu-avatar {
+  width: 42px !important;
+  height: 42px !important;
+  border-radius: 14px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  flex-shrink: 0 !important;
+  color: #ffffff !important;
+  font-size: 13px !important;
+  font-weight: 800 !important;
+  letter-spacing: 0.04em !important;
+  box-shadow: 0 12px 24px -16px rgba(79, 70, 229, 0.85), inset 0 1px 0 rgba(255,255,255,0.25) !important;
+}
+
+.user-menu-details {
+  min-width: 0 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 3px !important;
+}
+
+.user-menu-name {
+  color: #0f172a !important;
+  font-size: 14px !important;
+  font-weight: 800 !important;
+  line-height: 1.2 !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+}
+
+.user-menu-role {
+  color: #64748b !important;
+  font-size: 11px !important;
+  font-weight: 700 !important;
+  line-height: 1.2 !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+}
+
+.user-menu-divider {
+  height: 1px !important;
+  margin: 8px 4px !important;
+  background: linear-gradient(90deg, transparent, rgba(203,213,225,0.95), transparent) !important;
+}
+
+.user-menu-item {
+  display: flex !important;
+  align-items: center !important;
+  gap: 10px !important;
+  width: 100% !important;
+  min-height: 40px !important;
+  padding: 10px 12px !important;
+  border-radius: 12px !important;
+  color: #334155 !important;
+  background: transparent !important;
+  font-size: 13px !important;
+  font-weight: 700 !important;
+  line-height: 1.2 !important;
+  transition: background 0.18s ease, color 0.18s ease, transform 0.18s ease, box-shadow 0.18s ease !important;
+}
+
+.user-menu-item svg {
+  width: 16px !important;
+  height: 16px !important;
+  flex-shrink: 0 !important;
+  stroke-width: 2.2 !important;
+}
+
+.user-menu-item:hover,
+.user-menu-item:focus-visible {
+  background: #eef2ff !important;
+  color: #4338ca !important;
+  transform: translateX(2px) !important;
+  box-shadow: inset 3px 0 0 rgba(99,102,241,0.8) !important;
+}
+
+.user-menu-item--danger {
+  color: #b91c1c !important;
+}
+
+.user-menu-item--danger:hover,
+.user-menu-item--danger:focus-visible {
+  background: #fff1f2 !important;
+  color: #e11d48 !important;
+  box-shadow: inset 3px 0 0 rgba(225,29,72,0.75) !important;
+}
+
+@keyframes user-menu-in {
+  from {
+    opacity: 0;
+    transform: translateY(-8px) scale(0.96);
+    filter: blur(2px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    filter: blur(0);
+  }
+}
+
+@media (max-width: 520px) {
+  .user-menu {
+    position: fixed !important;
+    top: 72px !important;
+    right: 12px !important;
+    left: 12px !important;
+    width: auto !important;
+    min-width: 0 !important;
+  }
+
+  .user-menu::before {
+    right: 24px !important;
+  }
+}
+
+.topbar {
+  position: relative !important;
+  z-index: 40 !important;
+}
+
+.user-dropdown {
+  z-index: 41 !important;
+}

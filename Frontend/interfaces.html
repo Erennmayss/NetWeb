@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>NetGuard - Interfaces Management</title>
+  <title>NetGuard - Gestion des interfaces</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
   <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
@@ -49,7 +49,7 @@
     <aside id="sidebar-root" class="sidebar-host" data-page="interfaces"></aside>
 
     <main class="main">
-      <div id="topbar-root" data-title="Interfaces Management" data-subtitle="Configuration visuelle des ports et déploiement SSH." data-notifications="5"></div>
+      <div id="topbar-root" data-title="Gestion des interfaces" data-subtitle="Configuration visuelle des ports et déploiement SSH." data-notifications="5"></div>
 
       <section class="content custom-scroll">
         <div id="interfaces-root" class="page-block"></div>
@@ -813,12 +813,12 @@
                 <div className="w-full">
                   <p className="text-[11px] font-bold text-amber-800 uppercase tracking-wide mb-1">Pré-requis TFTP — Ping bloqué ?</p>
                   <p className="text-[10px] text-amber-700 leading-relaxed mb-2">
-                    Si le switch ne peut pas pinguer le serveur TFTP, le transfert échouera silencieusement. Vérifiez qu'aucune ACL ne bloque ICMP sur l'interface de management, puis testez depuis le switch :
+                    Si le switch ne peut pas pinguer le serveur TFTP, le transfert échouera silencieusement. Vérifiez qu'aucune ACL ne bloque ICMP sur l'interface de gestion, puis testez depuis le switch :
                   </p>
                   <pre className="text-[10px] font-mono text-amber-900 bg-amber-100 rounded p-2 whitespace-pre-wrap">{`! 1. Tester la connectivité (depuis le switch en mode enable) :
 ping ${tftpServer || '<IP-serveur-TFTP>'}
 
-! 2. Si le ping échoue → lever l'ACL sur l'interface de management :
+! 2. Si le ping échoue → lever l'ACL sur l'interface de gestion :
 conf t
   interface vlan 1
     no ip access-group <nom-acl> in
@@ -1049,10 +1049,6 @@ end`}
           )}
 
           <div className="flex flex-col md:flex-row md:justify-between md:items-end mb-8 gap-4">
-            <div>
-              <h1 className="page-title text-3xl font-bold text-slate-800 tracking-tight">Interfaces Management</h1>
-              <p className="text-slate-500 mt-1">Cliquez sur un port du switch pour le configurer et le déployer via SSH.</p>
-            </div>
           </div>
 
           <PhysicalSwitch />

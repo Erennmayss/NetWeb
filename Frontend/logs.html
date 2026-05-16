@@ -39,134 +39,129 @@
     </main>
   </div>
 
-<script type="text/babel">
-// Référence aux logs root pour le rendu React
-const logsRoot = document.getElementById('pageContent');
+  <script type="text/babel">
+    const { useState, useEffect, useCallback } = React;
 
-/* ═══════════════════════════════════════════════
-   DATA
-═══════════════════════════════════════════════ */
-const API = '/api/logs';
-const RESET = '/api/reset';
-let allLogs = [], filteredLogs = [], idsPage = 1, idsSevFilter = 'all';
-const IDS_PER = 25;
+    const LS_KEY = 'netguard_audit_logs';
 
-const auditEvents = [
-  { id: 1, date: '17/04/2026 09:12', actor: 'admin',  action: 'Création utilisateur',   target: 'soc_lead',                 severity: 'Info'   },
-  { id: 2, date: '17/04/2026 08:48', actor: 'sec',    action: 'Activation règle IDS',   target: 'Heartbleed custom rule',   severity: 'High'   },
-  { id: 3, date: '17/04/2026 08:10', actor: 'net',    action: 'Modification VLAN',       target: 'VLAN 20 / IT',             severity: 'Medium' },
-  { id: 4, date: '16/04/2026 18:22', actor: 'audit',  action: 'Consultation journal',    target: 'Rapport incidents Q2',     severity: 'Info'   },
-  { id: 5, date: '16/04/2026 17:54', actor: 'admin',  action: 'Changement rôle',         target: 'viewer → security_admin',  severity: 'High'   },
-  { id: 6, date: '16/04/2026 14:30', actor: 'net',    action: 'Ajout règle firewall',    target: 'Rule #142 / TCP 443',      severity: 'Medium' },
-  { id: 7, date: '16/04/2026 11:05', actor: 'sec',    action: 'Scan vulnérabilités',     target: 'Subnet 10.0.0.0/24',       severity: 'Info'   },
-];
+    /* ── Badges sévérité ─────────────────────────────────────────────── */
+    const SEV_CLASS = {
+      Info:     'bg-slate-100 text-slate-600',
+      Low:      'bg-blue-100  text-blue-700',
+      Medium:   'bg-amber-100 text-amber-700',
+      High:     'bg-rose-100  text-rose-700',
+      Critical: 'bg-purple-100 text-purple-700',
+    };
 
-let currentTab = 'ids';
+    /* ── Format date ISO → "DD/MM/YYYY HH:MM" ───────────────────────── */
+    function fmtDate(iso) {
+      if (!iso) return '—';
+      try {
+        const d = new Date(iso);
+        if (isNaN(d)) return '—';
+        const p = n => String(n).padStart(2, '0');
+        return `${p(d.getDate())}/${p(d.getMonth()+1)}/${d.getFullYear()} ${p(d.getHours())}:${p(d.getMinutes())}`;
+      } catch (_) { return '—'; }
+    }
 
-function setConnected(ok) {
-  // Gardé pour compatibilité
-}
+    /* ── Lire localStorage ───────────────────────────────────────────── */
+    function readLogs() {
+      try {
+        return JSON.parse(localStorage.getItem(LS_KEY) || '[]').map((e, i) => ({
+          id:       e.id       || `log-${i}`,
+          date:     fmtDate(e.timestamp),
+          actor:    e.actor    || 'system',      // nom réel de l'utilisateur
+          role:     e.role     || '',
+          action:   e.action   || '—',
+          target:   e.target   || '—',
+          severity: e.severity || 'Info',
+          result:   e.result   || 'success',
+          _ts:      new Date(e.timestamp || 0).getTime(),
+        }));
+      } catch (_) { return []; }
+    }
 
-/* ═══════════════════════════════════════════════
-   TAB SWITCH
-═══════════════════════════════════════════════ */
-function switchTab(tab) {
-  currentTab = tab;
-  renderPage();
-}
+    /* ── Composant principal ─────────────────────────────────────────── */
+    function LogsPage() {
+      const session = window.NetGuardAuth ? window.NetGuardAuth.getSession() : null;
 
-function renderPage() {
-  if (currentTab === 'ids') renderIDSPage();
-  else renderAuditPage();
-}
+      const [logs,      setLogs]      = useState([]);
+      const [filtered,  setFiltered]  = useState([]);
+      const [search,    setSearch]    = useState('');
+      const [sevFilter, setSevFilter] = useState('all');
 
-/* ═══════════════════════════════════════════════
-   IDS PAGE
-═══════════════════════════════════════════════ */
-async function fetchLogs() {
-  try {
-    const r = await fetch(API);
-    const d = await r.json();
-    if (d.success) {
-      setConnected(true);
-      allLogs = d.logs || [];
-      updateKPIs(d);
-    } else { setConnected(false); loadFallback(); }
-  } catch { setConnected(false); loadFallback(); }
-}
+      const reload = useCallback(() => setLogs(readLogs()), []);
 
-function loadFallback() {
-  allLogs = [
-    { id:'a1', name:'ET SCAN Potential SSH Scan', severity:'critical', src_ip:'45.33.32.156', src_port:4444, dst_ip:'10.0.0.22', dst_port:22, proto:'TCP', count:87, first_seen:'2026-04-17T07:12:00', last_seen:'2026-04-17T09:10:00', ids:['SID:2001219','SID:2001220'] },
-    { id:'a2', name:'ET EXPLOIT Heartbleed OpenSSL CVE-2014-0160', severity:'critical', src_ip:'91.108.4.1', src_port:3210, dst_ip:'10.0.0.5', dst_port:443, proto:'TCP', count:12, first_seen:'2026-04-17T08:45:00', last_seen:'2026-04-17T08:48:00', ids:['SID:2018479'] },
-    { id:'a3', name:'ET POLICY DNS Query for TOR2WEB Domain', severity:'medium', src_ip:'10.0.0.14', src_port:52301, dst_ip:'8.8.8.8', dst_port:53, proto:'UDP', count:34, first_seen:'2026-04-16T15:30:00', last_seen:'2026-04-17T08:55:00', ids:['SID:2523244'] },
-    { id:'a4', name:'ICMP Ping Sweep', severity:'medium', src_ip:'192.168.1.50', src_port:0, dst_ip:'10.0.0.0/24', dst_port:0, proto:'ICMP', count:256, first_seen:'2026-04-16T22:00:00', last_seen:'2026-04-16T22:03:00', ids:['SID:469'] },
-    { id:'a5', name:'ET INFO SMB NT Create AndX Request For an Executable File', severity:'low', src_ip:'10.0.0.8', src_port:49200, dst_ip:'10.0.0.3', dst_port:445, proto:'TCP', count:5, first_seen:'2026-04-17T06:00:00', last_seen:'2026-04-17T09:00:00', ids:['SID:2006445'] },
-    { id:'a6', name:'ET SCAN Nmap Scripting Engine User-Agent', severity:'medium', src_ip:'172.16.0.9', src_port:55000, dst_ip:'10.0.0.22', dst_port:80, proto:'TCP', count:3, first_seen:'2026-04-17T09:05:00', last_seen:'2026-04-17T09:06:00', ids:['SID:2009358'] },
-    { id:'a7', name:'GPL ATTACK_RESPONSE id check returned root', severity:'low', src_ip:'10.0.0.1', src_port:80, dst_ip:'10.0.0.20', dst_port:54321, proto:'TCP', count:1, first_seen:'2026-04-17T07:55:00', last_seen:'2026-04-17T07:55:00', ids:['SID:2100498'] },
-  ];
-  updateKPIs({ raw_count: allLogs.reduce((s,l) => s + l.count, 0), aggregated_count: allLogs.length, unique_ips: new Set(allLogs.map(l => l.src_ip)).size, rate_per_minute: 2.3 });
-}
+      useEffect(() => {
+        reload();
+        window.addEventListener('netguard:audit', reload);
+        window.addEventListener('storage', reload);
+        const timer = setInterval(reload, 5000);
+        return () => {
+          window.removeEventListener('netguard:audit', reload);
+          window.removeEventListener('storage', reload);
+          clearInterval(timer);
+        };
+      }, [reload]);
 
-function updateKPIs(d) {
-  const el = id => document.getElementById(id);
-  if (el('kpiRaw'))    el('kpiRaw').textContent    = fmt(d.raw_count        || 0);
-  if (el('kpiUnique')) el('kpiUnique').textContent  = fmt(d.aggregated_count || 0);
-  if (el('kpiIPs'))    el('kpiIPs').textContent     = fmt(d.unique_ips       || 0);
-  if (el('kpiRate'))   el('kpiRate').textContent    = fmt(d.rate_per_minute  || 0);
-  const crit = allLogs.filter(l => l.severity === 'critical').length;
-  if (el('critBadge')) el('critBadge').textContent  = crit + ' critiques';
-  if (el('tcAll'))  el('tcAll').textContent  = allLogs.length;
-  if (el('tcCrit')) el('tcCrit').textContent = crit;
-  if (el('tcMed'))  el('tcMed').textContent  = allLogs.filter(l=>l.severity==='medium').length;
-  if (el('tcLow'))  el('tcLow').textContent  = allLogs.filter(l=>l.severity==='low').length;
-}
+      /* Filtrage local */
+      useEffect(() => {
+        let r = [...logs];
+        if (sevFilter !== 'all') r = r.filter(e => e.severity === sevFilter);
+        if (search.trim()) {
+          const q = search.trim().toLowerCase();
+          r = r.filter(e =>
+            e.actor.toLowerCase().includes(q)  ||
+            e.action.toLowerCase().includes(q) ||
+            e.target.toLowerCase().includes(q) ||
+            e.role.toLowerCase().includes(q)
+          );
+        }
+        setFiltered(r);
+      }, [logs, search, sevFilter]);
 
-function renderIDSPage() {
-  logsRoot.innerHTML = `
-    <!-- KPI Strip -->
-    <div class="kpi-strip">
-      <div class="kpi"><div class="kpi-left"><span class="kpi-label">Alertes brutes</span><span class="kpi-val" id="kpiRaw">—</span><span class="kpi-sub" style="background:var(--primary-bg);color:var(--primary)">Total cumulé</span></div><div class="kpi-icon-wrap" style="background:var(--primary-bg)">📊</div></div>
-      <div class="kpi"><div class="kpi-left"><span class="kpi-label">Signatures uniques</span><span class="kpi-val" id="kpiUnique">—</span><span class="kpi-sub" style="background:var(--primary-bg);color:var(--primary)">Agrégées</span></div><div class="kpi-icon-wrap" style="background:#f5f3ff">🔍</div></div>
-      <div class="kpi"><div class="kpi-left"><span class="kpi-label">Sources IP attaquantes</span><span class="kpi-val red" id="kpiIPs">—</span><span class="kpi-sub" id="critBadge" style="background:#fee2e2;color:var(--critical)">— critiques</span></div><div class="kpi-icon-wrap" style="background:#fee2e2">🌐</div></div>
-      <div class="kpi"><div class="kpi-left"><span class="kpi-label">Taux alertes / min</span><span class="kpi-val amber" id="kpiRate">—</span><span class="kpi-sub" style="background:var(--medium-bg);color:var(--medium)">Temps réel</span></div><div class="kpi-icon-wrap" style="background:var(--medium-bg)">⚡</div></div>
-    </div>
+      const highCount = logs.filter(e => e.severity === 'High' || e.severity === 'Critical').length;
 
-    <!-- BOUTONS D'ONGLETS MODERNES -->
-    <div class="tabs-modern">
-      <button class="tab-modern ${currentTab === 'ids' ? 'active' : ''}" onclick="switchTab('ids')">
-        <span class="tab-icon">🛡️</span>
-        <span>Alertes IDS</span>
-        <span class="tab-badge" id="idsBadge">${allLogs.length}</span>
-      </button>
-      <button class="tab-modern ${currentTab === 'audit' ? 'active' : ''}" onclick="switchTab('audit')">
-        <span class="tab-icon">📋</span>
-        <span>Journal d'audit</span>
-        <span class="tab-badge" id="auditBadge">${auditEvents.length}</span>
-      </button>
-    </div>
+      /* Export CSV */
+      function exportCSV() {
+        const header = ['Date','Acteur','Rôle','Action','Cible','Sévérité','Résultat'];
+        const rows   = filtered.map(e =>
+          [e.date, e.actor, e.role, e.action, `"${e.target.replace(/"/g,'""')}"`, e.severity, e.result]
+        );
+        const csv  = [header, ...rows].map(r => r.join(',')).join('\n');
+        const blob = new Blob(['\ufeff'+csv], { type:'text/csv;charset=utf-8;' });
+        const url  = URL.createObjectURL(blob);
+        const a    = Object.assign(document.createElement('a'), { href: url, download: `netguard_audit_${Date.now()}.csv` });
+        a.click();
+        URL.revokeObjectURL(url);
+        if (window.NetGuardAudit) window.NetGuardAudit.logsExported();
+      }
 
-    <!-- Filter Bar -->
-    <div class="filter-bar">
-      <span class="filter-label">🔍 Filtre</span>
-      <div class="threat-pills">
-        <button class="tpill all active" onclick="setSev('all',this)"><span class="tdot"></span> Toutes <span id="tcAll">0</span></button>
-        <button class="tpill crit" onclick="setSev('critical',this)"><span class="tdot"></span> Critiques <span id="tcCrit">0</span></button>
-        <button class="tpill med" onclick="setSev('medium',this)"><span class="tdot"></span> Moyennes <span id="tcMed">0</span></button>
-        <button class="tpill low" onclick="setSev('low',this)"><span class="tdot"></span> Faibles <span id="tcLow">0</span></button>
-      </div>
-      <div class="divider"></div>
-      <div class="search-wrap">
-        <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
-        <input type="text" id="idsSearch" placeholder="Signature, IP source, destination…" oninput="applyIDSFilters()">
-      </div>
-      <select class="proto-select" id="protoFilter" onchange="applyIDSFilters()">
-        <option value="all">Tous protocoles</option>
-        <option value="TCP">TCP</option>
-        <option value="UDP">UDP</option>
-        <option value="ICMP">ICMP</option>
-      </select>
-    </div>
+      /* Vider */
+      function clearLogs() {
+        if (!confirm('Effacer tous les logs d\'audit du navigateur ?')) return;
+        if (window.NetGuardAudit) window.NetGuardAudit.clear();
+        else localStorage.removeItem(LS_KEY);
+        setLogs([]);
+      }
+
+      return (
+        <div className="p-2 md:p-4 max-w-[1400px] mx-auto animate-in">
+
+          {/* En-tête */}
+          <div className="mb-8 flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
+            <div>
+              <h1 className="page-title text-3xl font-bold text-slate-800 tracking-tight">Journal d'audit</h1>
+              <p className="text-slate-500 mt-1">Vue réservée à l'administration et aux auditeurs, sans action d'écriture.</p>
+            </div>
+            <div className="panel-card rounded-2xl border border-slate-200 bg-white px-4 py-3 shadow-sm">
+              <div className="text-[10px] font-black uppercase tracking-widest text-slate-400">Session</div>
+              <div className="mt-1 text-sm font-semibold text-slate-700">
+                {/* ✅ Affiche session.username (et non session.name) */}
+                {session ? `${session.username || session.name} (${session.role})` : '—'}
+              </div>
+            </div>
+          </div>
 
           {/* Cartes statistiques */}
           <div className="mb-6 grid gap-4 md:grid-cols-4">

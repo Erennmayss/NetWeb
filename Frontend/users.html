@@ -326,35 +326,52 @@
                   const userData = {
                     username: e.target.username.value.trim(),
                     email:    e.target.email.value.trim(),
-                    password: !editingUser ? passwordValue : undefined,
                     role:     e.target.role.value,
+                    ...(!editingUser && { password: passwordValue }),
                   };
 
                   try {
-                    const response = await fetch('/users', {
-                      method:  'POST',
-                      headers: window.NetGuardAuth.getAuthHeaders(),
+                    // ✅ PUT pour édition, POST pour création
+                    const url    = editingUser ? `/users/${editingUser.id}` : '/users';
+                    const method = editingUser ? 'PUT' : 'POST';
+
+                    const response = await fetch(url, {
+                      method,
+                      headers: {
+                        ...window.NetGuardAuth.getAuthHeaders(),
+                        'Content-Type': 'application/json',
+                      },
                       body:    JSON.stringify(userData),
                     });
                     const result = await response.json();
 
                     if (response.ok) {
                       closeFormModal();
-                      showToast('Utilisateur créé avec succès');
+                      showToast(editingUser ? 'Utilisateur mis à jour avec succès' : 'Utilisateur créé avec succès');
                       fetchUsers();
 
-                      // ✅ Audit : enregistre qui a créé quel utilisateur
-                      window.NetGuardAudit.userCreated({
-                        username: userData.username,
-                        role:     userData.role,
-                      });
+                      if (editingUser) {
+                        // ✅ Audit : modification enregistrée
+                        window.NetGuardAudit.log({
+                          action:   'Modification utilisateur',
+                          target:   `${userData.username} — rôle : ${userData.role}`,
+                          severity: 'Low',
+                          success:  true,
+                        });
+                      } else {
+                        // ✅ Audit : création enregistrée
+                        window.NetGuardAudit.userCreated({
+                          username: userData.username,
+                          role:     userData.role,
+                        });
+                      }
 
                     } else {
                       showToast(result.error || 'Erreur', 'error');
 
                       // ✅ Audit : tentative échouée
                       window.NetGuardAudit.log({
-                        action:   'Tentative création utilisateur',
+                        action:   editingUser ? 'Tentative modification utilisateur' : 'Tentative création utilisateur',
                         target:   `${userData.username} — ${result.error || 'erreur inconnue'}`,
                         severity: 'Medium',
                         success:  false,
