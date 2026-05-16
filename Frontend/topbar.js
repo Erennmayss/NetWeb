@@ -68,13 +68,17 @@
     try {
       if (window.NetGuardAuth && typeof window.NetGuardAuth.getRole === 'function') {
         role = (window.NetGuardAuth.getRole() || '').toUpperCase();
+      } else {
+        // Fallback : lire depuis la session localStorage
+        var session = getSessionUser();
+        if (session && session.role) role = session.role.toUpperCase();
       }
     } catch (e) {
-      // Si erreur, on affiche par défaut
-      return true;
+      // Si erreur, on masque par sécurité
+      return false;
     }
-    // Masquer pour AUDITOR et NETWORK_ADMIN
-    return role !== 'AUDITOR' && role !== 'NETWORK_ADMIN';
+    // Afficher UNIQUEMENT pour ADMIN et SECURITY_ADMIN
+    return role === 'ADMIN' || role === 'SECURITY_ADMIN';
   }
 
   const detectionButtonHTML = shouldShowDetectionButton() ? `
@@ -82,7 +86,7 @@
           <svg id="topbar-detection-icon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
             <path d="M8 5v14l11-7z"></path>
           </svg>
-          <span id="topbar-detection-label">Start detection</span>
+          <span id="topbar-detection-label">Lancer la detection</span>
         </button>
   ` : '';
 
@@ -105,12 +109,7 @@
           <div id="topbar-search-results" class="topbar-search-results" role="listbox" hidden></div>
         </div>
 
-        <button type="button" id="topbar-detection-toggle" class="detection-btn detection-btn--start" aria-label="Lancer la detection" data-active="false">
-          <svg id="topbar-detection-icon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-            <path d="M8 5v14l11-7z"></path>
-          </svg>
-          <span id="topbar-detection-label">Lancer la detection</span>
-        </button>
+        ${detectionButtonHTML}
 
         <div class="notif-wrapper">
           <button type="button" id="topbar-notif-button" class="icon-button" aria-label="Notifications">
