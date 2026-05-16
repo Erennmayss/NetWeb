@@ -33,6 +33,32 @@ def validate_vlan_reference(cur, vlan_id):
         raise ValueError(f"Le VLAN {vlan_id} n'existe pas. Creez-le d'abord dans la page VLAN.")
 
 
+def sync_vlan_ports_from_interfaces(cur, vlan_ids):
+    """
+    Recalcule vlan.ports a partir des interfaces en mode access.
+    Cela garantit que la page VLAN reste synchronisee apres une modification
+    faite depuis la page Interfaces.
+    """
+    normalized_vlan_ids = {
+        int(vlan_id) for vlan_id in (vlan_ids or set())
+        if vlan_id not in (None, "", "All")
+    }
+
+    for vlan_id in normalized_vlan_ids:
+        cur.execute("""
+            SELECT COALESCE(STRING_AGG(nom, ', ' ORDER BY id_interface), '')
+            FROM interface
+            WHERE vlan_id = %s AND COALESCE(mode, 'access') = 'access'
+        """, (vlan_id,))
+        ports_value = cur.fetchone()[0] or ""
+
+        cur.execute("""
+            UPDATE vlan
+            SET ports = %s
+            WHERE id_vlan = %s
+        """, (ports_value, vlan_id))
+
+
 def get_switch_id_by_name(cur, switch_name):
     """
     Récupère l'id_switch à partir du nom du switch.
@@ -502,6 +528,7 @@ def create_interface():
             payload["bpdu_guard"]
         ))
         row = cur.fetchone()
+        sync_vlan_ports_from_interfaces(cur, {payload["vlan_id"]})
         conn.commit()
         logger.info(f"[API] Interface {payload['nom']} créée avec succès (switch_id={payload['id_switch']})")
         
@@ -541,6 +568,10 @@ def update_interface(interface_id):
     try:
         cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
         
+        cur.execute("SELECT vlan_id FROM interface WHERE id_interface = %s", (interface_id,))
+        previous_row = cur.fetchone()
+        previous_vlan_id = previous_row["vlan_id"] if previous_row else None
+
         # Valider le VLAN
         validate_vlan_reference(cur, payload["vlan_id"])
         
@@ -593,6 +624,7 @@ def update_interface(interface_id):
             logger.warning(f"[API] Interface {interface_id} introuvable pour update")
             return jsonify({"success": False, "error": "Interface introuvable"}), 404
 
+        sync_vlan_ports_from_interfaces(cur, {previous_vlan_id, payload["vlan_id"]})
         conn.commit()
         logger.info(f"[API] Interface {interface_id} mise à jour avec succès (switch_id={payload['id_switch']})")
         return jsonify({
@@ -626,6 +658,7 @@ def delete_interface(interface_id):
             logger.warning(f"[API] Interface {interface_id} introuvable pour suppression")
             return jsonify({"success": False, "error": "Interface introuvable"}), 404
 
+        sync_vlan_ports_from_interfaces(cur, {row["vlan_id"]})
         conn.commit()
         logger.info(f"[API] Interface {interface_id} supprimée avec succès")
         return jsonify({
