@@ -62,6 +62,30 @@
     return '??';
   }
 
+  // Déterminer s'il faut afficher le bouton de détection
+  function shouldShowDetectionButton() {
+    var role = '';
+    try {
+      if (window.NetGuardAuth && typeof window.NetGuardAuth.getRole === 'function') {
+        role = (window.NetGuardAuth.getRole() || '').toUpperCase();
+      }
+    } catch (e) {
+      // Si erreur, on affiche par défaut
+      return true;
+    }
+    // Masquer pour AUDITOR et NETWORK_ADMIN
+    return role !== 'AUDITOR' && role !== 'NETWORK_ADMIN';
+  }
+
+  const detectionButtonHTML = shouldShowDetectionButton() ? `
+        <button type="button" id="topbar-detection-toggle" class="detection-btn detection-btn--start" aria-label="Lancer la detection" data-active="false">
+          <svg id="topbar-detection-icon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+            <path d="M8 5v14l11-7z"></path>
+          </svg>
+          <span id="topbar-detection-label">Start detection</span>
+        </button>
+  ` : '';
+
   root.innerHTML = `
     <header class="topbar">
       <div class="topbar-section">
@@ -187,14 +211,51 @@
             </svg>
           </button>
           <div id="topbar-user-menu" class="user-menu" hidden>
+
+            <!-- ===== HEADER ORBITAL ===== -->
             <div id="topbar-menu-user-info" class="user-menu-info">
-              <div id="topbar-menu-avatar" class="user-menu-avatar">?</div>
-              <div class="user-menu-details">
-                <span id="topbar-menu-username" class="user-menu-name">Chargement...</span>
-                <span id="topbar-menu-role" class="user-menu-role">...</span>
+
+              <!-- Avatar avec anneaux orbitaux SVG -->
+              <div class="um-orbit-wrap">
+                <svg class="um-orbit-svg" viewBox="0 0 108 108" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <g class="um-orbit-1" id="um-orbit-g1">
+                    <circle cx="54" cy="54" r="48" stroke-width="1" stroke-dasharray="6 10" stroke-opacity="0.4" id="um-ring1-stroke"/>
+                    <circle cx="54" cy="6" r="4" fill-opacity="0.7" id="um-ring1-dot"/>
+                  </g>
+                  <g class="um-orbit-2" id="um-orbit-g2">
+                    <circle cx="54" cy="54" r="38" stroke-width="0.8" stroke-dasharray="4 14" stroke-opacity="0.3" id="um-ring2-stroke"/>
+                    <circle cx="54" cy="16" r="3" fill-opacity="0.6" id="um-ring2-dot"/>
+                  </g>
+                </svg>
+                <div id="topbar-menu-avatar" class="um-avatar">?</div>
+                <span class="um-online-dot" title="En ligne"></span>
               </div>
+
+              <!-- Nom + email + sticker rôle -->
+              <div class="um-info">
+                <div class="um-name-row">
+                  <span id="topbar-menu-username" class="um-name">Chargement...</span>
+                  <span class="um-check-badge" id="um-check-badge">
+                    <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round">
+                      <polyline points="20 6 9 17 4 12"/>
+                    </svg>
+                  </span>
+                </div>
+                <span class="um-email" id="topbar-menu-email">—</span>
+                <span id="topbar-menu-role" class="um-role-pill">
+                  <span class="um-role-icon" id="um-role-icon">
+                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                    </svg>
+                  </span>
+                  <span id="topbar-menu-role-text">...</span>
+                </span>
+              </div>
+
             </div>
+
             <div class="user-menu-divider"></div>
+
             <button type="button" class="user-menu-item" id="topbar-menu-profile">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
               Mon profil
@@ -299,6 +360,141 @@
 
       </div>
     </div>
+
+  <style>
+    /* ===== ORBITAL USER MENU ===== */
+
+    .user-menu-info {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 20px 16px 16px;
+      gap: 10px;
+      background: rgba(99,102,241,0.04);
+      border-bottom: 1px solid rgba(99,102,241,0.12);
+    }
+
+    /* Conteneur orbit */
+    .um-orbit-wrap {
+      position: relative;
+      width: 72px;
+      height: 72px;
+      flex-shrink: 0;
+    }
+
+    .um-orbit-svg {
+      position: absolute;
+      inset: -18px;
+      width: 108px;
+      height: 108px;
+      pointer-events: none;
+    }
+
+    /* Animations orbites */
+    @keyframes um-spin-cw  { from { transform: rotate(0deg);    } to { transform: rotate(360deg);  } }
+    @keyframes um-spin-ccw { from { transform: rotate(0deg);    } to { transform: rotate(-360deg); } }
+
+    .um-orbit-1 {
+      transform-origin: 54px 54px;
+      animation: um-spin-cw 9s linear infinite;
+    }
+    .um-orbit-2 {
+      transform-origin: 54px 54px;
+      animation: um-spin-ccw 14s linear infinite;
+    }
+
+    /* Avatar central */
+    .um-avatar {
+      position: absolute;
+      inset: 0;
+      border-radius: 50%;
+      background: linear-gradient(145deg, #6366f1, #8b5cf6);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 21px;
+      font-weight: 500;
+      color: #fff;
+      letter-spacing: 1px;
+    }
+
+    /* Point en ligne */
+    .um-online-dot {
+      position: absolute;
+      bottom: 4px;
+      right: 4px;
+      width: 13px;
+      height: 13px;
+      background: #22c55e;
+      border-radius: 50%;
+      border: 2.5px solid #1a1c3a;
+      box-shadow: 0 0 7px #22c55e88;
+    }
+
+    /* Nom + badge check */
+    .um-info {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .um-name-row {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .um-name {
+      font-size: 14px;
+      font-weight: 500;
+      color: #f1f5f9;
+    }
+
+    .um-check-badge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 15px;
+      height: 15px;
+      border-radius: 50%;
+      background: #6366f1;
+      flex-shrink: 0;
+    }
+
+    .um-email {
+      font-size: 11px;
+      color: rgba(148,163,184,0.75);
+    }
+
+    /* Pill rôle */
+    .um-role-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 11px 4px 6px;
+      border-radius: 99px;
+      background: rgba(99,102,241,0.15);
+      border: 1px solid rgba(99,102,241,0.4);
+      font-size: 11px;
+      font-weight: 500;
+      color: #a5b4fc;
+      margin-top: 2px;
+      transition: background 0.2s, color 0.2s, border-color 0.2s;
+    }
+
+    .um-role-icon {
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: #6366f1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      transition: background 0.2s;
+    }
+  </style>
   `;
 
   const titleEl      = document.getElementById('topbar-title');
@@ -328,14 +524,41 @@
     }
 
     var menuUsernameEl = document.getElementById('topbar-menu-username');
-    var menuRoleEl     = document.getElementById('topbar-menu-role');
+    var menuRoleTextEl = document.getElementById('topbar-menu-role-text');
+    var menuRolePill   = document.getElementById('topbar-menu-role');
+    var menuRoleIcon   = document.getElementById('um-role-icon');
+    var menuCheckBadge = document.getElementById('um-check-badge');
     var menuAvatarEl   = document.getElementById('topbar-menu-avatar');
+    var menuEmailEl    = document.getElementById('topbar-menu-email');
+
     if (menuUsernameEl) menuUsernameEl.textContent = (user && user.username) || 'Utilisateur';
-    if (menuRoleEl)     menuRoleEl.textContent     = getRoleLabel(user ? user.role : null);
-    if (menuAvatarEl) {
-      menuAvatarEl.textContent = initials;
-      menuAvatarEl.style.background = 'linear-gradient(135deg, ' + roleColor + ', ' + roleColor + 'cc)';
+    if (menuEmailEl)    menuEmailEl.textContent    = (user && user.email)    || '';
+    if (menuRoleTextEl) menuRoleTextEl.textContent = getRoleLabel(user ? user.role : null);
+
+    // Pill rôle couleur dynamique
+    if (menuRolePill) {
+      menuRolePill.style.background  = roleColor + '22';
+      menuRolePill.style.borderColor = roleColor + '55';
+      menuRolePill.style.color       = roleColor;
     }
+    if (menuRoleIcon)   menuRoleIcon.style.background   = roleColor;
+    if (menuCheckBadge) menuCheckBadge.style.background = roleColor;
+
+    // Avatar central
+    if (menuAvatarEl) {
+      menuAvatarEl.textContent      = initials;
+      menuAvatarEl.style.background = 'linear-gradient(145deg, ' + roleColor + ', ' + roleColor + 'cc)';
+    }
+
+    // Anneaux SVG colorés selon le rôle
+    var ring1Stroke = document.getElementById('um-ring1-stroke');
+    var ring1Dot    = document.getElementById('um-ring1-dot');
+    var ring2Stroke = document.getElementById('um-ring2-stroke');
+    var ring2Dot    = document.getElementById('um-ring2-dot');
+    if (ring1Stroke) ring1Stroke.setAttribute('stroke', roleColor);
+    if (ring1Dot)    ring1Dot.setAttribute('fill',   roleColor);
+    if (ring2Stroke) ring2Stroke.setAttribute('stroke', roleColor);
+    if (ring2Dot)    ring2Dot.setAttribute('fill',   roleColor);
   }
 
   // ========== REMPLIR LE MODAL PROFIL ==========
@@ -440,7 +663,7 @@
         if (labelEl) labelEl.textContent = loadingText;
       }
 
-      var res = await fetch('http://localhost:5000' + endpoint, { method: 'POST' });
+      var res = await fetch(endpoint, { method: 'POST' });
       var data = await res.json().catch(function () { return {}; });
       if (!res.ok) throw new Error(data.message || data.error || 'Erreur serveur');
 
@@ -633,6 +856,24 @@
   initUserAvatar();
   initGlobalSearch();
 
+  // ========== INITIALISER LA VISIBILITÉ DU BOUTON DE DÉTECTION ==========
+  function initDetectionButtonVisibility() {
+    if (!detectionToggleBtn) return;
+    
+    // Obtenir le rôle directement depuis NetGuardAuth
+    var role = '';
+    if (window.NetGuardAuth && typeof window.NetGuardAuth.getRole === 'function') {
+      role = (window.NetGuardAuth.getRole() || '').toUpperCase();
+    }
+    
+    // Masquer le bouton pour les rôles "AUDITOR" et "NETWORK_ADMIN"
+    if (role === 'AUDITOR' || role === 'NETWORK_ADMIN') {
+      detectionToggleBtn.style.display = 'none';
+    }
+  }
+
+  initDetectionButtonVisibility();
+
   // ========== ÉVÉNEMENTS ==========
   window.addEventListener('storage', function (e) {
     if (e.key === 'netguard-theme') setTheme(e.newValue === 'dark');
@@ -743,7 +984,7 @@ function _launchPBat(option, params, btn, originalLabel, successLabel) {
       btn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14" style="animation:spin 1s linear infinite"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg> En cours…';
     }
 
-    fetch('http://localhost:5000/api/run-pbat', {
+    fetch('/api/run-pbat', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body)
@@ -758,7 +999,7 @@ function _launchPBat(option, params, btn, originalLabel, successLabel) {
       }
     })
     .catch(function() {
-      showDetectionToast('Impossible de contacter Flask — vérifiez que le serveur tourne sur localhost:5000', true);
+      showDetectionToast('Impossible de contacter le serveur d application', true);
     })
     .finally(function() {
       if (btn) {
@@ -858,7 +1099,7 @@ function _launchPBat(option, params, btn, originalLabel, successLabel) {
       if (token) headers['Authorization'] = 'Bearer ' + token;
 
       // Récupérer les alertes récentes
-      var res = await fetch('http://localhost:5000/api/alerts?limit=8&sort=desc', { headers: headers });
+      var res = await fetch('/api/alerts?limit=8&sort=desc', { headers: headers });
       if (!res.ok) throw new Error('HTTP ' + res.status);
       var data = await res.json();
 
@@ -866,7 +1107,7 @@ function _launchPBat(option, params, btn, originalLabel, successLabel) {
       _renderAlertsList(alerts);
 
       // Récupérer le total pour le badge
-      var statsRes = await fetch('http://localhost:5000/api/stats', { headers: headers });
+      var statsRes = await fetch('/api/stats', { headers: headers });
       var statsData = await statsRes.json();
       if (statsData.success || statsData.stats) {
         var total = parseInt((statsData.stats || statsData).total) || 0;
@@ -889,7 +1130,7 @@ function _launchPBat(option, params, btn, originalLabel, successLabel) {
 
   // API publique : permet à alerts.html de réinitialiser le badge topbar
   window.resetTopbarAlertBadge = function() {
-    fetch('http://localhost:5000/api/stats').then(function(r) { return r.json(); }).then(function(d) {
+    fetch('/api/stats').then(function(r) { return r.json(); }).then(function(d) {
       if (d.success || d.stats) _lastAlertCount = parseInt((d.stats || d).total) || 0;
     }).catch(function(){});
     updateNotificationCount(0);

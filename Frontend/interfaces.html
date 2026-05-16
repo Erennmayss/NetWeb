@@ -59,7 +59,7 @@
 
   <script type="text/babel">
     const { useState, useEffect } = React;
-    const API_BASE_URL = window.location.port === '5000' ? '' : 'http://127.0.0.1:5000';
+    const API_BASE_URL = '';
     const auth = window.NetGuardAuth;
 
     const pickDefaultAccessVlan = (availableVlans, preferredVlan) => {
@@ -1106,7 +1106,7 @@ end`}
                               ? <span className="text-emerald-600 text-xs font-bold">🔒 Sec</span>
                               : <span className="text-slate-400 text-xs font-medium">🔓 Off</span>
                             }
-                            {port.bpdu_guard && <span className="ml-2 text-indigo-600 text-xs font-bold">🛡️ BPDU</span>}
+                            {port.bpdu_guard && <span className="ml-2 text-indigo-600 text-xs font-bold"> BPDU</span>}
                           </td>
                           <td className="px-6 py-4 text-right space-x-3">
                             {port.alert && <span className="text-orange-600 text-xs font-bold uppercase mr-2 animate-pulse">⚠️ Menace</span>}

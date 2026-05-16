@@ -111,8 +111,129 @@ def validate_port_assignments(cur, ports, id_switch=None):
     )
 
 
+def get_fallback_vlan_id(cur, excluded_vlan_id=None):
+    if excluded_vlan_id is None:
+        cur.execute("""
+            SELECT id_vlan
+            FROM vlan
+            ORDER BY CASE WHEN id_vlan = 1 THEN 0 ELSE 1 END, id_vlan
+            LIMIT 1
+        """)
+    else:
+        cur.execute("""
+            SELECT id_vlan
+            FROM vlan
+            WHERE id_vlan <> %s
+            ORDER BY CASE WHEN id_vlan = 1 THEN 0 ELSE 1 END, id_vlan
+            LIMIT 1
+        """, (excluded_vlan_id,))
+
+    row = cur.fetchone()
+    return row.get("id_vlan") if hasattr(row, "get") else (row[0] if row else None)
+
+
+def sync_interfaces_with_vlan_ports(cur, vlan_id, ports, id_switch=None):
+    """
+    Propage vlan.ports vers la table interface.
+    Les ports listes recoivent ce VLAN; les anciens ports lies a ce VLAN
+    sont remis sur un VLAN de repli (VLAN 1 si disponible).
+    """
+    requested_ports = {
+        normalize_interface_name(port): port
+        for port in split_port_list(ports)
+    }
+    fallback_vlan_id = get_fallback_vlan_id(cur, excluded_vlan_id=vlan_id)
+
+    if id_switch is not None:
+        cur.execute("""
+            SELECT id_interface, nom, vlan_id, id_switch
+            FROM interface
+            WHERE id_switch = %s OR vlan_id = %s
+        """, (id_switch, vlan_id))
+    else:
+        cur.execute("""
+            SELECT id_interface, nom, vlan_id, id_switch
+            FROM interface
+            WHERE vlan_id = %s
+        """, (vlan_id,))
+
+    for row in cur.fetchall():
+        interface_id = row["id_interface"]
+        normalized_name = normalize_interface_name(row["nom"])
+        same_switch = id_switch is None or row.get("id_switch") == id_switch
+        should_assign = same_switch and normalized_name in requested_ports
+
+        if should_assign:
+            cur.execute("""
+                UPDATE interface
+                SET vlan_id = %s,
+                    mode = 'access',
+                    allowed_vlans = NULL
+                WHERE id_interface = %s
+            """, (vlan_id, interface_id))
+        elif row["vlan_id"] == vlan_id:
+            cur.execute("""
+                UPDATE interface
+                SET vlan_id = %s,
+                    allowed_vlans = CASE
+                        WHEN COALESCE(mode, 'access') = 'trunk' THEN allowed_vlans
+                        ELSE NULL
+                    END
+                WHERE id_interface = %s
+            """, (fallback_vlan_id, interface_id))
+
+
+def sync_vlan_table_from_interfaces(cur, vlan_ids=None):
+    """
+    Recalcule vlan.ports depuis la table interface pour corriger aussi les
+    anciennes donnees deja presentes en base.
+    """
+    normalized_vlan_ids = {
+        int(vlan_id) for vlan_id in (vlan_ids or [])
+        if vlan_id not in (None, "", "All")
+    }
+
+    if normalized_vlan_ids:
+        cur.execute("""
+            SELECT id_vlan
+            FROM vlan
+            WHERE id_vlan = ANY(%s)
+            ORDER BY id_vlan ASC
+        """, (list(normalized_vlan_ids),))
+    else:
+        cur.execute("""
+            SELECT id_vlan
+            FROM vlan
+            ORDER BY id_vlan ASC
+        """)
+
+    vlan_rows = cur.fetchall()
+    for row in vlan_rows:
+        current_vlan_id = row.get("id_vlan") if hasattr(row, "get") else row[0]
+        cur.execute("""
+            SELECT COALESCE(STRING_AGG(nom, ', ' ORDER BY id_interface), '') AS ports_value
+            FROM interface
+            WHERE vlan_id = %s
+              AND COALESCE(mode, 'access') = 'access'
+        """, (current_vlan_id,))
+        ports_value = cur.fetchone()
+        ports_value = (ports_value.get("ports_value") if hasattr(ports_value, "get") else ports_value[0]) or ""
+
+        cur.execute("""
+            UPDATE vlan
+            SET ports = %s
+            WHERE id_vlan = %s
+        """, (ports_value, current_vlan_id))
+
+
 def build_vlan_response(row):
     gateway = row.get("gateway") or ""
+    device_count = row.get("device_count")
+    if device_count is None:
+        device_count = row.get("devices")
+    if device_count is None:
+        device_count = 0
+
     return {
         "id_vlan":    row.get("id_vlan"),
         "id":         row.get("id_vlan"),
@@ -122,11 +243,11 @@ def build_vlan_response(row):
         "gateway":    gateway,
         "vlanIp":     gateway or "--",
         "type":       row.get("type") or "Data",
-        "ports":      row.get("ports") or "",
+        "ports":      row.get("ports_display") or row.get("ports") or "",
         "status":     row.get("status") or "Active",
         "switchName": row.get("switch_name") or "",
         "switchIp":   row.get("switch_ip") or "",
-        "devices":    0,
+        "devices":    device_count,
     }
 
 
@@ -610,22 +731,49 @@ def get_vlans():
         params = []
 
         if filter_switch_name:
-            where_clauses.append("switch_name = %s")
+            where_clauses.append("LOWER(TRIM(COALESCE(switch_name, ''))) = LOWER(TRIM(%s))")
             params.append(filter_switch_name)
         elif filter_switch_id:
-            cur2 = conn.cursor()
+            cur2 = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
             cur2.execute("SELECT nom FROM switchs WHERE id_switch = %s", (filter_switch_id,))
             sw_row = cur2.fetchone()
             cur2.close()
             if sw_row:
-                where_clauses.append("switch_name = %s")
-                params.append(sw_row[0])
+                switch_name = (sw_row.get("nom") or "").strip()
+                if switch_name:
+                    where_clauses.append("LOWER(TRIM(COALESCE(switch_name, ''))) = LOWER(TRIM(%s))")
+                    params.append(switch_name)
+                else:
+                    where_clauses.append("1 = 0")
+            else:
+                where_clauses.append("1 = 0")
 
         where_sql = f"WHERE {' AND '.join(where_clauses)}" if where_clauses else ""
 
         cur.execute(f"""
-            SELECT {", ".join(get_returning_fields(columns))}
+            SELECT
+                {", ".join(get_returning_fields(columns))},
+                COALESCE((
+                    SELECT STRING_AGG(port_rows.nom, ', ' ORDER BY port_rows.nom)
+                    FROM (
+                        SELECT DISTINCT i.nom
+                        FROM interface i
+                        LEFT JOIN switchs s_if ON s_if.id_switch = i.id_switch
+                        WHERE i.vlan_id = vlan.id_vlan
+                          AND COALESCE(i.mode, 'access') = 'access'
+                          AND (
+                              COALESCE(TRIM(vlan.switch_name), '') = ''
+                              OR LOWER(TRIM(COALESCE(s_if.nom, ''))) = LOWER(TRIM(COALESCE(vlan.switch_name, '')))
+                          )
+                    ) port_rows
+                ), vlan.ports, '') AS ports_display,
+                COALESCE(eq.device_count, 0) AS device_count
             FROM vlan
+            LEFT JOIN (
+                SELECT vlan_id, COUNT(*) AS device_count
+                FROM equipement
+                GROUP BY vlan_id
+            ) eq ON eq.vlan_id = vlan.id_vlan
             {where_sql}
             ORDER BY id_vlan ASC
         """, params)
@@ -808,6 +956,12 @@ def create_vlan():
             RETURNING {", ".join(get_returning_fields(columns))}
         """, insert_values)
         row = cur.fetchone()
+        sync_interfaces_with_vlan_ports(
+            cur,
+            payload["id_vlan"],
+            payload["ports"],
+            resolve_switch_id(cur, payload),
+        )
         conn.commit()
 
     except Exception as e:
@@ -873,6 +1027,12 @@ def update_vlan(id_vlan):
             conn.rollback()
             return jsonify({"success": False, "error": "VLAN introuvable"}), 404
 
+        sync_interfaces_with_vlan_ports(
+            cur,
+            id_vlan,
+            payload["ports"],
+            resolve_switch_id(cur, payload),
+        )
         conn.commit()
         return jsonify({"success": True, "message": f"VLAN {id_vlan} mis à jour.", "vlan": build_vlan_response(row)})
     except Exception as e:
@@ -909,6 +1069,7 @@ def delete_vlan(id_vlan):
             conn.rollback()
             return jsonify({"success": False, "error": "VLAN introuvable"}), 404
 
+        sync_interfaces_with_vlan_ports(cur, id_vlan, "", None)
         conn.commit()
     except Exception as e:
         conn.rollback()

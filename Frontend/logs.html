@@ -1,521 +1,43 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-<meta charset="UTF-8"/>
-<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>NetGuard — Logs & Alertes</title>
-<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
-<script src="https://unpkg.com/react@18/umd/react.development.js"></script>
-<script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
-<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-<script src="auth.js"></script>
-<script src="netguard-audit.js"></script>
-<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=DM+Mono&display=swap" rel="stylesheet" />
-<link rel="stylesheet" href="layout.css" />
-<link rel="stylesheet" href="sidebar.css" />
-<link rel="stylesheet" href="topbar.css" />
-<link rel="stylesheet" href="dark-mode.css" />
-<style>
-*, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
-
-:root {
-  --bg-primary: #f8fafc;
-  --bg-secondary: #ffffff;
-  --bg-tertiary: #f1f5f9;
-  --border: #e2e8f0;
-  --border-dark: #cbd5e1;
-  --text-primary: #0f172a;
-  --text-secondary: #475569;
-  --text-tertiary: #94a3b8;
-
-  --critical: #ef4444;
-  --critical-bg: #ffffff;
-  --critical-border: #fee2e2;
-  --medium: #f59e0b;
-  --medium-bg: #ffffff;
-  --medium-border: #fffbeb;
-  --low: #10b981;
-  --low-bg: #ffffff;
-  --low-border: #f0fdf4;
-
-  --primary: #6366f1;
-  --primary-light: #818cf8;
-  --primary-dark: #4f46e5;
-  --primary-bg: #eef2ff;
-  --success: #22c55e;
-  --warning: #f59e0b;
-  --info: #3b82f6;
-
-  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
-  --shadow: 0 4px 6px -1px rgb(0 0 0 / 0.07), 0 2px 4px -2px rgb(0 0 0 / 0.05);
-  --shadow-lg: 0 12px 24px -12px rgb(0 0 0 / 0.15);
-}
-
-html, body { height: 100%; overflow: hidden; }
-
-body {
-  font-family: 'DM Sans', -apple-system, sans-serif;
-  background: var(--bg-primary);
-  color: var(--text-primary);
-}
-
-.app-shell {
-  height: 100vh;
-  display: flex;
-  overflow: hidden;
-}
-
-.sidebar-host {
-  flex-shrink: 0;
-}
-
-.main {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-}
-
-/* Scrollable content */
-.scrollable-content {
-  flex: 1;
-  overflow-y: auto;
-  padding: 28px 32px 40px;
-  min-height: 0;
-  scrollbar-gutter: stable;
-}
-
-.scrollable-content::-webkit-scrollbar { width: 6px; }
-.scrollable-content::-webkit-scrollbar-track { background: transparent; }
-.scrollable-content::-webkit-scrollbar-thumb { background: var(--border-dark); border-radius: 3px; }
-.scrollable-content::-webkit-scrollbar-thumb:hover { background: var(--primary-light); }
-
-/* ========== BOUTONS D'ONGLETS MODERNES ========== */
-.tabs-modern {
-  display: flex;
-  gap: 12px;
-  margin-bottom: 28px;
-  background: var(--bg-secondary);
-  padding: 6px;
-  border-radius: 60px;
-  box-shadow: var(--shadow-sm);
-  border: 1px solid var(--border);
-  width: fit-content;
-}
-
-.tab-modern {
-  position: relative;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 12px 28px;
-  border: none;
-  background: transparent;
-  border-radius: 50px;
-  font-size: 14px;
-  font-weight: 600;
-  font-family: 'DM Sans', sans-serif;
-  color: var(--text-secondary);
-  cursor: pointer;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  overflow: hidden;
-  letter-spacing: 0.01em;
-}
-
-.tab-modern::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: linear-gradient(135deg, var(--primary), var(--primary-dark));
-  border-radius: 50px;
-  opacity: 0;
-  transition: opacity 0.3s ease;
-  z-index: 0;
-}
-
-.tab-modern span,
-.tab-modern svg {
-  position: relative;
-  z-index: 1;
-}
-
-.tab-modern:hover {
-  color: var(--primary);
-  background: var(--primary-bg);
-  transform: translateY(-1px);
-}
-
-.tab-modern.active {
-  color: white;
-  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.35);
-}
-
-.tab-modern.active::before {
-  opacity: 1;
-}
-
-.tab-modern.active:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 6px 16px rgba(99, 102, 241, 0.45);
-}
-
-.tab-modern .tab-icon {
-  font-size: 18px;
-  position: relative;
-  z-index: 1;
-  transition: transform 0.2s ease;
-}
-
-.tab-modern:hover .tab-icon {
-  transform: scale(1.1);
-}
-
-.tab-modern.active .tab-icon {
-  transform: scale(1.05);
-}
-
-.tab-modern .tab-badge {
-  position: relative;
-  z-index: 1;
-  background: rgba(255, 255, 255, 0.25);
-  padding: 2px 8px;
-  border-radius: 30px;
-  font-size: 11px;
-  font-weight: 700;
-  margin-left: 6px;
-}
-
-.tab-modern.active .tab-badge {
-  background: rgba(255, 255, 255, 0.3);
-}
-
-/* KPI STRIP */
-.kpi-strip {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 20px;
-  margin-bottom: 24px;
-  animation: fadeInUp 0.4s ease 0.1s both;
-}
-.kpi {
-  background: var(--bg-secondary);
-  border: 1px solid var(--border);
-  border-radius: 20px;
-  padding: 20px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  transition: all 0.2s ease;
-  position: relative;
-  overflow: hidden;
-}
-.kpi:hover { transform: translateY(-2px); box-shadow: var(--shadow-lg); }
-.kpi::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 3px;
-  background: linear-gradient(90deg, var(--primary), var(--primary-light));
-  transform: scaleX(0);
-  transition: transform 0.3s ease;
-}
-.kpi:hover::before { transform: scaleX(1); }
-.kpi-left { display: flex; flex-direction: column; gap: 4px; }
-.kpi-label { font-size: 11px; font-weight: 600; color: var(--text-tertiary); text-transform: uppercase; letter-spacing: 0.08em; }
-.kpi-val {
-  font-size: 32px;
-  font-weight: 800;
-  font-family: 'DM Mono', monospace;
-  color: var(--text-primary);
-}
-.kpi-val.red { color: var(--critical); }
-.kpi-val.indigo { color: var(--primary); }
-.kpi-val.amber { color: var(--medium); }
-.kpi-sub { font-size: 10px; font-weight: 600; padding: 2px 8px; border-radius: 12px; display: inline-block; }
-.kpi-icon-wrap {
-  width: 48px;
-  height: 48px;
-  border-radius: 14px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 22px;
-  transition: transform 0.2s ease;
-}
-.kpi:hover .kpi-icon-wrap { transform: scale(1.05); }
-
-/* FILTER BAR */
-.filter-bar {
-  background: var(--bg-secondary);
-  border: 1px solid var(--border);
-  border-radius: 16px;
-  padding: 14px 20px;
-  margin-bottom: 20px;
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  flex-wrap: wrap;
-  animation: fadeInUp 0.4s ease 0.15s both;
-}
-.filter-label { font-size: 11px; font-weight: 700; color: var(--text-tertiary); text-transform: uppercase; letter-spacing: 0.1em; }
-.threat-pills { display: flex; gap: 8px; flex-wrap: wrap; flex: 1; }
-.tpill {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 5px 14px;
-  border-radius: 40px;
-  font-size: 11px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  border: 1.5px solid transparent;
-  font-family: 'DM Sans', sans-serif;
-}
-.tpill:hover { transform: translateY(-1px); }
-.tpill.all { background: var(--primary-bg); color: var(--primary); border-color: var(--primary-light); }
-.tpill.crit { background: #fee2e2; color: var(--critical); border-color: #fecaca; }
-.tpill.med { background: #fffbeb; color: var(--medium); border-color: #fde68a; }
-.tpill.low { background: #f0fdf4; color: var(--low); border-color: #d1fae5; }
-.tpill.active { box-shadow: 0 2px 8px rgba(0,0,0,0.1); transform: translateY(-1px); }
-.tpill.all.active { background: var(--primary); color: white; border-color: var(--primary); }
-.tpill.crit.active { background: var(--critical); color: white; border-color: var(--critical); }
-.tpill.med.active { background: var(--medium); color: white; border-color: var(--medium); }
-.tpill.low.active { background: var(--low); color: white; border-color: var(--low); }
-.tpill .tdot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
-.divider { width: 1px; height: 28px; background: var(--border); }
-.search-wrap {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 7px 14px;
-  background: var(--bg-tertiary);
-  border: 1.5px solid var(--border);
-  border-radius: 12px;
-  min-width: 220px;
-  transition: all 0.2s ease;
-}
-.search-wrap:focus-within { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(99,102,241,0.1); background: var(--bg-secondary); }
-.search-wrap input { border: none; background: transparent; font-size: 12px; font-family: 'DM Sans', sans-serif; color: var(--text-primary); width: 100%; }
-.search-wrap input::placeholder { color: var(--text-tertiary); }
-.search-wrap input:focus { outline: none; }
-.proto-select {
-  padding: 7px 14px;
-  background: var(--bg-tertiary);
-  border: 1.5px solid var(--border);
-  border-radius: 12px;
-  color: var(--text-primary);
-  font-size: 12px;
-  font-family: 'DM Sans', sans-serif;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-.proto-select:focus { outline: none; border-color: var(--primary); }
-
-/* TABLE CARD */
-.table-card {
-  background: var(--bg-secondary);
-  border: 1px solid var(--border);
-  border-radius: 20px;
-  overflow: hidden;
-  box-shadow: var(--shadow);
-  animation: fadeInUp 0.4s ease 0.2s both;
-}
-.table-header {
-  padding: 18px 24px;
-  border-bottom: 1px solid var(--border);
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-.table-title { font-size: 14px; font-weight: 700; color: var(--text-primary); }
-.table-meta { font-size: 11px; color: var(--text-tertiary); font-family: 'DM Mono', monospace; font-weight: 500; }
-.table-scroll { overflow-x: auto; max-height: calc(100vh - 460px); overflow-y: auto; }
-.table-scroll::-webkit-scrollbar { width: 5px; height: 5px; }
-.table-scroll::-webkit-scrollbar-track { background: transparent; }
-.table-scroll::-webkit-scrollbar-thumb { background: var(--border-dark); border-radius: 3px; }
-
-table { width: 100%; border-collapse: collapse; min-width: 900px; }
-thead th {
-  text-align: left;
-  padding: 11px 16px;
-  background: var(--bg-tertiary);
-  color: var(--text-secondary);
-  font-size: 10px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  border-bottom: 1px solid var(--border);
-  position: sticky;
-  top: 0;
-  z-index: 2;
-}
-thead th:first-child { padding-left: 24px; }
-
-/* IDS rows - PLUS DE TRIANGLES */
-tbody tr.r-main {
-  border-left: 3px solid transparent;
-  cursor: pointer;
-  transition: all 0.15s ease;
-  background: var(--bg-secondary);
-}
-tbody tr.r-main td {
-  padding: 13px 16px;
-  border-bottom: 1px solid var(--border);
-  font-size: 13px;
-  vertical-align: middle;
-  background: var(--bg-secondary);
-}
-tbody tr.r-main td:first-child { 
-  padding-left: 24px;
-  width: 0; /* Réduit la largeur de la première colonne */
-}
-tbody tr.r-main:last-child td { border-bottom: none; }
-tbody tr.r-main.rc { border-left-color: var(--critical); }
-tbody tr.r-main.rc:hover { background: #fef2f2; }
-tbody tr.r-main.rc:hover td { background: #fef2f2; }
-tbody tr.r-main.rm2 { border-left-color: var(--medium); }
-tbody tr.r-main.rm2:hover { background: #fffbeb; }
-tbody tr.r-main.rm2:hover td { background: #fffbeb; }
-tbody tr.r-main.rl { border-left-color: var(--low); }
-tbody tr.r-main.rl:hover { background: #f0fdf4; }
-tbody tr.r-main.rl:hover td { background: #f0fdf4; }
-
-/* Audit rows */
-tbody tr.a-row { transition: all 0.15s ease; background: var(--bg-secondary); }
-tbody tr.a-row td {
-  padding: 13px 16px;
-  border-bottom: 1px solid var(--border);
-  font-size: 13px;
-  vertical-align: middle;
-  background: var(--bg-secondary);
-}
-tbody tr.a-row td:first-child { padding-left: 24px; }
-tbody tr.a-row:last-child td { border-bottom: none; }
-tbody tr.a-row:hover { background: var(--bg-tertiary); }
-tbody tr.a-row:hover td { background: var(--bg-tertiary); }
-
-/* Severity badges */
-.sev {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  padding: 3px 10px;
-  border-radius: 20px;
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0.04em;
-}
-.sev::before { content: ''; width: 5px; height: 5px; border-radius: 50%; }
-.sev.rc { background: #fee2e2; color: var(--critical); border: 1px solid #fecaca; }
-.sev.rc::before { background: var(--critical); animation: pulse 2s infinite; }
-.sev.rm2 { background: #fffbeb; color: var(--medium); border: 1px solid #fde68a; }
-.sev.rm2::before { background: var(--medium); }
-.sev.rl { background: #f0fdf4; color: var(--low); border: 1px solid #d1fae5; }
-.sev.rl::before { background: var(--low); }
-.sev.info { background: var(--primary-bg); color: var(--primary); border: 1px solid var(--primary-light); }
-.sev.info::before { background: var(--primary); }
-
-.ip-tag { display: inline-block; padding: 3px 9px; border-radius: 7px; font-size: 11px; font-weight: 600; font-family: 'DM Mono', monospace; }
-.ip-src { background: #e0f2fe; color: #0369a1; border: 1px solid #bae6fd; }
-.ip-dst { background: #dcfce7; color: #15803d; border: 1px solid #bbf7d0; }
-.proto { display: inline-block; padding: 3px 9px; border-radius: 5px; font-size: 10px; font-weight: 700; letter-spacing: 0.06em; background: var(--bg-tertiary); color: var(--text-secondary); border: 1px solid var(--border); font-family: 'DM Mono', monospace; }
-.count { display: inline-flex; align-items: center; font-size: 13px; font-weight: 800; font-family: 'DM Mono', monospace; padding: 3px 10px; border-radius: 8px; background: var(--bg-tertiary); color: var(--text-secondary); }
-.date-val { font-size: 11px; color: var(--text-tertiary); font-family: 'DM Mono', monospace; white-space: nowrap; }
-
-/* Détail row - plus de triangle dans le détail non plus */
-.r-detail { display: none; }
-.r-detail.show { display: table-row; }
-.r-detail td { padding: 0 !important; background: var(--bg-secondary); }
-.detail-body { padding: 18px 24px 18px 44px; border-bottom: 1px solid var(--border); }
-.rc .detail-body { background: #fef2f2; }
-.rm2 .detail-body { background: #fffbeb; }
-.rl .detail-body { background: #f0fdf4; }
-.detail-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px; }
-.d-card { background: rgba(255,255,255,0.95); border: 1px solid var(--border); border-radius: 10px; padding: 12px 14px; }
-.d-lbl { font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.12em; color: var(--text-tertiary); margin-bottom: 6px; }
-.d-val { font-size: 12px; font-family: 'DM Mono', monospace; color: var(--text-primary); word-break: break-word; }
-.ids-flow { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 6px; }
-.id-chip { background: var(--bg-secondary); border: 1px solid var(--border); padding: 2px 9px; border-radius: 5px; font-size: 9px; font-family: 'DM Mono', monospace; color: var(--text-secondary); font-weight: 600; }
-
-/* Pagination */
-.pagination-bar {
-  padding: 14px 24px;
-  border-top: 1px solid var(--border);
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  background: var(--bg-secondary);
-}
-.pag-info { font-size: 11px; color: var(--text-tertiary); font-family: 'DM Mono', monospace; }
-.pag-btns { display: flex; gap: 5px; }
-.pag-btn {
-  width: 32px;
-  height: 32px;
-  border-radius: 9px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: var(--bg-tertiary);
-  border: 1px solid var(--border);
-  color: var(--text-secondary);
-  font-size: 11px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-.pag-btn:hover:not(:disabled) { background: var(--primary-bg); border-color: var(--primary-light); color: var(--primary); transform: translateY(-1px); }
-.pag-btn.active { background: var(--primary); border-color: var(--primary); color: white; box-shadow: 0 2px 8px rgba(99,102,241,0.3); }
-.pag-btn:disabled { opacity: 0.4; cursor: not-allowed; }
-
-/* Empty state */
-.empty-state { text-align: center; padding: 60px 20px; color: var(--text-tertiary); font-size: 13px; }
-.empty-icon { font-size: 40px; margin-bottom: 12px; opacity: 0.5; }
-
-/* Animations */
-@keyframes fadeInUp {
-  from { opacity: 0; transform: translateY(20px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-@keyframes pulse {
-  0% { box-shadow: 0 0 0 0 rgba(239,68,68,0.4); }
-  70% { box-shadow: 0 0 0 6px rgba(239,68,68,0); }
-  100% { box-shadow: 0 0 0 0 rgba(239,68,68,0); }
-}
-
-/* Responsive */
-@media (max-width: 1100px) { .kpi-strip { grid-template-columns: repeat(2,1fr); } }
-@media (max-width: 700px) {
-  .scrollable-content { padding: 20px 16px; }
-  .kpi-strip { grid-template-columns: 1fr; }
-  .filter-bar { flex-direction: column; align-items: stretch; }
-  .divider { display: none; }
-  .search-wrap { width: 100%; }
-  .tabs-modern { width: 100%; justify-content: stretch; }
-  .tab-modern { flex: 1; justify-content: center; padding: 10px 16px; }
-}
-</style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>NetGuard - Audit Logs</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <script src="auth.js"></script>
+  <script src="netguard-audit.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=DM+Mono&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="layout.css" />
+  <link rel="stylesheet" href="sidebar.css" />
+  <link rel="stylesheet" href="topbar.css" />
+  <link rel="stylesheet" href="dark-mode.css" />
+  <style>
+    body { font-family: 'DM Sans', sans-serif; }
+    .topbar     { animation: slideDown 0.4s ease; }
+    .animate-in { animation: fadeInUp 0.4s ease backwards; animation-delay: 0.1s; }
+    .table-row  { animation: rowSlideIn 0.35s cubic-bezier(0.2, 0.9, 0.4, 1.1) both; }
+    @keyframes slideDown  { from { opacity:0; transform:translateY(-20px); } to { opacity:1; transform:translateY(0); } }
+    @keyframes fadeInUp   { from { opacity:0; transform:translateY(20px);  } to { opacity:1; transform:translateY(0); } }
+    @keyframes rowSlideIn { from { opacity:0; transform:translateX(-12px); } to { opacity:1; transform:translateX(0); } }
+  </style>
 </head>
-<body>
-
-<div class="app-shell">
-  <aside id="sidebar-root" class="sidebar-host" data-page="logs"></aside>
-  <main class="main">
-    <div id="topbar-root"
-         data-title="NetGuard — Logs & Alertes"
-         data-subtitle="IDS · Audit · Sécurité réseau"
-         data-notifications="2"></div>
-    <div class="scrollable-content" id="pageContent">
-      <!-- injected by JS -->
-    </div>
-  </main>
-</div>
+<body class="bg-slate-50 min-h-screen app-body">
+  <div class="app-shell">
+    <aside id="sidebar-root" class="sidebar-host" data-page="logs"></aside>
+    <main class="main">
+      <div id="topbar-root"
+           data-title="Audit Logs"
+           data-subtitle="Consultation en lecture seule des evenements de securite et d'administration."
+           data-notifications="2"></div>
+      <section class="content">
+        <div id="logs-root" class="page-block"></div>
+      </section>
+    </main>
+  </div>
 
 <script type="text/babel">
 // Référence aux logs root pour le rendu React
@@ -524,8 +46,8 @@ const logsRoot = document.getElementById('pageContent');
 /* ═══════════════════════════════════════════════
    DATA
 ═══════════════════════════════════════════════ */
-const API = 'http://localhost:5050/api/logs';
-const RESET = 'http://localhost:5050/api/reset';
+const API = '/api/logs';
+const RESET = '/api/reset';
 let allLogs = [], filteredLogs = [], idsPage = 1, idsSevFilter = 'all';
 const IDS_PER = 25;
 
@@ -646,289 +168,165 @@ function renderIDSPage() {
       </select>
     </div>
 
-    <!-- Table -->
-    <div class="table-card">
-      <div class="table-header">
-        <span class="table-title">📋 Alertes Snort — vue agrégée par signature</span>
-        <span class="table-meta" id="idsTableCount">—</span>
-      </div>
-      <div class="table-scroll">
-        <table>
-          <thead>
-            <tr>
-              <th style="width: 0;"></th>
-              <th>Signature / Menace</th>
-              <th>Sévérité</th>
-              <th>IP Source</th>
-              <th>IP Destination</th>
-              <th>Proto</th>
-              <th>Occ.</th>
-              <th>Première vue</th>
-              <th>Dernière vue</th>
-            </tr>
-          </thead>
-          <tbody id="idsTbody"></tbody>
-        </table>
-      </div>
-      <div class="pagination-bar">
-        <span class="pag-info" id="idsPagInfo">—</span>
-        <div class="pag-btns" id="idsPagBtns"></div>
-      </div>
-    </div>
-  `;
+          {/* Cartes statistiques */}
+          <div className="mb-6 grid gap-4 md:grid-cols-4">
+            <div className="stat-mini-card rounded-[1.5rem] border border-slate-200 bg-white p-5 shadow-sm">
+              <div className="text-[10px] font-black uppercase tracking-widest text-slate-400">Total events</div>
+              <div className="mt-2 text-3xl font-bold text-slate-800">{logs.length}</div>
+            </div>
+            <div className="stat-mini-card rounded-[1.5rem] border border-slate-200 bg-white p-5 shadow-sm">
+              <div className="text-[10px] font-black uppercase tracking-widest text-slate-400">High / Critical</div>
+              <div className="mt-2 text-3xl font-bold text-rose-600">{highCount}</div>
+            </div>
+            <div className="stat-mini-card rounded-[1.5rem] border border-slate-200 bg-white p-5 shadow-sm">
+              <div className="text-[10px] font-black uppercase tracking-widest text-slate-400">Affichés</div>
+              <div className="mt-2 text-3xl font-bold text-indigo-600">{filtered.length}</div>
+            </div>
+            <div className="stat-mini-card rounded-[1.5rem] border border-slate-200 bg-white p-5 shadow-sm">
+              <div className="text-[10px] font-black uppercase tracking-widest text-slate-400">Mode</div>
+              <div className="mt-2 text-2xl font-bold text-emerald-600">Read Only</div>
+            </div>
+          </div>
 
-  // hydrate with data
-  idsSevFilter = 'all'; idsPage = 1;
-  updateKPIs({ raw_count: allLogs.reduce((s,l) => s + l.count, 0), aggregated_count: allLogs.length, unique_ips: new Set(allLogs.map(l => l.src_ip)).size, rate_per_minute: 2.3 });
-  applyIDSFilters();
-  // Mise à jour du badge
-  const idsBadge = document.getElementById('idsBadge');
-  if (idsBadge) idsBadge.textContent = allLogs.length;
-}
+          {/* Barre filtres */}
+          <div className="mb-4 flex flex-wrap gap-3 items-center">
+            <input
+              type="text"
+              placeholder="Rechercher acteur, action, cible…"
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              className="flex-1 min-w-[200px] rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
+            />
+            <select
+              value={sevFilter}
+              onChange={e => setSevFilter(e.target.value)}
+              className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
+            >
+              <option value="all">Toutes sévérités</option>
+              <option value="Info">Info</option>
+              <option value="Low">Low</option>
+              <option value="Medium">Medium</option>
+              <option value="High">High</option>
+              <option value="Critical">Critical</option>
+            </select>
+            <button onClick={exportCSV}
+              className="rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-700 transition-colors">
+              ↓ Export CSV
+            </button>
+            <button onClick={clearLogs}
+              className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-2 text-sm font-semibold text-rose-600 shadow-sm hover:bg-rose-100 transition-colors">
+              🗑 Vider
+            </button>
+          </div>
 
-/* ─── IDS filtering / rendering ─── */
-function fmt(n) { return Number(n).toLocaleString('fr-FR'); }
-function esc(s) { return s ? String(s).replace(/[&<>]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[m])) : ''; }
-function trunc(s, n) { return s.length > n ? s.slice(0, n) + '…' : s; }
-function fdate(s) {
-  if (!s) return '—';
-  const d = new Date(s);
-  return d.toLocaleDateString('fr-FR', {day:'2-digit',month:'short'}) + ' ' + d.toLocaleTimeString('fr-FR', {hour:'2-digit',minute:'2-digit'});
-}
-const IDS_CLS = { critical:'rc', medium:'rm2', low:'rl' };
-const IDS_LBL = { critical:'CRITIQUE', medium:'MOYEN', low:'FAIBLE' };
+          {/* Tableau */}
+          <div className="table-card overflow-hidden rounded-[2rem] border border-slate-200 bg-white shadow-xl shadow-indigo-600/20">
+            <div className="overflow-x-auto">
+              <table className="w-full text-left">
+                <thead className="bg-slate-50/80 border-b border-slate-100">
+                  <tr>
+                    <th className="px-6 py-5 text-[10px] font-black uppercase tracking-widest text-slate-400">Date</th>
+                    <th className="px-6 py-5 text-[10px] font-black uppercase tracking-widest text-slate-400">Acteur</th>
+                    <th className="px-6 py-5 text-[10px] font-black uppercase tracking-widest text-slate-400">Rôle</th>
+                    <th className="px-6 py-5 text-[10px] font-black uppercase tracking-widest text-slate-400">Action</th>
+                    <th className="px-6 py-5 text-[10px] font-black uppercase tracking-widest text-slate-400">Cible</th>
+                    <th className="px-6 py-5 text-[10px] font-black uppercase tracking-widest text-slate-400">Sévérité</th>
+                    <th className="px-6 py-5 text-[10px] font-black uppercase tracking-widest text-slate-400">Résultat</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
 
-function setSev(sev, btn) {
-  idsSevFilter = sev;
-  document.querySelectorAll('.tpill').forEach(b => b.classList.remove('active'));
-  btn.classList.add('active');
-  applyIDSFilters();
-}
+                  {filtered.length === 0 && (
+                    <tr>
+                      <td colSpan={7} className="px-6 py-16 text-center">
+                        <div className="flex flex-col items-center gap-3">
+                          <span className="text-4xl">📋</span>
+                          <p className="text-slate-400 font-medium text-sm">
+                            {logs.length === 0
+                              ? 'Aucun événement d\'audit enregistré.'
+                              : 'Aucun événement ne correspond à vos filtres.'}
+                          </p>
+                          {logs.length === 0 && (
+                            <p className="text-slate-300 text-xs max-w-sm text-center">
+                              Les actions effectuées dans les autres pages (création utilisateur,
+                              VLAN, connexion…) apparaîtront ici automatiquement.
+                            </p>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  )}
 
-function applyIDSFilters() {
-  const s = (document.getElementById('idsSearch')?.value || '').toLowerCase();
-  const proto = document.getElementById('protoFilter')?.value || 'all';
-  filteredLogs = allLogs.filter(l => {
-    if (idsSevFilter !== 'all' && l.severity !== idsSevFilter) return false;
-    if (proto !== 'all' && l.proto !== proto) return false;
-    if (s && !l.name.toLowerCase().includes(s) && !String(l.src_ip).includes(s) && !String(l.dst_ip).includes(s)) return false;
-    return true;
-  });
-  idsPage = 1;
-  renderIDSTable();
-}
+                  {filtered.map((event, index) => (
+                    <tr
+                      key={event.id}
+                      className="table-row hover:bg-slate-50/80 transition-colors"
+                      style={{ animationDelay: `${Math.min(index, 20) * 0.04}s` }}
+                    >
+                      {/* Date */}
+                      <td className="px-6 py-4 font-mono text-xs text-slate-400 whitespace-nowrap">
+                        {event.date}
+                      </td>
 
-function renderIDSTable() {
-  const start = (idsPage - 1) * IDS_PER;
-  const chunk = filteredLogs.slice(start, start + IDS_PER);
-  const tb = document.getElementById('idsTbody');
-  if (!tb) return;
-  const total = filteredLogs.length;
-  const pages = Math.max(1, Math.ceil(total / IDS_PER));
-  document.getElementById('idsTableCount').textContent = `${total} alerte${total>1?'s':''} · page ${idsPage}/${pages}`;
+                      {/* ✅ Acteur = session.username de la personne connectée */}
+                      <td className="px-6 py-4 font-semibold text-sm text-slate-700 whitespace-nowrap">
+                        {event.actor}
+                      </td>
 
-  if (!chunk.length) {
-    tb.innerHTML = `<tr><td colspan="9"><div class="empty-state"><div class="empty-icon">📭</div>Aucune alerte correspondante</div></td></tr>`;
-    document.getElementById('idsPagInfo').textContent = '0 résultats';
-    document.getElementById('idsPagBtns').innerHTML = '';
-    return;
-  }
+                      {/* Rôle */}
+                      <td className="px-6 py-4 text-xs text-slate-400 whitespace-nowrap">
+                        {event.role || '—'}
+                      </td>
 
-  tb.innerHTML = chunk.map(log => {
-    const sv = log.severity || 'low';
-    const cls = IDS_CLS[sv] || 'rl';
-    const da = esc(JSON.stringify(log)).replace(/'/g,"&#39;");
-    return `<tr class="r-main ${cls}" onclick="togIDS(this,'${da}')">
-      <td></td>
-      <td><div class="sig">${trunc(esc(log.name), 55)}</div><div class="sig-sub">${log.src_ip} → ${log.dst_ip}</div></td>
-      <td><span class="sev ${cls}">${IDS_LBL[sv]}</span></td>
-      <td><span class="ip-tag ip-src">${log.src_ip}:${log.src_port}</span></td>
-      <td><span class="ip-tag ip-dst">${log.dst_ip}:${log.dst_port}</span></td>
-      <td><span class="proto">${log.proto}</span></td>
-      <td><span class="count">${log.count}</span></td>
-      <td><span class="date-val">${fdate(log.first_seen)}</span></td>
-      <td><span class="date-val">${fdate(log.last_seen)}</span></td>
-    </tr>`;
-  }).join('');
+                      {/* Action */}
+                      <td className="px-6 py-4 text-sm font-medium text-slate-600 whitespace-nowrap">
+                        {event.action}
+                      </td>
 
-  renderIDSPag();
-  document.getElementById('idsPagInfo').textContent = `Affichage ${start+1}–${Math.min(start+IDS_PER,total)} sur ${total}`;
-}
+                      {/* Cible */}
+                      <td className="px-6 py-4 text-sm text-slate-500 max-w-xs truncate" title={event.target}>
+                        {event.target}
+                      </td>
 
-function togIDS(row, ds) {
-  const nx = row.nextElementSibling;
-  if (nx && nx.classList.contains('r-detail')) {
-    nx.classList.toggle('show');
-    return;
-  }
-  const log = JSON.parse(ds.replace(/&#39;/g, "'"));
-  const sv = log.severity || 'low';
-  const cls = IDS_CLS[sv] || 'rl';
-  const ih = (log.ids || []).slice(0, 24).map(id => `<span class="id-chip">${id}</span>`).join('');
-  const dr = document.createElement('tr');
-  dr.className = `r-detail ${cls}`;
-  dr.innerHTML = `<td colspan="9"><div class="detail-body ${cls}"><div class="detail-grid">
-    <div class="d-card"><div class="d-lbl">📝 Signature</div><div class="d-val">${esc(log.name)}</div></div>
-    <div class="d-card"><div class="d-lbl">🔌 Protocole</div><div class="d-val">${log.proto}</div></div>
-    <div class="d-card"><div class="d-lbl">📊 Occurrences</div><div class="d-val">${log.count} événements</div></div>
-    <div class="d-card"><div class="d-lbl">⏰ Première détection</div><div class="d-val">${log.first_seen || 'N/A'}</div></div>
-    <div class="d-card"><div class="d-lbl">⏱ Dernière détection</div><div class="d-val">${log.last_seen || 'N/A'}</div></div>
-    <div class="d-card" style="grid-column:span 2"><div class="d-lbl">🆔 IDs alertes Snort (${(log.ids||[]).length})</div><div class="ids-flow">${ih || '<span style="color:var(--text-tertiary)">Aucun ID</span>'}</div></div>
-  </div></div></td>`;
-  row.parentNode.insertBefore(dr, row.nextSibling);
-  dr.classList.add('show');
-}
+                      {/* Sévérité */}
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <span className={`inline-flex rounded-full px-3 py-1 text-[11px] font-bold ${SEV_CLASS[event.severity] || SEV_CLASS.Info}`}>
+                          {event.severity}
+                        </span>
+                      </td>
 
-function renderIDSPag() {
-  const total = Math.ceil(filteredLogs.length / IDS_PER);
-  const el = document.getElementById('idsPagBtns');
-  if (!el || total <= 1) { if(el) el.innerHTML = ''; return; }
-  let h = `<button class="pag-btn" onclick="gidsP(1)" ${idsPage===1?'disabled':''}>«</button>`;
-  h += `<button class="pag-btn" onclick="gidsP(${idsPage-1})" ${idsPage===1?'disabled':''}>‹</button>`;
-  for (let i = Math.max(1,idsPage-2); i <= Math.min(total,idsPage+2); i++)
-    h += `<button class="pag-btn ${i===idsPage?'active':''}" onclick="gidsP(${i})">${i}</button>`;
-  h += `<button class="pag-btn" onclick="gidsP(${idsPage+1})" ${idsPage===total?'disabled':''}>›</button>`;
-  h += `<button class="pag-btn" onclick="gidsP(${total})" ${idsPage===total?'disabled':''}>»</button>`;
-  el.innerHTML = h;
-}
-function gidsP(p) { idsPage = p; renderIDSTable(); }
+                      {/* Résultat */}
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <span className={`inline-flex rounded-full px-3 py-1 text-[11px] font-bold ${
+                          event.result === 'error'
+                            ? 'bg-rose-100 text-rose-600'
+                            : 'bg-emerald-100 text-emerald-700'
+                        }`}>
+                          {event.result === 'error' ? 'Erreur' : 'OK'}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
 
-/* ═══════════════════════════════════════════════
-   AUDIT PAGE
-═══════════════════════════════════════════════ */
-let auditSearch = '', auditSevFilter = 'all';
+                </tbody>
+              </table>
+            </div>
 
-const SEV_MAP = { High:'rc', Medium:'rm2', Info:'info' };
-const SEV_LBL = { High:'HIGH', Medium:'MEDIUM', Info:'INFO' };
+            {filtered.length > 0 && (
+              <div className="border-t border-slate-100 px-6 py-3 text-xs text-slate-400 flex items-center justify-between">
+                <span>{filtered.length} événement{filtered.length > 1 ? 's' : ''} affiché{filtered.length > 1 ? 's' : ''}</span>
+                <span>Stockage : localStorage du navigateur — Read Only</span>
+              </div>
+            )}
+          </div>
 
-function renderAuditPage() {
-  logsRoot.innerHTML = `
-    <!-- KPI Strip -->
-    <div class="kpi-strip">
-      <div class="kpi"><div class="kpi-left"><span class="kpi-label">Total événements</span><span class="kpi-val">${auditEvents.length}</span><span class="kpi-sub" style="background:var(--primary-bg);color:var(--primary)">Journal complet</span></div><div class="kpi-icon-wrap" style="background:var(--primary-bg)">📋</div></div>
-      <div class="kpi"><div class="kpi-left"><span class="kpi-label">Sévérité haute</span><span class="kpi-val red">${auditEvents.filter(e=>e.severity==='High').length}</span><span class="kpi-sub" style="background:#fee2e2;color:var(--critical)">Nécessite attention</span></div><div class="kpi-icon-wrap" style="background:#fee2e2">🚨</div></div>
-      <div class="kpi"><div class="kpi-left"><span class="kpi-label">Acteurs distincts</span><span class="kpi-val indigo">${new Set(auditEvents.map(e=>e.actor)).size}</span><span class="kpi-sub" style="background:var(--primary-bg);color:var(--primary)">Comptes actifs</span></div><div class="kpi-icon-wrap" style="background:var(--primary-bg)">👥</div></div>
-      <div class="kpi"><div class="kpi-left"><span class="kpi-label">Mode accès</span><span class="kpi-val indigo" style="font-size:22px;padding-top:4px">Read Only</span><span class="kpi-sub" style="background:var(--low-bg);color:var(--low)">Consultation seule</span></div><div class="kpi-icon-wrap" style="background:var(--low-bg)">🔒</div></div>
-    </div>
+        </div>
+      );
+    }
 
-    <!-- BOUTONS D'ONGLETS MODERNES -->
-    <div class="tabs-modern">
-      <button class="tab-modern ${currentTab === 'ids' ? 'active' : ''}" onclick="switchTab('ids')">
-        <span class="tab-icon">🛡️</span>
-        <span>Alertes IDS</span>
-        <span class="tab-badge" id="idsBadge2">${allLogs.length}</span>
-      </button>
-      <button class="tab-modern ${currentTab === 'audit' ? 'active' : ''}" onclick="switchTab('audit')">
-        <span class="tab-icon">📋</span>
-        <span>Journal d'audit</span>
-        <span class="tab-badge" id="auditBadge2">${auditEvents.length}</span>
-      </button>
-    </div>
-
-    <!-- Filter Bar -->
-    <div class="filter-bar">
-      <span class="filter-label">🔍 Filtre</span>
-      <div class="threat-pills">
-        <button class="tpill all active" onclick="setAuditSev('all',this)"><span class="tdot"></span> Tous <span>${auditEvents.length}</span></button>
-        <button class="tpill crit" onclick="setAuditSev('High',this)"><span class="tdot"></span> High <span>${auditEvents.filter(e=>e.severity==='High').length}</span></button>
-        <button class="tpill med" onclick="setAuditSev('Medium',this)"><span class="tdot"></span> Medium <span>${auditEvents.filter(e=>e.severity==='Medium').length}</span></button>
-        <button class="tpill low" onclick="setAuditSev('Info',this)"><span class="tdot"></span> Info <span>${auditEvents.filter(e=>e.severity==='Info').length}</span></button>
-      </div>
-      <div class="divider"></div>
-      <div class="search-wrap">
-        <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
-        <input type="text" id="auditSearch" placeholder="Acteur, action, cible…" oninput="applyAuditFilters()">
-      </div>
-    </div>
-
-    <!-- Table -->
-    <div class="table-card">
-      <div class="table-header">
-        <span class="table-title">🗂 Journal d'audit — vue en lecture seule</span>
-        <span class="table-meta" id="auditTableCount">—</span>
-      </div>
-      <div class="table-scroll">
-        <table style="min-width:700px">
-          <thead>
-            <tr>
-              <th>Date / Heure</th>
-              <th>Acteur</th>
-              <th>Action</th>
-              <th>Cible</th>
-              <th>Sévérité</th>
-            </tr>
-          </thead>
-          <tbody id="auditTbody"></tbody>
-        </table>
-      </div>
-      <div class="pagination-bar">
-        <span class="pag-info" id="auditPagInfo">—</span>
-        <div class="pag-btns"></div>
-      </div>
-    </div>
-  `;
-
-  auditSearch = ''; auditSevFilter = 'all';
-  applyAuditFilters();
-  // Mise à jour des badges
-  const idsBadge2 = document.getElementById('idsBadge2');
-  const auditBadge2 = document.getElementById('auditBadge2');
-  if (idsBadge2) idsBadge2.textContent = allLogs.length;
-  if (auditBadge2) auditBadge2.textContent = auditEvents.length;
-}
-
-function setAuditSev(sev, btn) {
-  auditSevFilter = sev;
-  document.querySelectorAll('.tpill').forEach(b => b.classList.remove('active'));
-  btn.classList.add('active');
-  applyAuditFilters();
-}
-
-function applyAuditFilters() {
-  const s = (document.getElementById('auditSearch')?.value || '').toLowerCase();
-  const rows = auditEvents.filter(e => {
-    if (auditSevFilter !== 'all' && e.severity !== auditSevFilter) return false;
-    if (s && !e.actor.toLowerCase().includes(s) && !e.action.toLowerCase().includes(s) && !e.target.toLowerCase().includes(s)) return false;
-    return true;
-  });
-  renderAuditTable(rows);
-}
-
-function renderAuditTable(rows) {
-  const tb = document.getElementById('auditTbody');
-  if (!tb) return;
-  document.getElementById('auditTableCount').textContent = `${rows.length} événement${rows.length>1?'s':''}`;
-  document.getElementById('auditPagInfo').textContent = `${rows.length} résultat${rows.length>1?'s':''}`;
-
-  if (!rows.length) {
-    tb.innerHTML = `<tr><td colspan="5"><div class="empty-state"><div class="empty-icon">📭</div>Aucun événement correspondant</div></td></tr>`;
-    return;
-  }
-  tb.innerHTML = rows.map((e, i) => {
-    const cls = SEV_MAP[e.severity] || 'info';
-    return `<tr class="a-row" style="animation: fadeInUp 0.3s ease ${i*0.04}s both">
-      <td><span class="date-val">${e.date}</span></td>
-      <td><span class="actor-tag">${esc(e.actor)}</span></td>
-      <td style="font-size:13px;font-weight:500;color:var(--text-primary)">${esc(e.action)}</td>
-      <td style="font-size:12px;color:var(--text-secondary);font-family:'DM Mono',monospace">${esc(e.target)}</td>
-      <td><span class="sev ${cls}">${SEV_LBL[e.severity] || e.severity}</span></td>
-    </tr>`;
-  }).join('');
-}
-
-/* ═══════════════════════════════════════════════
-   INIT
-═══════════════════════════════════════════════ */
-fetchLogs().then(() => {
-  renderPage();
-  setInterval(fetchLogs, 5000);
-}).catch(() => {
-  loadFallback();
-  renderPage();
-  setInterval(() => fetchLogs().catch(() => {}), 5000);
-});
-</script>
-<script src="sidebar.js"></script>
-<script src="topbar.js"></script>
+    ReactDOM.createRoot(document.getElementById('logs-root')).render(<LogsPage />);
+  </script>
+  <script src="sidebar.js"></script>
+  <script src="topbar.js"></script>
 </body>
 </html>

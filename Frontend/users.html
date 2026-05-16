@@ -96,7 +96,7 @@
       const fetchUsers = async () => {
         setLoading(true);
         try {
-          const response = await fetch('http://127.0.0.1:5000/users', { 
+          const response = await fetch('/users', { 
             headers: window.NetGuardAuth.getAuthHeaders() 
           });
           if (response.ok) {
@@ -140,6 +140,20 @@
         }
       }, [sessionChecked, currentUser]);
 
+      // ✅ Écouter la barre de recherche de la topbar
+      useEffect(() => {
+        const searchInput = document.getElementById('topbar-search-input');
+        if (!searchInput) return;
+
+        const handleSearchChange = () => {
+          // Si la requête de la topbar contient du texte, filtrer les utilisateurs
+          setSearchQuery(searchInput.value || '');
+        };
+
+        searchInput.addEventListener('input', handleSearchChange);
+        return () => searchInput.removeEventListener('input', handleSearchChange);
+      }, []);
+
       // ✅ Réinitialiser le mot de passe à l'ouverture/fermeture du modal
       const openCreateModal = () => {
         setEditingUser(null);
@@ -157,7 +171,7 @@
           <div className="flex-1 flex items-center justify-center animate-in">
             <div className="panel-card bg-white p-10 rounded-[2rem] shadow-xl text-center max-w-md border border-slate-200">
               <div className="w-20 h-20 bg-rose-100 rounded-full flex items-center justify-center mx-auto mb-6">
-                <span className="text-4xl">⛔</span>
+                <span className="text-4xl"></span>
               </div>
               <h2 className="text-2xl font-bold text-slate-800 mb-2">Accès Refusé</h2>
               <p className="text-slate-500 mb-8">Les privilèges Administrateur sont requis pour accéder à la gestion des utilisateurs.</p>
@@ -216,16 +230,6 @@
         <div className="p-2 md:p-4 max-w-[1400px] mx-auto animate-in w-full">
           <div className="flex flex-col md:flex-row md:justify-between md:items-end mb-8 gap-4">
             <div className="flex flex-wrap gap-3 items-center">
-              <div className="relative">
-                <span className="absolute inset-y-0 left-3 flex items-center text-slate-400">🔍</span>
-                <input 
-                  type="text" 
-                  placeholder="Rechercher..." 
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-9 pr-4 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:border-indigo-500 text-sm font-medium w-64 shadow-sm"
-                />
-              </div>
               <button 
                 onClick={openCreateModal}
                 className="px-5 py-2.5 bg-indigo-600 text-white rounded-xl font-bold shadow-md shadow-indigo-600/15 hover:bg-indigo-700 transition-all flex items-center gap-2"
@@ -323,7 +327,7 @@
                   };
 
                   try {
-                    const response = await fetch('http://127.0.0.1:5000/users', {
+                    const response = await fetch('/users', {
                       method:  'POST',
                       headers: window.NetGuardAuth.getAuthHeaders(),
                       body:    JSON.stringify(userData),
@@ -453,7 +457,7 @@
                   <button 
                     onClick={async () => {
                       try {
-                        const resp = await fetch(`http://127.0.0.1:5000/users/${targetUser.id}`, {
+                        const resp = await fetch(`/users/${targetUser.id}`, {
                           method:  'DELETE', 
                           headers: window.NetGuardAuth.getAuthHeaders(),
                         });

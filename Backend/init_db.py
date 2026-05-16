@@ -1,3 +1,5 @@
+import os
+
 from Database.db import get_db_connection
 from Database.interface import initialize_default_interfaces
 from utils.security import hash_password
@@ -9,7 +11,8 @@ def init_database():
         cursor = conn.cursor()
 
         print("Creation de la table 'utilisateur'...")
-        cursor.execute("""
+        cursor.execute(
+            """
             CREATE TABLE IF NOT EXISTS utilisateur (
                 id_user SERIAL PRIMARY KEY,
                 username VARCHAR(50) UNIQUE NOT NULL,
@@ -17,21 +20,30 @@ def init_database():
                 password VARCHAR(255) NOT NULL,
                 role VARCHAR(50) NOT NULL
             );
-        """)
-
-        print("Insertion de l'administrateur par defaut...")
-        hashed_pw = hash_password("123").decode("utf-8")
-        cursor.execute(
-            """
-            INSERT INTO utilisateur (username, email, password, role)
-            VALUES (%s, %s, %s, %s)
-            ON CONFLICT (username) DO NOTHING;
-            """,
-            ("admin", "admin@netguard.local", hashed_pw, "ADMIN")
+        """
         )
 
+        bootstrap_username = os.getenv("ADMIN_BOOTSTRAP_USERNAME", "").strip()
+        bootstrap_email = os.getenv("ADMIN_BOOTSTRAP_EMAIL", "").strip()
+        bootstrap_password = os.getenv("ADMIN_BOOTSTRAP_PASSWORD", "").strip()
+
+        if bootstrap_username and bootstrap_email and bootstrap_password:
+            print("Insertion de l'administrateur de bootstrap...")
+            hashed_pw = hash_password(bootstrap_password).decode("utf-8")
+            cursor.execute(
+                """
+                INSERT INTO utilisateur (username, email, password, role)
+                VALUES (%s, %s, %s, %s)
+                ON CONFLICT (username) DO NOTHING;
+                """,
+                (bootstrap_username, bootstrap_email, hashed_pw, "ADMIN"),
+            )
+        else:
+            print("Bootstrap admin ignore: variables ADMIN_BOOTSTRAP_* non definies.")
+
         print("Creation de la table 'switch'...")
-        cursor.execute("""
+        cursor.execute(
+            """
             CREATE TABLE IF NOT EXISTS switchs (
                 id_switch SERIAL PRIMARY KEY,
                 reference_id VARCHAR(100),
@@ -43,10 +55,12 @@ def init_database():
                 nb_ports INT DEFAULT 24,
                 statut VARCHAR(20) DEFAULT 'UNKNOWN'
             );
-        """)
+        """
+        )
 
         print("Creation de la table 'utilisateurs_ssh'...")
-        cursor.execute("""
+        cursor.execute(
+            """
             CREATE TABLE IF NOT EXISTS utilisateurs_ssh (
                 id_ssh_user SERIAL PRIMARY KEY,
                 id_switch INT NOT NULL REFERENCES switchs(id_switch) ON DELETE CASCADE,
@@ -55,7 +69,8 @@ def init_database():
                 privilege INT DEFAULT 15,
                 UNIQUE(id_switch, username)
             );
-        """)
+        """
+        )
 
         conn.commit()
         cursor.close()

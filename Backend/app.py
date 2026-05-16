@@ -1,36 +1,49 @@
-from flask import Flask
+from datetime import timedelta
+import logging
+import os
+
+from flask import Flask, send_from_directory
+from flask_cors import CORS
 from flask_jwt_extended import JWTManager
-from users import users_bp
+
 from auth import auth_bp
 from Database.alerts import alerts_bp
-from Database.traffic import traffic_bp
-from Database.regles import regles_bp
-from Database.vlan import vlan_bp
 from Database.interface import interface_bp, initialize_default_interfaces
-from network_api import network_bp
+from Database.regles import regles_bp
+from Database.traffic import traffic_bp
+from Database.vlan import vlan_bp
 from equipements_api import equipements_bp
-from run_bat_api import run_bat_bp          # ← AJOUT : route /api/run-pbat
+from log_api import log_bp
+from network_api import network_bp
+from run_bat_api import run_bat_bp
+from users import users_bp
 
-import os
-import logging
-from datetime import timedelta
-from flask_cors import CORS
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+FRONTEND_DIR = os.path.normpath(os.path.join(BASE_DIR, "..", "Frontend"))
 
-app = Flask(__name__)
+
+def _get_cors_origins():
+    raw_origins = os.getenv("CORS_ORIGINS", "").strip()
+    if not raw_origins:
+        return "*"
+    return [origin.strip() for origin in raw_origins.split(",") if origin.strip()]
+
+
+def _get_jwt_secret():
+    secret = os.getenv("JWT_SECRET_KEY", "").strip()
+    if not secret:
+        raise RuntimeError("JWT_SECRET_KEY manquant. Configurez-le avant de lancer l'application.")
+    return secret
+
+app = Flask(__name__, static_folder=FRONTEND_DIR, static_url_path="")
 logging.basicConfig(level=logging.INFO)
 
-# ── CORS : autoriser les requêtes du frontend ─────────────────────────────────
-CORS(app)
+CORS(app, resources={r"/*": {"origins": _get_cors_origins()}}, supports_credentials=False)
 
-# ── JWT ───────────────────────────────────────────────────────────────────────
-app.config["JWT_SECRET_KEY"] = os.getenv(
-    "JWT_SECRET_KEY", "super-cle-secrete-a-changer-en-production"
-)
-# Token valide 8 heures (une journée de travail)
+app.config["JWT_SECRET_KEY"] = _get_jwt_secret()
 app.config["JWT_ACCESS_TOKEN_EXPIRES"] = timedelta(hours=8)
 jwt = JWTManager(app)
 
-# ── Blueprints ────────────────────────────────────────────────────────────────
 app.register_blueprint(users_bp)
 app.register_blueprint(auth_bp)
 app.register_blueprint(alerts_bp)
@@ -38,15 +51,34 @@ app.register_blueprint(traffic_bp)
 app.register_blueprint(regles_bp)
 app.register_blueprint(vlan_bp)
 app.register_blueprint(interface_bp)
-app.register_blueprint(network_bp)          # routes /api/network
-app.register_blueprint(equipements_bp)      # routes /api/equipements
-app.register_blueprint(run_bat_bp)          # ← AJOUT : route POST /api/run-pbat
+app.register_blueprint(network_bp)
+app.register_blueprint(equipements_bp)
+app.register_blueprint(run_bat_bp)
+app.register_blueprint(log_bp)
 
-# ── Initialisation des interfaces par défaut ──────────────────────────────────
 try:
     initialize_default_interfaces()
-except Exception as e:
-    app.logger.error("Initialisation des interfaces impossible: %s", e)
+except Exception as exc:
+    app.logger.error("Initialisation des interfaces impossible: %s", exc)
+
+
+@app.get("/")
+def serve_index():
+    return send_from_directory(FRONTEND_DIR, "login.html")
+
+
+@app.get("/<path:path>")
+def serve_frontend(path):
+    target = os.path.normpath(os.path.join(FRONTEND_DIR, path))
+
+    if not target.startswith(FRONTEND_DIR):
+        return {"error": "Chemin invalide"}, 404
+
+    if os.path.isfile(target):
+        return send_from_directory(FRONTEND_DIR, path)
+
+    return send_from_directory(FRONTEND_DIR, "login.html")
+
 
 if __name__ == "__main__":
     app.run(debug=True, host="127.0.0.1", port=5000)
