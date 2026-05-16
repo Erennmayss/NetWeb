@@ -109,7 +109,7 @@ def get_users():
 # ─── UPDATE ───────────────────────────────────────────────────────────────────
 # ✅ FIX PRINCIPAL : gestion robuste de la connexion + rollback + messages clairs
 
-@users_bp.route("/users/<int:user_id>", methods=["PUT"])
+@users_bp.route("/users/<int:user_id>", methods=["PUT", "PATCH", "POST"], strict_slashes=False)
 @require_role("ADMIN")
 def update_user(user_id):
     data = request.get_json(silent=True)
@@ -167,13 +167,15 @@ def update_user(user_id):
             }
         }), 200
 
-    except psycopg2.IntegrityError:
+    except psycopg2.IntegrityError as e:
         if conn:
             conn.rollback()
         return jsonify({"error": "Ce nom d'utilisateur ou cet email est déjà utilisé"}), 409
     except Exception as e:
         if conn:
             conn.rollback()
+        import traceback
+        traceback.print_exc()
         return jsonify({"error": str(e)}), 500
     finally:
         if conn:
@@ -182,7 +184,7 @@ def update_user(user_id):
 
 # ─── DELETE ───────────────────────────────────────────────────────────────────
 
-@users_bp.route("/users/<int:user_id>", methods=["DELETE"])
+@users_bp.route("/users/<int:user_id>", methods=["DELETE"], strict_slashes=False)
 @require_role("ADMIN")
 def delete_user(user_id):
     conn = None

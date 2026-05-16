@@ -331,9 +331,14 @@
                   };
 
                   try {
-                    // ✅ PUT pour édition, POST pour création
+                    // ✅ POST pour édition (évite problème 405 avec PUT)
                     const url    = editingUser ? `/users/${editingUser.id}` : '/users';
-                    const method = editingUser ? 'PUT' : 'POST';
+                    const method = 'POST';
+
+                    // ✅ Pour l'édition, envoyer SEULEMENT username, email, role (pas password)
+                    const payload = editingUser
+                      ? { username: userData.username, email: userData.email, role: userData.role }
+                      : userData;
 
                     const response = await fetch(url, {
                       method,
@@ -341,9 +346,19 @@
                         ...window.NetGuardAuth.getAuthHeaders(),
                         'Content-Type': 'application/json',
                       },
-                      body:    JSON.stringify(userData),
+                      body: JSON.stringify(payload),
                     });
-                    const result = await response.json();
+
+                    let result = {};
+                    try {
+                      result = await response.json();
+                    } catch (jsonErr) {
+                      console.error('Réponse non-JSON du serveur:', jsonErr);
+                      showToast(`Erreur serveur (${response.status})`, 'error');
+                      return;
+                    }
+
+                    console.log('Réponse serveur:', response.status, result);
 
                     if (response.ok) {
                       closeFormModal();

@@ -36,6 +36,7 @@ def _get_jwt_secret():
     return secret
 
 app = Flask(__name__, static_folder=FRONTEND_DIR, static_url_path="")
+app.url_map.strict_slashes = False
 logging.basicConfig(level=logging.INFO)
 
 CORS(app, resources={r"/*": {"origins": _get_cors_origins()}}, supports_credentials=False)
