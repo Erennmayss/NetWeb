@@ -785,15 +785,7 @@
                 </svg>
                 TFTP Config
               </button>
-              <button
-                onClick={() => { setShowMirroring(v => !v); setMirroringResult(null); }}
-                className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all border ${showMirroring ? 'bg-violet-600 text-white border-violet-600 shadow-md' : 'bg-white text-violet-700 border-violet-200 hover:bg-violet-50'}`}
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M17 8h2a2 2 0 012 2v6a2 2 0 01-2 2h-2M7 8H5a2 2 0 00-2 2v6a2 2 0 002 2h2m3-10v10m4-8l-4 4-4-4" />
-                </svg>
-                Port Mirroring
-              </button>
+
             </div>
           </div>
 
@@ -915,138 +907,7 @@ show ip access-lists`}</pre>
             </div>
           )}
 
-          {/* ── PANNEAU PORT MIRRORING ── */}
-          {showMirroring && (
-            <div className="mb-6 bg-white rounded-2xl border border-violet-200 shadow-lg shadow-violet-600/10 overflow-hidden animate-in">
-              <div className="p-4 bg-violet-50/70 border-b border-violet-100 flex items-center gap-3">
-                <div className="p-2 bg-violet-100 rounded-lg text-violet-600 text-lg"></div>
-                <div>
-                  <h3 className="font-bold text-violet-800 text-sm">Port Mirroring — Session SPAN</h3>
-                  <p className="text-[11px] text-violet-600 mt-0.5">Applique automatiquement les commandes SPAN pour dupliquer le VLAN source vers le port Snort.</p>
-                </div>
-              </div>
 
-              <div className="p-5 grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
-                <div>
-                  <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2">Session</label>
-                  <input
-                    type="number" min="1"
-                    value={mirroringSessionId}
-                    onChange={(e) => setMirroringSessionId(e.target.value)}
-                    className="w-full border border-slate-200 rounded-xl p-2.5 text-sm font-mono outline-none focus:border-violet-400"
-                    placeholder="1"
-                  />
-                </div>
-                <div>
-                  <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2">VLAN source</label>
-                  <input
-                    type="number" min="1"
-                    value={mirroringSourceVlan}
-                    onChange={(e) => setMirroringSourceVlan(e.target.value)}
-                    className="w-full border border-slate-200 rounded-xl p-2.5 text-sm font-mono outline-none focus:border-violet-400"
-                    placeholder="10"
-                  />
-                </div>
-                <div>
-                  <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2">Port destination</label>
-                  <input
-                    type="text"
-                    value={mirroringDestination}
-                    onChange={(e) => setMirroringDestination(e.target.value)}
-                    className="w-full border border-slate-200 rounded-xl p-2.5 text-sm font-mono outline-none focus:border-violet-400"
-                    placeholder="Gi1/0/19"
-                  />
-                </div>
-                <div>
-                  <button
-                    onClick={handlePortMirroring}
-                    disabled={isMirroringRunning || isDeletingMirroring}
-                    className="w-full px-5 py-2.5 rounded-xl text-xs font-bold text-white transition-all disabled:opacity-50 shadow-md flex items-center justify-center gap-2 whitespace-nowrap bg-violet-600 hover:bg-violet-700 shadow-violet-600/25"
-                  >
-                    {isMirroringRunning
-                      ? <><svg className="animate-spin w-3.5 h-3.5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg> Déploiement...</>
-                      : ' Appliquer SPAN'
-                    }
-                  </button>
-                  <button
-                    onClick={handleDeletePortMirroring}
-                    disabled={isMirroringRunning || isDeletingMirroring}
-                    className="w-full mt-2 px-5 py-2.5 rounded-xl text-xs font-bold transition-all disabled:opacity-50 border flex items-center justify-center gap-2 whitespace-nowrap text-rose-600 border-rose-200 bg-white hover:bg-rose-50"
-                  >
-                    {isDeletingMirroring
-                      ? <><svg className="animate-spin w-3.5 h-3.5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg> Suppression...</>
-                      : ' Supprimer session'
-                    }
-                  </button>
-                </div>
-              </div>
-
-              <div className="px-5 pb-5">
-                <div className="p-3 bg-slate-900 rounded-xl">
-                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">Commandes prévues</p>
-                  <pre className="text-[10px] font-mono text-violet-300 whitespace-pre-wrap">
-{`conf t
-no monitor session ${mirroringSessionId || '1'}
-monitor session ${mirroringSessionId || '1'} source vlan ${mirroringSourceVlan || '10'} both
-monitor session ${mirroringSessionId || '1'} destination interface ${mirroringDestination || 'Gi1/0/19'} ingress vlan ${mirroringSourceVlan || '10'}
-end`}
-                  </pre>
-                </div>
-              </div>
-
-              {mirroringResult && (
-                <div className={`mx-5 mb-5 p-4 rounded-xl border animate-in ${mirroringResult.success ? 'bg-emerald-50 border-emerald-200' : 'bg-rose-50 border-rose-200'}`}>
-                  <div className="flex items-center gap-2 mb-2">
-                    <span>{mirroringResult.success ? '✅' : '⚠️'}</span>
-                    <p className={`text-xs font-bold uppercase tracking-wider ${mirroringResult.success ? 'text-emerald-700' : 'text-rose-700'}`}>
-                      {mirroringResult.success ? 'Port mirroring configuré' : 'Échec port mirroring'}
-                    </p>
-                  </div>
-                  <p className={`text-[11px] font-medium ${mirroringResult.success ? 'text-emerald-600' : 'text-rose-600'}`}>
-                    {mirroringResult.message || mirroringResult.error}
-                  </p>
-                  {mirroringResult.commands && mirroringResult.commands.length > 0 && (
-                    <div className="mt-3 p-3 bg-slate-800 rounded-lg">
-                      <p className="text-[9px] font-bold text-slate-400 uppercase mb-1">Commandes envoyées :</p>
-                      <pre className="deploy-log text-violet-300 whitespace-pre-wrap">{mirroringResult.commands.join('\n')}</pre>
-                    </div>
-                  )}
-                  {mirroringResult.verification && (
-                    <div className="mt-3 p-3 bg-slate-900 rounded-lg">
-                      <p className="text-[9px] font-bold text-slate-400 uppercase mb-1">Vérification switch :</p>
-                      <pre className="deploy-log text-cyan-300 whitespace-pre-wrap">{mirroringResult.verification}</pre>
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {mirroringDeleteResult && (
-                <div className={`mx-5 mb-5 p-4 rounded-xl border animate-in ${mirroringDeleteResult.success ? 'bg-slate-50 border-slate-200' : 'bg-rose-50 border-rose-200'}`}>
-                  <div className="flex items-center gap-2 mb-2">
-                    <span>{mirroringDeleteResult.success ? '🗑️' : '⚠️'}</span>
-                    <p className={`text-xs font-bold uppercase tracking-wider ${mirroringDeleteResult.success ? 'text-slate-700' : 'text-rose-700'}`}>
-                      {mirroringDeleteResult.success ? `Session SPAN ${mirroringSessionId} supprimée` : 'Échec suppression SPAN'}
-                    </p>
-                  </div>
-                  <p className={`text-[11px] font-medium ${mirroringDeleteResult.success ? 'text-slate-600' : 'text-rose-600'}`}>
-                    {mirroringDeleteResult.message || mirroringDeleteResult.error}
-                  </p>
-                  {mirroringDeleteResult.commands && (
-                    <div className="mt-3 p-3 bg-slate-800 rounded-lg">
-                      <p className="text-[9px] font-bold text-slate-400 uppercase mb-1">Commande envoyée :</p>
-                      <pre className="deploy-log text-rose-300 whitespace-pre-wrap">{mirroringDeleteResult.commands.join('\n')}</pre>
-                    </div>
-                  )}
-                  {mirroringDeleteResult.verification && (
-                    <div className="mt-3 p-3 bg-slate-900 rounded-lg">
-                      <p className="text-[9px] font-bold text-slate-400 uppercase mb-1">Vérification switch :</p>
-                      <pre className="deploy-log text-cyan-300 whitespace-pre-wrap">{mirroringDeleteResult.verification}</pre>
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-          )}
 
           <div className="flex flex-col md:flex-row md:justify-between md:items-end mb-8 gap-4">
           </div>

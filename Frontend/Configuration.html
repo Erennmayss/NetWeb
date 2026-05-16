@@ -599,6 +599,16 @@ function App() {
   const [actionLoading,setActionLoading]= useState(false);
   const [showSnortModal,setShowSnortModal] = useState(false);
 
+  // Port Mirroring
+  const [mirrorSessionId,    setMirrorSessionId]    = useState('1');
+  const [mirrorSourceVlan,   setMirrorSourceVlan]   = useState('10');
+  const [mirrorDestination,  setMirrorDestination]  = useState('Gi1/0/19');
+  const [mirrorResult,       setMirrorResult]       = useState(null);
+  const [isMirrorRunning,    setIsMirrorRunning]    = useState(false);
+  const [isDeletingMirror,   setIsDeletingMirror]   = useState(false);
+  const [mirrorDeleteResult, setMirrorDeleteResult] = useState(null);
+  const [showMirrorPanel,    setShowMirrorPanel]    = useState(false);
+
   /* ── Chargement des règles ── */
   const loadRules = useCallback(async (showSpinner = true) => {
     if (showSpinner) setLoading(true);
@@ -795,6 +805,53 @@ function App() {
     setShowSnortModal(false);
   };
 
+  /* ── PORT MIRRORING ── */
+  const handlePortMirroring = async () => {
+    setIsMirrorRunning(true);
+    setMirrorResult(null);
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/network/port-mirroring`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          session_id:   parseInt(mirrorSessionId),
+          source_vlan:  parseInt(mirrorSourceVlan),
+          destination:  mirrorDestination,
+        })
+      });
+      const data = await res.json();
+      setMirrorResult(data);
+      if (data.success) setToast({ message: 'Port mirroring appliqué avec succès', type: 'success' });
+      else setToast({ message: data.error || 'Erreur port mirroring', type: 'error' });
+    } catch(e) {
+      setMirrorResult({ success: false, error: e.message });
+      setToast({ message: 'Erreur réseau : ' + e.message, type: 'error' });
+    } finally {
+      setIsMirrorRunning(false);
+    }
+  };
+
+  const handleDeletePortMirroring = async () => {
+    setIsDeletingMirror(true);
+    setMirrorDeleteResult(null);
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/network/port-mirroring`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ session_id: parseInt(mirrorSessionId) })
+      });
+      const data = await res.json();
+      setMirrorDeleteResult(data);
+      if (data.success) setToast({ message: `Session SPAN ${mirrorSessionId} supprimée`, type: 'success' });
+      else setToast({ message: data.error || 'Erreur suppression', type: 'error' });
+    } catch(e) {
+      setMirrorDeleteResult({ success: false, error: e.message });
+      setToast({ message: 'Erreur réseau : ' + e.message, type: 'error' });
+    } finally {
+      setIsDeletingMirror(false);
+    }
+  };
+
   /* ── Chargement initial ── */
   if (loading) {
     return (
@@ -812,8 +869,112 @@ function App() {
       <div className="stats-header-grid">
         <StatCard icon="rules"  label="Règles actives"  value={rules.length}                         badge="En production" tone="bg-blue"  />
         <StatCard icon="export" label="Dernière modif"  value={lastUpdate.toLocaleTimeString('fr-FR')} badge="Manuel"       tone="bg-green" />
-        <StatCard icon="snort"  label="Statut API"      value="Connectée"                             badge="Prêt"         tone="bg-amber" />
+        {/* ── Port Mirroring Card ── */}
+        <div className="stat-mini-card" style={{cursor:'pointer', flexDirection:'column', alignItems:'flex-start', gap:0, padding:'16px 20px'}}
+          onClick={() => { setShowMirrorPanel(v => !v); setMirrorResult(null); setMirrorDeleteResult(null); }}>
+          <div style={{display:'flex', alignItems:'center', gap:12, width:'100%'}}>
+            <div className="stat-icon bg-violet" style={{background:'rgba(124,58,237,0.12)', color:'#7c3aed', flexShrink:0}}>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M17 8h2a2 2 0 012 2v6a2 2 0 01-2 2h-2M7 8H5a2 2 0 00-2 2v6a2 2 0 002 2h2m3-10v10m4-8l-4 4-4-4"/>
+              </svg>
+            </div>
+            <div className="stat-info">
+              <span className="stat-value">SPAN</span>
+              <span className="stat-label">Port Mirroring</span>
+              <span className="stat-badge" style={{background:'rgba(124,58,237,0.12)', color:'#7c3aed'}}>
+                {showMirrorPanel ? '▲ Fermer' : '▼ Configurer'}
+              </span>
+            </div>
+          </div>
+        </div>
       </div>
+
+      {/* ── PANNEAU PORT MIRRORING ── */}
+      {showMirrorPanel && (
+        <div style={{background:'white', borderRadius:16, border:'1.5px solid #ede9fe', boxShadow:'0 4px 24px rgba(124,58,237,0.10)', marginBottom:24, overflow:'hidden'}}>
+          <div style={{padding:'14px 20px', background:'rgba(245,243,255,0.7)', borderBottom:'1px solid #ede9fe', display:'flex', alignItems:'center', gap:12}}>
+            <div style={{width:36, height:36, borderRadius:10, background:'rgba(124,58,237,0.12)', display:'flex', alignItems:'center', justifyContent:'center', color:'#7c3aed', fontSize:18}}>🔀</div>
+            <div>
+              <div style={{fontWeight:700, color:'#5b21b6', fontSize:14}}>Port Mirroring — Session SPAN</div>
+              <div style={{fontSize:11, color:'#7c3aed', marginTop:2}}>Duplique le trafic du VLAN source vers le port Snort.</div>
+            </div>
+          </div>
+
+          <div style={{padding:20, display:'grid', gridTemplateColumns:'1fr 1fr 1fr 1fr', gap:16, alignItems:'end'}}>
+            <div>
+              <label style={{display:'block', fontSize:10, fontWeight:700, color:'#64748b', textTransform:'uppercase', letterSpacing:'.08em', marginBottom:8}}>Session</label>
+              <input type="number" min="1" value={mirrorSessionId}
+                onChange={e => setMirrorSessionId(e.target.value)}
+                style={{width:'100%', border:'1.5px solid #e2e8f0', borderRadius:10, padding:'9px 12px', fontSize:13, fontFamily:'DM Mono,monospace', outline:'none'}}
+                placeholder="1" />
+            </div>
+            <div>
+              <label style={{display:'block', fontSize:10, fontWeight:700, color:'#64748b', textTransform:'uppercase', letterSpacing:'.08em', marginBottom:8}}>VLAN source</label>
+              <input type="number" min="1" value={mirrorSourceVlan}
+                onChange={e => setMirrorSourceVlan(e.target.value)}
+                style={{width:'100%', border:'1.5px solid #e2e8f0', borderRadius:10, padding:'9px 12px', fontSize:13, fontFamily:'DM Mono,monospace', outline:'none'}}
+                placeholder="10" />
+            </div>
+            <div>
+              <label style={{display:'block', fontSize:10, fontWeight:700, color:'#64748b', textTransform:'uppercase', letterSpacing:'.08em', marginBottom:8}}>Port destination</label>
+              <input type="text" value={mirrorDestination}
+                onChange={e => setMirrorDestination(e.target.value)}
+                style={{width:'100%', border:'1.5px solid #e2e8f0', borderRadius:10, padding:'9px 12px', fontSize:13, fontFamily:'DM Mono,monospace', outline:'none'}}
+                placeholder="Gi1/0/19" />
+            </div>
+            <div style={{display:'flex', flexDirection:'column', gap:8}}>
+              <button onClick={handlePortMirroring} disabled={isMirrorRunning || isDeletingMirror}
+                style={{width:'100%', padding:'10px 0', borderRadius:10, border:'none', background:'#7c3aed', color:'white', fontWeight:700, fontSize:12, cursor:'pointer', opacity:(isMirrorRunning || isDeletingMirror)?0.5:1, display:'flex', alignItems:'center', justifyContent:'center', gap:6}}>
+                {isMirrorRunning ? '⏳ Déploiement...' : '🔀 Appliquer SPAN'}
+              </button>
+              <button onClick={handleDeletePortMirroring} disabled={isMirrorRunning || isDeletingMirror}
+                style={{width:'100%', padding:'10px 0', borderRadius:10, border:'1.5px solid #fecaca', background:'white', color:'#dc2626', fontWeight:700, fontSize:12, cursor:'pointer', opacity:(isMirrorRunning || isDeletingMirror)?0.5:1, display:'flex', alignItems:'center', justifyContent:'center', gap:6}}>
+                {isDeletingMirror ? '⏳ Suppression...' : '🗑️ Supprimer session'}
+              </button>
+            </div>
+          </div>
+
+          {/* CLI Preview */}
+          <div style={{padding:'0 20px 16px'}}>
+            <div style={{background:'#1e293b', borderRadius:10, padding:'12px 16px'}}>
+              <div style={{fontSize:9, fontWeight:700, color:'#64748b', textTransform:'uppercase', letterSpacing:'.1em', marginBottom:8}}>Commandes prévues</div>
+              <pre style={{fontSize:10, fontFamily:'DM Mono,monospace', color:'#c4b5fd', whiteSpace:'pre-wrap', margin:0}}>{`conf t\nno monitor session ${mirrorSessionId || '1'}\nmonitor session ${mirrorSessionId || '1'} source vlan ${mirrorSourceVlan || '10'} both\nmonitor session ${mirrorSessionId || '1'} destination interface ${mirrorDestination || 'Gi1/0/19'} ingress vlan ${mirrorSourceVlan || '10'}\nend`}</pre>
+            </div>
+          </div>
+
+          {/* Résultat SPAN */}
+          {mirrorResult && (
+            <div style={{margin:'0 20px 16px', padding:14, borderRadius:10, border:`1.5px solid ${mirrorResult.success ? '#bbf7d0' : '#fecaca'}`, background:mirrorResult.success ? '#f0fdf4' : '#fff1f2'}}>
+              <div style={{display:'flex', alignItems:'center', gap:8, marginBottom:6}}>
+                <span>{mirrorResult.success ? '✅' : '⚠️'}</span>
+                <span style={{fontSize:11, fontWeight:700, color:mirrorResult.success ? '#166534' : '#991b1b', textTransform:'uppercase'}}>
+                  {mirrorResult.success ? 'Port mirroring configuré' : 'Échec port mirroring'}
+                </span>
+              </div>
+              <div style={{fontSize:11, color:mirrorResult.success ? '#16a34a' : '#dc2626'}}>{mirrorResult.message || mirrorResult.error}</div>
+              {mirrorResult.commands && mirrorResult.commands.length > 0 && (
+                <div style={{marginTop:8, background:'#1e293b', borderRadius:8, padding:'8px 12px'}}>
+                  <div style={{fontSize:9, color:'#64748b', textTransform:'uppercase', marginBottom:4}}>Commandes envoyées :</div>
+                  <pre style={{fontSize:10, fontFamily:'DM Mono,monospace', color:'#c4b5fd', margin:0}}>{mirrorResult.commands.join('\n')}</pre>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Résultat suppression */}
+          {mirrorDeleteResult && (
+            <div style={{margin:'0 20px 16px', padding:14, borderRadius:10, border:`1.5px solid ${mirrorDeleteResult.success ? '#e2e8f0' : '#fecaca'}`, background:mirrorDeleteResult.success ? '#f8fafc' : '#fff1f2'}}>
+              <div style={{display:'flex', alignItems:'center', gap:8, marginBottom:6}}>
+                <span>{mirrorDeleteResult.success ? '🗑️' : '⚠️'}</span>
+                <span style={{fontSize:11, fontWeight:700, color:mirrorDeleteResult.success ? '#334155' : '#991b1b', textTransform:'uppercase'}}>
+                  {mirrorDeleteResult.success ? `Session SPAN ${mirrorSessionId} supprimée` : 'Échec suppression SPAN'}
+                </span>
+              </div>
+              <div style={{fontSize:11, color:mirrorDeleteResult.success ? '#64748b' : '#dc2626'}}>{mirrorDeleteResult.message || mirrorDeleteResult.error}</div>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* ── Section principale ── */}
       <div className="manage-section">
