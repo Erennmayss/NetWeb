@@ -449,7 +449,7 @@
         if (labelEl) labelEl.textContent = loadingText;
       }
 
-      var res = await fetch('http://localhost:5000' + endpoint, { method: 'POST' });
+      var res = await fetch(endpoint, { method: 'POST' });
       var data = await res.json().catch(function () { return {}; });
       if (!res.ok) throw new Error(data.message || data.error || 'Erreur serveur');
 
@@ -770,7 +770,7 @@ function _launchPBat(option, params, btn, originalLabel, successLabel) {
       btn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14" style="animation:spin 1s linear infinite"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg> En cours…';
     }
 
-    fetch('http://localhost:5000/api/run-pbat', {
+    fetch('/api/run-pbat', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body)
@@ -785,7 +785,7 @@ function _launchPBat(option, params, btn, originalLabel, successLabel) {
       }
     })
     .catch(function() {
-      showDetectionToast('Impossible de contacter Flask — vérifiez que le serveur tourne sur localhost:5000', true);
+      showDetectionToast('Impossible de contacter le serveur d application', true);
     })
     .finally(function() {
       if (btn) {
@@ -885,7 +885,7 @@ function _launchPBat(option, params, btn, originalLabel, successLabel) {
       if (token) headers['Authorization'] = 'Bearer ' + token;
 
       // Récupérer les alertes récentes
-      var res = await fetch('http://localhost:5000/api/alerts?limit=8&sort=desc', { headers: headers });
+      var res = await fetch('/api/alerts?limit=8&sort=desc', { headers: headers });
       if (!res.ok) throw new Error('HTTP ' + res.status);
       var data = await res.json();
 
@@ -893,7 +893,7 @@ function _launchPBat(option, params, btn, originalLabel, successLabel) {
       _renderAlertsList(alerts);
 
       // Récupérer le total pour le badge
-      var statsRes = await fetch('http://localhost:5000/api/stats', { headers: headers });
+      var statsRes = await fetch('/api/stats', { headers: headers });
       var statsData = await statsRes.json();
       if (statsData.success || statsData.stats) {
         var total = parseInt((statsData.stats || statsData).total) || 0;
@@ -916,7 +916,7 @@ function _launchPBat(option, params, btn, originalLabel, successLabel) {
 
   // API publique : permet à alerts.html de réinitialiser le badge topbar
   window.resetTopbarAlertBadge = function() {
-    fetch('http://localhost:5000/api/stats').then(function(r) { return r.json(); }).then(function(d) {
+    fetch('/api/stats').then(function(r) { return r.json(); }).then(function(d) {
       if (d.success || d.stats) _lastAlertCount = parseInt((d.stats || d).total) || 0;
     }).catch(function(){});
     updateNotificationCount(0);

@@ -131,7 +131,7 @@
     }
 
     try {
-      const resp = await fetch('http://127.0.0.1:5000/forgot-password', {
+      const resp = await fetch('/forgot-password', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email })
@@ -158,7 +158,7 @@
     }
 
     try {
-      const resp = await fetch('http://127.0.0.1:5000/reset-password', {
+      const resp = await fetch('/reset-password', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ token, new_password: newPassword })
@@ -175,7 +175,7 @@
 
   async function authenticate(username, password) {
     try {
-      const response = await fetch('http://127.0.0.1:5000/login', {
+      const response = await fetch('/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username, password })

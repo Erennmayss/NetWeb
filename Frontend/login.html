@@ -630,7 +630,7 @@ function doForgotStep1(){
   btn.innerHTML='<span class="spinner"></span>Vérification…';
 
   // Appel backend pour vérifier l'email / identifiant dans la table 'utilisateur'
-  fetch('http://127.0.0.1:5000/api/check-email', {
+  fetch('/api/check-email', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ identity })
@@ -829,7 +829,7 @@ async function submitNewPassword(){
   // Envoi au backend : username provenant de resetState
   const username = resetState.username;
   try{
-    const resp = await fetch('http://127.0.0.1:5000/reset-password-final', {
+    const resp = await fetch('/reset-password-final', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ username, new_password: np })
     });

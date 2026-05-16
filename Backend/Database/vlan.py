@@ -113,6 +113,12 @@ def validate_port_assignments(cur, ports, id_switch=None):
 
 def build_vlan_response(row):
     gateway = row.get("gateway") or ""
+    device_count = row.get("device_count")
+    if device_count is None:
+        device_count = row.get("devices")
+    if device_count is None:
+        device_count = 0
+
     return {
         "id_vlan":    row.get("id_vlan"),
         "id":         row.get("id_vlan"),
@@ -126,7 +132,7 @@ def build_vlan_response(row):
         "status":     row.get("status") or "Active",
         "switchName": row.get("switch_name") or "",
         "switchIp":   row.get("switch_ip") or "",
-        "devices":    0,
+        "devices":    device_count,
     }
 
 
@@ -610,22 +616,35 @@ def get_vlans():
         params = []
 
         if filter_switch_name:
-            where_clauses.append("switch_name = %s")
+            where_clauses.append("LOWER(TRIM(COALESCE(switch_name, ''))) = LOWER(TRIM(%s))")
             params.append(filter_switch_name)
         elif filter_switch_id:
-            cur2 = conn.cursor()
+            cur2 = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
             cur2.execute("SELECT nom FROM switchs WHERE id_switch = %s", (filter_switch_id,))
             sw_row = cur2.fetchone()
             cur2.close()
             if sw_row:
-                where_clauses.append("switch_name = %s")
-                params.append(sw_row[0])
+                switch_name = (sw_row.get("nom") or "").strip()
+                if switch_name:
+                    where_clauses.append("LOWER(TRIM(COALESCE(switch_name, ''))) = LOWER(TRIM(%s))")
+                    params.append(switch_name)
+                else:
+                    where_clauses.append("1 = 0")
+            else:
+                where_clauses.append("1 = 0")
 
         where_sql = f"WHERE {' AND '.join(where_clauses)}" if where_clauses else ""
 
         cur.execute(f"""
-            SELECT {", ".join(get_returning_fields(columns))}
+            SELECT
+                {", ".join(get_returning_fields(columns))},
+                COALESCE(eq.device_count, 0) AS device_count
             FROM vlan
+            LEFT JOIN (
+                SELECT vlan_id, COUNT(*) AS device_count
+                FROM equipement
+                GROUP BY vlan_id
+            ) eq ON eq.vlan_id = vlan.id_vlan
             {where_sql}
             ORDER BY id_vlan ASC
         """, params)

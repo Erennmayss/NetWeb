@@ -165,7 +165,7 @@
 
   <script type="text/babel">
     const { useState, useEffect } = React;
-    const API_BASE_URL = window.location.port === '5000' ? '' : 'http://127.0.0.1:5000';
+    const API_BASE_URL = '';
 
     // ── Validation helpers ────────────────────────────────────────────────────
 
@@ -267,7 +267,6 @@
           const data = await res.json();
           if (data.success && data.switchs && data.switchs.length > 0) {
             setSwitches(data.switchs);
-            setSelectedSwitchId(String(data.switchs[0].id));
           }
         } catch (e) {
           console.warn('Impossible de charger les switches:', e);
@@ -426,7 +425,7 @@
 
       useEffect(() => {
         if (selectedVlan?.id) {
-          loadVlanDevices(selectedVlan.id, true);
+          loadVlanDevices(selectedVlan.id, false);
         } else {
           setDevicesWarning('');
         }
