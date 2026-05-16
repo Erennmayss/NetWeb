@@ -5,7 +5,7 @@
     return;
   }
 
-  const titleText = root.dataset.title || 'Dashboard';
+  const titleText = root.dataset.title || 'Tableau de bord';
   const subtitleText = root.dataset.subtitle || '';
   const notificationCount = Number(root.dataset.notifications || 3);
 
@@ -35,12 +35,12 @@
   const ROLE_LABELS = {
     'admin':          'Administrateur Système',
     'network_admin':  'Administrateur Réseau',
-    'security_admin': 'Analyste Sécurité (SOC)',
-    'auditor':        'Auditeur Externe',
+    'security_admin': 'Administrateur Sécurité',
+    'auditor':        'Auditeur',
     'ADMIN':          'Administrateur Système',
     'NETWORK_ADMIN':  'Administrateur Réseau',
-    'SECURITY_ADMIN': 'Analyste Sécurité (SOC)',
-    'AUDITOR':        'Auditeur Externe',
+    'SECURITY_ADMIN': 'Administrateur Sécurité',
+    'AUDITOR':        'Auditeur',
   };
 
   function getRoleLabel(role) {
@@ -85,7 +85,7 @@
           <svg id="topbar-detection-icon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
             <path d="M8 5v14l11-7z"></path>
           </svg>
-          <span id="topbar-detection-label">Start detection</span>
+          <span id="topbar-detection-label">Lancer la detection</span>
         </button>
 
         <div class="notif-wrapper">
@@ -174,7 +174,17 @@
 
         <div class="user-dropdown">
           <button type="button" id="topbar-user-button" class="icon-button user-avatar-btn" aria-label="Compte utilisateur">
-            <span id="topbar-user-initials" class="user-initials-badge">?</span>
+            <span class="user-avatar-shell" aria-hidden="true">
+              <svg class="user-avatar-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M20 21a8 8 0 0 0-16 0"/>
+                <circle cx="12" cy="8" r="4"/>
+              </svg>
+              <span id="topbar-user-initials" class="user-initials-badge">?</span>
+              <span class="user-presence-dot"></span>
+            </span>
+            <svg class="user-avatar-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="m6 9 6 6 6-6"/>
+            </svg>
           </button>
           <div id="topbar-user-menu" class="user-menu" hidden>
             <div id="topbar-menu-user-info" class="user-menu-info">
@@ -481,15 +491,15 @@
 
   // ========== RECHERCHE GLOBALE ==========
   const SEARCH_ITEMS = [
-    { id: 'dashboard', label: 'Dashboard', href: 'dashboard.html', keywords: ['accueil', 'home', 'overview', 'tableau de bord', 'reseau', 'réseau'] },
-    { id: 'vlan', label: 'VLAN', href: 'vlan.html', keywords: ['vlans', 'reseau vlan', 'réseau vlan', 'quarantine', 'isolation'] },
+    { id: 'dashboard', label: 'Tableau de bord', href: 'dashboard.html', keywords: ['accueil', 'home', 'overview', 'tableau de bord', 'reseau', 'réseau'] },
+    { id: 'vlan', label: 'VLAN', href: 'vlan.html', keywords: ['vlans', 'reseau vlan', 'réseau vlan', 'quarantaine', 'isolation'] },
     { id: 'interfaces', label: 'Interfaces', href: 'interfaces.html', keywords: ['interface', 'ports', 'port', 'switchport', 'up', 'down', 'port security'] },
-    { id: 'alerts', label: 'Alerts', href: 'alerts.html', keywords: ['alertes', 'alerte', 'snort', 'critique', 'securite', 'sécurité'] },
-    { id: 'traffic', label: 'Traffic', href: 'traffic.html', keywords: ['trafic', 'network traffic', 'monitoring', 'bande passante'] },
+    { id: 'alerts', label: 'Alertes', href: 'alerts.html', keywords: ['alertes', 'alerte', 'snort', 'critique', 'securite', 'sécurité'] },
+    { id: 'traffic', label: 'Trafic', href: 'traffic.html', keywords: ['trafic', 'network traffic', 'monitoring', 'bande passante'] },
     { id: 'configuration', label: 'Configuration', href: 'Configuration.html', keywords: ['config', 'regles', 'règles', 'rules', 'automation'] },
-    { id: 'users', label: 'Users', href: 'users.html', keywords: ['utilisateurs', 'user', 'roles', 'rôles', 'compte'] },
+    { id: 'users', label: 'Utilisateurs', href: 'users.html', keywords: ['utilisateurs', 'user', 'roles', 'rôles', 'compte'] },
     { id: 'equipements', label: 'Equipements', href: 'equipements.html', keywords: ['equipement', 'équipement', 'switch', 'routeur', 'router'] },
-    { id: 'logs', label: 'Logs', href: 'logs.html', keywords: ['journal', 'audit', 'activites', 'activités', 'historique'] }
+    { id: 'logs', label: 'Journaux', href: 'logs.html', keywords: ['journal', 'audit', 'activites', 'activités', 'historique'] }
   ];
 
   let searchMatches = [];
@@ -639,7 +649,7 @@
           detectionToggleBtn.classList.remove('detection-btn--start');
           detectionToggleBtn.classList.add('detection-btn--stop');
           detectionToggleBtn.setAttribute('aria-label', 'Arrêter la détection');
-          document.getElementById('topbar-detection-label').textContent = 'Stop detection';
+          document.getElementById('topbar-detection-label').textContent = 'Arreter la detection';
           document.getElementById('topbar-detection-icon').innerHTML =
             '<rect x="7" y="7" width="10" height="10" rx="1.5"></rect>';
           document.getElementById('topbar-detection-icon').setAttribute('fill', 'none');
@@ -655,7 +665,7 @@
           detectionToggleBtn.classList.remove('detection-btn--stop');
           detectionToggleBtn.classList.add('detection-btn--start');
           detectionToggleBtn.setAttribute('aria-label', 'Lancer la détection');
-          document.getElementById('topbar-detection-label').textContent = 'Start detection';
+          document.getElementById('topbar-detection-label').textContent = 'Lancer la detection';
           var icon = document.getElementById('topbar-detection-icon');
           icon.setAttribute('fill', 'currentColor');
           icon.removeAttribute('stroke');
@@ -887,7 +897,7 @@ function _launchPBat(option, params, btn, originalLabel, successLabel) {
 
   // ========== API PUBLIQUE ==========
   window.setPageTitle = function (title, subtitle) {
-    titleEl.textContent    = title || 'Dashboard';
+    titleEl.textContent    = title || 'Tableau de bord';
     subtitleEl.textContent = subtitle || '';
     subtitleEl.style.display = subtitle ? 'block' : 'none';
   };

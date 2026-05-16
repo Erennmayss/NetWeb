@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>NetGuard - User Management</title>
+  <title>NetGuard - Gestion des utilisateurs</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
   <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
@@ -35,7 +35,7 @@
     <aside id="sidebar-root" class="sidebar-host" data-page="users"></aside>
 
     <main class="main relative">
-      <div id="topbar-root" data-title="User Management" data-subtitle="Gérez les accès, les rôles et les permissions." data-notifications="3"></div>
+      <div id="topbar-root" data-title="Gestion des utilisateurs" data-subtitle="Gérez les accès, les rôles et les permissions." data-notifications="3"></div>
 
       <section class="content custom-scroll relative">
         <div id="users-root" class="page-block min-h-full flex flex-col"></div>
@@ -215,10 +215,6 @@
       return (
         <div className="p-2 md:p-4 max-w-[1400px] mx-auto animate-in w-full">
           <div className="flex flex-col md:flex-row md:justify-between md:items-end mb-8 gap-4">
-            <div>
-              <h1 className="page-title text-3xl font-bold text-slate-800 tracking-tight">Utilisateurs</h1>
-              <p className="text-slate-500 mt-1">Gérez les accès de l'équipe SOC &amp; NOC.</p>
-            </div>
             <div className="flex flex-wrap gap-3 items-center">
               <div className="relative">
                 <span className="absolute inset-y-0 left-3 flex items-center text-slate-400">🔍</span>
@@ -400,10 +396,10 @@
                     <label className="block text-xs font-bold text-slate-500 mb-1">Rôle</label>
                     <select name="role" defaultValue={editingUser?.role || 'AUDITOR'}
                       className="w-full border border-slate-200 rounded-xl p-3 outline-none focus:border-indigo-500 font-bold text-slate-700 bg-slate-50">
-                      <option value="ADMIN">ADMIN</option>
-                      <option value="NETWORK_ADMIN">NETWORK_ADMIN</option>
-                      <option value="SECURITY_ADMIN">SECURITY_ADMIN</option>
-                      <option value="AUDITOR">AUDITOR</option>
+                      <option value="ADMIN">Administrateur</option>
+                      <option value="NETWORK_ADMIN">Administrateur réseau</option>
+                      <option value="SECURITY_ADMIN">Administrateur sécurité</option>
+                      <option value="AUDITOR">Auditeur</option>
                     </select>
                   </div>
 

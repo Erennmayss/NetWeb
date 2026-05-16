@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>NetGuard - Network Security Dashboard</title>
+  <title>NetGuard - Tableau de bord de securite reseau</title>
   <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
   <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
@@ -249,7 +249,7 @@
     <aside id="sidebar-root" class="sidebar-host" data-page="dashboard"></aside>
 
     <main class="main">
-      <div id="topbar-root" data-title="Network Security Dashboard" data-subtitle="Vue d ensemble du reseau, des VLANs et des alertes." data-notifications="4"></div>
+      <div id="topbar-root" data-title="Tableau de bord" data-subtitle="Vue d ensemble du reseau, des VLANs et des alertes." data-notifications="4"></div>
 
       <section class="content">
         <div id="root" class="page-block"></div>
@@ -563,7 +563,7 @@
               <div className="stat-icon bg-blue"><Icon type="vlan" /></div>
               <div className="stat-info">
                 <span className="stat-value">{vlanStats.count}</span>
-                <span className="stat-label">Total VLANs</span>
+                <span className="stat-label">Total des VLANs</span>
                 <span className="stat-badge bg-green">Base reseau</span>
               </div>
             </div>
@@ -571,8 +571,8 @@
               <div className="stat-icon bg-green"><Icon type="ports" /></div>
               <div className="stat-info">
                 <span className="stat-value">{interfaceStats.up}</span>
-                <span className="stat-label">Ports UP</span>
-                <span className="stat-badge bg-blue">{interfaceStats.down} down</span>
+                <span className="stat-label">Ports actifs</span>
+                <span className="stat-badge bg-blue">{interfaceStats.down} inactifs</span>
               </div>
             </div>
             <div className="stat-mini-card">
@@ -587,7 +587,7 @@
               <div className="stat-icon bg-amber"><Icon type="monitor" /></div>
               <div className="stat-info">
                 <span className="stat-value">{stats.total || 0}</span>
-                <span className="stat-label">Total alertes</span>
+                <span className="stat-label">Total des alertes</span>
                 <span className="stat-badge bg-amber">Historique</span>
               </div>
             </div>
@@ -596,25 +596,21 @@
           <div className="management-grid">
             <div className="manage-section">
               <div className="section-header">
-                <span className="section-title">VLAN Management</span>
+                <span className="section-title">Gestion des VLANs</span>
                 <div className="status-indicator" style={{ background: '#22c55e' }}></div>
               </div>
-              <div className="data-row"><span className="data-label">Total VLANs</span><span className="data-value" style={{ color: '#6366f1' }}>{vlanStats.count} configured</span></div>
+              <div className="data-row"><span className="data-label">Total des VLANs</span><span className="data-value" style={{ color: '#6366f1' }}>{vlanStats.count} configures</span></div>
               <div className="data-row">
-                <span className="data-label">Last created</span>
+                <span className="data-label">Dernier cree</span>
                 <span className="data-value">{vlanStats.lastCreated ? `VLAN ${vlanStats.lastCreated.id_vlan ?? vlanStats.lastCreated.id} - ${vlanStats.lastCreated.nom ?? vlanStats.lastCreated.name}` : 'Aucun VLAN'}</span>
-              </div>
-              <div className="data-row">
-                <span className="data-label">Quarantine VLAN</span>
-                <span className="data-value" style={{ color: '#f59e0b' }}>{vlanStats.quarantine ? `VLAN ${vlanStats.quarantine.id_vlan ?? vlanStats.quarantine.id} ${vlanStats.quarantine.status}` : 'Aucune isolation active'}</span>
               </div>
               <div className="data-row">
                 <span className="data-label">Réseau</span>
                 <span className="data-value">{vlanStats.lastCreated ? (vlanStats.lastCreated.reseau ?? vlanStats.lastCreated.vlanIp ?? '--') : '--'}</span>
               </div>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', marginTop: '5px' }}>
-                {renderActionButton('vlan', 'View VLANs')}
-                {renderActionButton('interfaces', 'View Interfaces')}
+                {renderActionButton('vlan', 'Voir les VLANs')}
+                {renderActionButton('interfaces', 'Voir les interfaces')}
               </div>
             </div>
 
@@ -624,84 +620,76 @@
                 <div className="status-indicator" style={{ background: interfaceStats.hasAlert ? '#f59e0b' : '#22c55e' }}></div>
               </div>
               <div className="data-row">
-                <span className="data-label">Total interfaces</span>
+                <span className="data-label">Total des interfaces</span>
                 <span className="data-value" style={{ color: '#6366f1' }}>{interfaceStats.total}</span>
               </div>
               <div className="data-row">
-                <span className="data-label">Ports UP</span>
+                <span className="data-label">Ports actifs</span>
                 <span className="data-value" style={{ color: '#22c55e' }}>{interfaceStats.up}</span>
               </div>
               <div className="data-row">
-                <span className="data-label">Ports DOWN</span>
+                <span className="data-label">Ports inactifs</span>
                 <span className="data-value">{interfaceStats.down}</span>
               </div>
               <div className="data-row">
-                <span className="data-label">Port security active</span>
+                <span className="data-label">Securite des ports active</span>
                 <span className="data-value" style={{ color: interfaceStats.securePorts > 0 ? '#22c55e' : '#94a3b8' }}>{interfaceStats.securePorts}</span>
               </div>
               <div style={{ marginTop: '5px' }}>
-                {renderActionButton('interfaces', 'View Interfaces')}
+                {renderActionButton('interfaces', 'Voir les interfaces')}
               </div>
             </div>
 
             <div className="manage-section">
               <div className="section-header">
-                <span className="section-title">Network Monitoring</span>
+                <span className="section-title">Surveillance reseau</span>
                 <div className="status-indicator" style={{ background: trafficStatus.color }}></div>
               </div>
               <div className="data-row">
-                <span className="data-label">Traffic status</span>
+                <span className="data-label">Etat du trafic</span>
                 <span className="data-value" style={{ color: trafficStatus.color, fontWeight: 'bold' }}>
                   {trafficStatus.status}
                 </span>
               </div>
               <div className="data-row">
-                <span className="data-label">Interface errors</span>
-                <span className="data-value">{interfaceStats.down}</span>
-              </div>
-              <div className="data-row">
-                <span className="data-label">Bandwidth use</span>
-                <span className="data-value">12% avg</span>
+                <span className="data-label">Utilisation de la bande passante</span>
+                <span className="data-value">12% moy.</span>
               </div>
               <div style={{ marginTop: '5px' }}>
-                {renderActionButton('traffic', 'View Details')}
+                {renderActionButton('traffic', 'Voir les details')}
               </div>
             </div>
 
             <div className="manage-section">
               <div className="section-header">
-                <span className="section-title">Security Alerts (Snort)</span>
+                <span className="section-title">Alertes de securite (Snort)</span>
                 <div className="status-indicator" style={{ background: stats.critical > 0 ? '#ef4444' : '#22c55e' }}></div>
               </div>
-              <div className="data-row"><span className="data-label">Alerts total</span><span className="data-value" style={{ color: stats.critical > 0 ? '#ef4444' : '#6366f1' }}>{stats.total || 0}</span></div>
+              <div className="data-row"><span className="data-label">Total des alertes</span><span className="data-value" style={{ color: stats.critical > 0 ? '#ef4444' : '#6366f1' }}>{stats.total || 0}</span></div>
               <div className="data-row"><span className="data-label">Critiques</span><span className="data-value" style={{ color: '#ef4444' }}>{stats.critical || 0}</span></div>
               <div className="data-row"><span className="data-label">Moyennes/Faibles</span><span className="data-value">{(stats.medium || 0) + (stats.low || 0)}</span></div>
               <div style={{ marginTop: '5px' }}>
-                {renderActionButton('alerts', 'View Alerts')}
+                {renderActionButton('alerts', 'Voir les alertes')}
               </div>
             </div>
 
             <div className="manage-section">
               <div className="section-header">
-                <span className="section-title">Automation</span>
+                <span className="section-title">Configuration IDS</span>
                 <div className="status-indicator" style={{ background: '#3b82f6' }}></div>
               </div>
               <div className="data-row">
-                <span className="data-label">Auto-isolate threats</span>
-                <span className="data-value">ON</span>
+                <span className="data-label">Regles actives</span>
+                <span className="data-value" style={{ color: '#6366f1' }}>{rulesCount} regles</span>
               </div>
               <div className="data-row">
-                <span className="data-label">Active rules</span>
-                <span className="data-value" style={{ color: '#6366f1' }}>{rulesCount} rules</span>
-              </div>
-              <div className="data-row">
-                <span className="data-label">Last triggered</span>
+                <span className="data-label">Derniere declenchee</span>
                 <span className="data-value" style={{ fontSize: '13px', textAlign: 'right', maxWidth: '180px' }}>
                   {lastTriggeredRule ? (
                     <div style={{ textAlign: 'right' }}>
                       <strong style={{ color: '#ef4444' }}>{lastTriggeredRule.name}</strong>
                       <br />
-                      <span style={{ fontSize: '12px', color: '#64748b' }}>Action: {lastTriggeredRule.action}</span>
+                      <span style={{ fontSize: '12px', color: '#64748b' }}>Action : {lastTriggeredRule.action}</span>
                       <br />
                       <span style={{ fontSize: '12px', color: '#94a3b8' }}>{lastTriggeredRule.description}</span>
                     </div>
@@ -711,27 +699,27 @@
                 </span>
               </div>
               <div style={{ marginTop: '5px' }}>
-                {renderActionButton('configuration', 'Configure Rules')}
+                {renderActionButton('configuration', 'Configurer les regles')}
               </div>
             </div>
 
             <div className="manage-section">
               <div className="section-header">
-                <span className="section-title">System Status</span>
+                <span className="section-title">Etat du systeme</span>
                 <div className="status-indicator" style={{ background: '#22c55e' }}></div>
               </div>
-              <div className="data-row"><span className="data-label">Interfaces tracked</span><span className="data-value">{interfaceStats.total}</span></div>
-              <div className="data-row"><span className="data-label">Config backup</span><span className="data-value" style={{ color: '#22c55e' }}>Up to date</span></div>
+              <div className="data-row"><span className="data-label">Interfaces suivies</span><span className="data-value">{interfaceStats.total}</span></div>
+              <div className="data-row"><span className="data-label">Sauvegarde config</span><span className="data-value" style={{ color: '#22c55e' }}>A jour</span></div>
               <div style={{ marginTop: '5px', display: 'flex', flexWrap: 'wrap', gap: '10px' }}>
-                {renderActionButton('users', 'Manage Users')}
-                {renderActionButton('logs', 'Open Audit Logs')}
+                {renderActionButton('users', 'Gerer les utilisateurs')}
+                {renderActionButton('logs', 'Ouvrir les journaux d audit')}
               </div>
             </div>
           </div>
 
           <div className="logs-section">
             <div className="section-header">
-              <span className="section-title">Logs Recents</span>
+              <span className="section-title">Journaux recents</span>
             </div>
 
             <div style={{ marginBottom: '8px', marginTop: '4px' }}>

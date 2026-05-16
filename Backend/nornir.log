@@ -548,3 +548,8 @@ Device settings: cisco_ios 10.10.10.50:22
 =======
 >>>>>>> 30cc7b729f66f8a259ca44068d9a5dba77328a80
 >>>>>>> 61ab4fc141933557e5d5e4de4527c644b81dde3d
+2026-05-14 16:23:53,516 -  nornir.core -     INFO -        run() - Running task 'Création VLAN 50 - RH' with args {'config_commands': ['vlan 50', 'name RH', 'exit']} on 1 hosts
+2026-05-14 16:26:06,177 -  nornir.core -     INFO -        run() - Running task 'Création VLAN 50 - RH' with args {'config_commands': ['vlan 50', 'name RH', 'exit']} on 1 hosts
+2026-05-14 16:26:08,219 -  nornir.core -     INFO -        run() - Running task 'netmiko_save_config' with args {} on 1 hosts
+2026-05-14 16:31:49,247 -  nornir.core -     INFO -        run() - Running task 'Création VLAN 50 - RH' with args {'config_commands': ['vlan 50', 'name RH', 'exit']} on 1 hosts
+2026-05-14 16:31:51,371 -  nornir.core -     INFO -        run() - Running task 'netmiko_save_config' with args {} on 1 hosts
