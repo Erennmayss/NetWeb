@@ -96,7 +96,7 @@
       const fetchUsers = async () => {
         setLoading(true);
         try {
-          const response = await fetch('/users', { 
+          const response = await fetch(window.NetGuardAuth.buildApiUrl('/users'), { 
             headers: window.NetGuardAuth.getAuthHeaders() 
           });
           if (response.ok) {
@@ -328,7 +328,9 @@
 
                   try {
                     // ✅ POST pour édition (évite problème 405 avec PUT)
-                    const url    = editingUser ? `/users/${editingUser.id}` : '/users';
+                    const url    = editingUser
+                      ? window.NetGuardAuth.buildApiUrl(`/users/${editingUser.id}`)
+                      : window.NetGuardAuth.buildApiUrl('/users');
                     const method = 'POST';
 
                     // ✅ Pour l'édition, envoyer SEULEMENT username, email, role (pas password)
@@ -489,7 +491,7 @@
                   <button 
                     onClick={async () => {
                       try {
-                        const resp = await fetch(`/users/${targetUser.id}`, {
+                        const resp = await fetch(window.NetGuardAuth.buildApiUrl(`/users/${targetUser.id}`), {
                           method:  'DELETE', 
                           headers: window.NetGuardAuth.getAuthHeaders(),
                         });

@@ -311,7 +311,7 @@
       );
     };
 
-    const API_BASE_URL = '';
+    const API_BASE_URL = window.NetGuardAuth.getApiBaseUrl();
 
     const analyzeTrafficStatus = (alerts) => {
       if (!alerts || alerts.length === 0) {

@@ -320,7 +320,7 @@
 <script type="text/babel">
 const { useMemo, useState, useEffect } = React;
 
-const API_URL = "";
+const API_URL = window.NetGuardAuth.getApiBaseUrl();
 
 /* ── Hook générique fetch ── */
 function useApi(endpoint) {

@@ -548,3 +548,127 @@ Device settings: cisco_ios 10.10.10.50:22
 =======
 >>>>>>> 30cc7b729f66f8a259ca44068d9a5dba77328a80
 >>>>>>> 61ab4fc141933557e5d5e4de4527c644b81dde3d
+2026-05-17 13:19:21,317 -  nornir.core -     INFO -        run() - Running task 'Création VLAN 88 - TEST' with args {'config_commands': ['vlan 88', 'name TEST', 'exit']} on 1 hosts
+2026-05-17 13:19:31,479 - nornir.core.task -    ERROR -      start() - Host 'switch_cible': task 'Création VLAN 88 - TEST' failed with traceback:
+Traceback (most recent call last):
+  File "C:\Users\21366\AppData\Local\Programs\Python\Python313\Lib\site-packages\netmiko\base_connection.py", line 1146, in establish_connection
+    self.remote_conn_pre.connect(**ssh_connect_params)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\21366\AppData\Local\Programs\Python\Python313\Lib\site-packages\paramiko\client.py", line 384, in connect
+    sock.connect(addr)
+    ~~~~~~~~~~~~^^^^^^
+TimeoutError: timed out
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\21366\AppData\Local\Programs\Python\Python313\Lib\site-packages\nornir\core\task.py", line 98, in start
+    r = self.task(self, **self.params)
+  File "C:\Users\21366\AppData\Local\Programs\Python\Python313\Lib\site-packages\nornir_netmiko\tasks\netmiko_send_config.py", line 28, in netmiko_send_config
+    net_connect = task.host.get_connection(CONNECTION_NAME, task.nornir.config)
+  File "C:\Users\21366\AppData\Local\Programs\Python\Python313\Lib\site-packages\nornir\core\inventory.py", line 476, in get_connection
+    self.open_connection(
+    ~~~~~~~~~~~~~~~~~~~~^
+        connection=connection,
+        ^^^^^^^^^^^^^^^^^^^^^^
+    ...<6 lines>...
+        extras=conn.extras,
+        ^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "C:\Users\21366\AppData\Local\Programs\Python\Python313\Lib\site-packages\nornir\core\inventory.py", line 528, in open_connection
+    conn_obj.open(
+    ~~~~~~~~~~~~~^
+        hostname=hostname,
+        ^^^^^^^^^^^^^^^^^^
+    ...<5 lines>...
+        configuration=configuration,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "C:\Users\21366\AppData\Local\Programs\Python\Python313\Lib\site-packages\nornir_netmiko\connections\netmiko.py", line 59, in open
+    connection = ConnectHandler(**parameters)
+  File "C:\Users\21366\AppData\Local\Programs\Python\Python313\Lib\site-packages\netmiko\ssh_dispatcher.py", line 460, in ConnectHandler
+    return ConnectionClass(*args, **kwargs)
+  File "C:\Users\21366\AppData\Local\Programs\Python\Python313\Lib\site-packages\netmiko\base_connection.py", line 495, in __init__
+    self._open()
+    ~~~~~~~~~~^^
+  File "C:\Users\21366\AppData\Local\Programs\Python\Python313\Lib\site-packages\netmiko\base_connection.py", line 500, in _open
+    self.establish_connection()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\21366\AppData\Local\Programs\Python\Python313\Lib\site-packages\netmiko\base_connection.py", line 1168, in establish_connection
+    raise NetmikoTimeoutException(msg)
+netmiko.exceptions.NetmikoTimeoutException: TCP connection to device failed.
+
+Common causes of this problem are:
+1. Incorrect hostname or IP address.
+2. Wrong TCP port.
+3. Intermediate firewall blocking access.
+
+Device settings: cisco_ios 10.10.10.50:22
+
+
+
+2026-05-17 13:19:40,456 -  nornir.core -     INFO -        run() - Running task 'Création VLAN 88 - TEST' with args {'config_commands': ['vlan 88', 'name TEST', 'exit']} on 1 hosts
+2026-05-17 13:19:50,490 - nornir.core.task -    ERROR -      start() - Host 'switch_cible': task 'Création VLAN 88 - TEST' failed with traceback:
+Traceback (most recent call last):
+  File "C:\Users\21366\AppData\Local\Programs\Python\Python313\Lib\site-packages\netmiko\base_connection.py", line 1146, in establish_connection
+    self.remote_conn_pre.connect(**ssh_connect_params)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\21366\AppData\Local\Programs\Python\Python313\Lib\site-packages\paramiko\client.py", line 384, in connect
+    sock.connect(addr)
+    ~~~~~~~~~~~~^^^^^^
+TimeoutError: timed out
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\21366\AppData\Local\Programs\Python\Python313\Lib\site-packages\nornir\core\task.py", line 98, in start
+    r = self.task(self, **self.params)
+  File "C:\Users\21366\AppData\Local\Programs\Python\Python313\Lib\site-packages\nornir_netmiko\tasks\netmiko_send_config.py", line 28, in netmiko_send_config
+    net_connect = task.host.get_connection(CONNECTION_NAME, task.nornir.config)
+  File "C:\Users\21366\AppData\Local\Programs\Python\Python313\Lib\site-packages\nornir\core\inventory.py", line 476, in get_connection
+    self.open_connection(
+    ~~~~~~~~~~~~~~~~~~~~^
+        connection=connection,
+        ^^^^^^^^^^^^^^^^^^^^^^
+    ...<6 lines>...
+        extras=conn.extras,
+        ^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "C:\Users\21366\AppData\Local\Programs\Python\Python313\Lib\site-packages\nornir\core\inventory.py", line 528, in open_connection
+    conn_obj.open(
+    ~~~~~~~~~~~~~^
+        hostname=hostname,
+        ^^^^^^^^^^^^^^^^^^
+    ...<5 lines>...
+        configuration=configuration,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "C:\Users\21366\AppData\Local\Programs\Python\Python313\Lib\site-packages\nornir_netmiko\connections\netmiko.py", line 59, in open
+    connection = ConnectHandler(**parameters)
+  File "C:\Users\21366\AppData\Local\Programs\Python\Python313\Lib\site-packages\netmiko\ssh_dispatcher.py", line 460, in ConnectHandler
+    return ConnectionClass(*args, **kwargs)
+  File "C:\Users\21366\AppData\Local\Programs\Python\Python313\Lib\site-packages\netmiko\base_connection.py", line 495, in __init__
+    self._open()
+    ~~~~~~~~~~^^
+  File "C:\Users\21366\AppData\Local\Programs\Python\Python313\Lib\site-packages\netmiko\base_connection.py", line 500, in _open
+    self.establish_connection()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\21366\AppData\Local\Programs\Python\Python313\Lib\site-packages\netmiko\base_connection.py", line 1168, in establish_connection
+    raise NetmikoTimeoutException(msg)
+netmiko.exceptions.NetmikoTimeoutException: TCP connection to device failed.
+
+Common causes of this problem are:
+1. Incorrect hostname or IP address.
+2. Wrong TCP port.
+3. Intermediate firewall blocking access.
+
+Device settings: cisco_ios 10.10.10.50:22
+
+
+
+2026-05-17 13:21:03,753 -  nornir.core -     INFO -        run() - Running task 'Création VLAN 88 - TEST' with args {'config_commands': ['vlan 88', 'name TEST', 'exit']} on 1 hosts
+2026-05-17 13:21:06,057 -  nornir.core -     INFO -        run() - Running task 'netmiko_save_config' with args {} on 1 hosts

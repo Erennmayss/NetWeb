@@ -5,6 +5,9 @@
   // ========================================================
 
   const STORAGE_KEY = 'netguardSession';
+  const API_BASE_STORAGE_KEY = 'netguardApiBaseUrl';
+  // Replace this fallback with your public ngrok/cloudflared URL for Vercel deployments.
+  const DEFAULT_API_BASE_URL = ' https://sufferer-cortex-starfish.ngrok-free.dev';
   const ROLES = {
     ADMIN: 'ADMIN',
     NETWORK_ADMIN: 'NETWORK_ADMIN',
@@ -72,6 +75,34 @@
     localStorage.removeItem('jwtToken');
   }
 
+  function normalizeApiBaseUrl(value) {
+    return String(value || '').trim().replace(/\/+$/, '');
+  }
+
+  function getApiBaseUrl() {
+    const configuredValue =
+      window.NETGUARD_API_BASE ||
+      localStorage.getItem(API_BASE_STORAGE_KEY) ||
+      DEFAULT_API_BASE_URL;
+
+    return normalizeApiBaseUrl(configuredValue) || DEFAULT_API_BASE_URL;
+  }
+
+  function setApiBaseUrl(value) {
+    const normalizedValue = normalizeApiBaseUrl(value);
+    if (!normalizedValue) {
+      localStorage.removeItem(API_BASE_STORAGE_KEY);
+      return;
+    }
+
+    localStorage.setItem(API_BASE_STORAGE_KEY, normalizedValue);
+  }
+
+  function buildApiUrl(path) {
+    const normalizedPath = String(path || '').startsWith('/') ? path : `/${path || ''}`;
+    return `${getApiBaseUrl()}${normalizedPath}`;
+  }
+
   function getRole() {
     const session = getSession();
     return session ? session.role : null;
@@ -131,7 +162,7 @@
     }
 
     try {
-      const resp = await fetch('/forgot-password', {
+      const resp = await fetch(buildApiUrl('/forgot-password'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email })
@@ -158,7 +189,7 @@
     }
 
     try {
-      const resp = await fetch('/reset-password', {
+      const resp = await fetch(buildApiUrl('/reset-password'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ token, new_password: newPassword })
@@ -175,7 +206,7 @@
 
   async function authenticate(username, password) {
     try {
-      const response = await fetch('/login', {
+      const response = await fetch(buildApiUrl('/login'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username, password })
@@ -232,6 +263,9 @@
     requirePageAccess,
     authenticate,
     getAuthHeaders,
+    getApiBaseUrl,
+    setApiBaseUrl,
+    buildApiUrl,
     requestPasswordReset,
     performPasswordReset
   };
