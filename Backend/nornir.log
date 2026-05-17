@@ -672,3 +672,4 @@ Device settings: cisco_ios 10.10.10.50:22
 
 2026-05-17 13:21:03,753 -  nornir.core -     INFO -        run() - Running task 'Création VLAN 88 - TEST' with args {'config_commands': ['vlan 88', 'name TEST', 'exit']} on 1 hosts
 2026-05-17 13:21:06,057 -  nornir.core -     INFO -        run() - Running task 'netmiko_save_config' with args {} on 1 hosts
+2026-05-17 15:58:43,141 -  nornir.core -     INFO -        run() - Running task 'TFTP Backup running-config' with args {} on 1 hosts
