@@ -324,16 +324,33 @@ const API_URL = window.NetGuardAuth.getApiBaseUrl();
 
 /* ── Hook générique fetch ── */
 function useApi(endpoint) {
-  const [data, setData]     = useState(null);
+  const [data, setData]       = useState(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError]   = useState(null);
+  const [error, setError]     = useState(null);
+
   useEffect(() => {
     setLoading(true);
-    fetch(API_URL + endpoint)
-      .then(r => r.json())
-      .then(d => { setData(d); setLoading(false); })
+    setError(null);
+    fetch(API_URL + endpoint, {
+      headers: window.NetGuardAuth.getAuthHeaders()   // ✅ FIX : headers d'auth inclus
+    })
+      .then(r => {
+        if (r.status === 401) {                        // ✅ FIX : gestion session expirée
+          window.NetGuardAuth.clearSession();
+          window.location.replace('login.html');
+          return null;
+        }
+        return r.json();
+      })
+      .then(d => {
+        if (d !== null && d !== undefined) {
+          setData(d);
+          setLoading(false);
+        }
+      })
       .catch(e => { setError(e.message); setLoading(false); });
   }, [endpoint]);
+
   return { data, loading, error };
 }
 
@@ -564,8 +581,8 @@ const PortsPage = () => {
   if (loading) return <Spinner />;
   if (error)   return <ErrMsg msg={error} />;
 
-  const tcpPorts   = data?.tcp_ports    || [];
-  const udpPorts   = data?.udp_ports    || [];
+  const tcpPorts     = data?.tcp_ports    || [];
+  const udpPorts     = data?.udp_ports    || [];
   const portActivity = data?.port_activity || [];
 
   return (
