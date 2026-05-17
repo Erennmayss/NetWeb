@@ -1130,8 +1130,8 @@ function _launchPBat(option, params, btn, originalLabel, successLabel) {
 
   // Poll API alertes toutes les 5 secondes
   async function _pollAlerts() {
-    // Ne pas requêter si l'onglet est en arrière-plan
-    if (document.hidden || !window.NetGuardAuth?.isAuthenticated()) {
+    // Ne pas requêter si l'onglet est masqué, si non-authentifié ou si hors-ligne
+    if (document.hidden || !window.NetGuardAuth?.isAuthenticated() || !navigator.onLine) {
       setTimeout(_pollAlerts, 30000);
       return;
     }
@@ -1147,7 +1147,7 @@ function _launchPBat(option, params, btn, originalLabel, successLabel) {
       _renderAlertsList(data.alerts || data.data || data.results || []);
 
       // Récupérer le total pour le badge (Uniquement si le menu est fermé pour économiser une requête)
-      if (_alertsDropdown && _alertsDropdown.hidden) {
+      if (_alertsDropdown && _alertsDropdown.hidden && !_isDashboardPage()) {
         var statsRes = await fetch(window.NetGuardAuth.buildApiUrl('/api/stats'), { headers: headers });
         var statsData = await statsRes.json();
         var total = parseInt((statsData.stats || statsData).total) || 0;
@@ -1160,6 +1160,10 @@ function _launchPBat(option, params, btn, originalLabel, successLabel) {
       // Intervalle beaucoup plus long (30s) pour éviter de saturer le tunnel ngrok
       setTimeout(_pollAlerts, 30000);
     }
+  }
+
+  function _isDashboardPage() {
+    return window.location.pathname.includes('dashboard.html');
   }
 
   _pollAlerts();
