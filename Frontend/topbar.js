@@ -1,4 +1,7 @@
 (function () {
+  if (window.__TOPBAR_INIT__) return;
+  window.__TOPBAR_INIT__ = true;
+
   const root = document.getElementById('topbar-root');
 
   if (!root) {
@@ -1127,6 +1130,12 @@ function _launchPBat(option, params, btn, originalLabel, successLabel) {
 
   // Poll API alertes toutes les 5 secondes
   async function _pollAlerts() {
+    // Ne pas requêter si l'onglet est en arrière-plan
+    if (document.hidden) {
+      setTimeout(_pollAlerts, 10000);
+      return;
+    }
+
     try {
       var token = localStorage.getItem('jwtToken');
       var headers = { 'Content-Type': 'application/json' };
@@ -1156,11 +1165,13 @@ function _launchPBat(option, params, btn, originalLabel, successLabel) {
       }
     } catch(e) {
       // Silencieux — API peut être indisponible
+    } finally {
+      // Planifier le prochain appel seulement quand le précédent est fini
+      setTimeout(_pollAlerts, 10000);
     }
   }
 
   _pollAlerts();
-  setInterval(_pollAlerts, 5000);
 
   // API publique : permet à alerts.html de réinitialiser le badge topbar
   window.resetTopbarAlertBadge = function() {
