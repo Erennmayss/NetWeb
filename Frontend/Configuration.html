@@ -606,11 +606,6 @@ function App() {
   const [mirrorDeleteResult, setMirrorDeleteResult] = useState(null);
   const [showMirrorPanel, setShowMirrorPanel] = useState(false);
 
-  // Recherche et pagination pour ne pas rendre des milliers de lignes d'un coup
-  const [searchTerm, setSearchTerm] = useState('');
-  const [currentPage, setCurrentPage] = useState(1);
-  const PAGE_SIZE = 50;
-
   const sortRulesWithSnortAtEnd = (items) => {
     return [...items].sort((a, b) => {
       if (a.isSnortLibrary !== b.isSnortLibrary) {
@@ -620,22 +615,6 @@ function App() {
       return parseInt(a.sid) - parseInt(b.sid);
     });
   };
-
-  // Règles filtrées selon la recherche (recalculé seulement quand rules ou searchTerm changent)
-  const filteredRules = React.useMemo(() => {
-    if (!searchTerm.trim()) return rules;
-    const q = searchTerm.toLowerCase();
-    return rules.filter(r =>
-      r.sid.includes(q) ||
-      r.definition.toLowerCase().includes(q) ||
-      r.type.includes(q)
-    );
-  }, [rules, searchTerm]);
-
-  // Page courante des règles filtrées
-  const totalPages = Math.max(1, Math.ceil(filteredRules.length / PAGE_SIZE));
-  const safePage = Math.min(currentPage, totalPages);
-  const pagedRules = filteredRules.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
 
   const loadRules = useCallback(async (showSpinner = true) => {
     if (showSpinner) setLoading(true);
@@ -655,17 +634,19 @@ function App() {
 
       setRules(sorted);
 
-      // Sélectionner seulement si aucune règle n'est encore sélectionnée
-      setSelectedSid(prev => {
-        if (prev && sorted.some(r => r.sid === prev)) return prev;
-        return sorted.length > 0 ? sorted[0].sid : null;
-      });
+      if (sorted.length > 0) {
+        const still = sorted.some(r => r.sid === selectedSid);
+        if (!still || !selectedSid) setSelectedSid(sorted[0].sid);
+      } else {
+        setSelectedSid(null);
+        setEditorValue('');
+      }
     } catch (err) {
       setToast({ message: 'Erreur : ' + err.message, type: 'error' });
     } finally {
       if (showSpinner) setLoading(false);
     }
-  }, []); // Plus de dépendance sur selectedSid → pas de re-fetch inutile
+  }, [selectedSid]);
 
   useEffect(() => {
     loadRules(true);
@@ -1006,32 +987,7 @@ function App() {
       <div className="manage-section">
         <div className="section-header">
           <span className="section-title">Règles IDS</span>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <span style={{ fontSize: 11, color: '#94a3b8' }}>
-              {filteredRules.length} / {rules.length} règle(s)
-            </span>
-            <div className="status-indicator" style={{ background: rules.length > 0 ? '#22c55e' : '#ef4444' }}></div>
-          </div>
-        </div>
-
-        {/* Barre de recherche */}
-        <div style={{ display: 'flex', gap: 10, alignItems: 'center', marginBottom: 10 }}>
-          <input
-            type="text"
-            value={searchTerm}
-            onChange={e => { setSearchTerm(e.target.value); setCurrentPage(1); }}
-            placeholder="Filtrer par SID, protocole ou contenu de la règle..."
-            style={{
-              flex: 1, border: '1.5px solid var(--border)', borderRadius: 10,
-              padding: '8px 14px', fontSize: 13, outline: 'none',
-              fontFamily: 'DM Mono, monospace', background: '#fafcff', color: 'var(--text)'
-            }}
-          />
-          {searchTerm && (
-            <button className="btn btn-outline" onClick={() => { setSearchTerm(''); setCurrentPage(1); }}>
-              Effacer
-            </button>
-          )}
+          <div className="status-indicator" style={{ background: rules.length > 0 ? '#22c55e' : '#ef4444' }}></div>
         </div>
 
         <div className="table-scroll-container">
@@ -1044,7 +1000,7 @@ function App() {
               </tr>
             </thead>
             <tbody>
-              {pagedRules.map(rule => (
+              {rules.map(rule => (
                 <tr
                   key={rule.sid}
                   className={selectedSid === rule.sid ? 'selected' : ''}
@@ -1056,40 +1012,16 @@ function App() {
                 </tr>
               ))}
 
-              {pagedRules.length === 0 && (
+              {rules.length === 0 && (
                 <tr>
                   <td colSpan="3" style={{ textAlign: 'center', padding: 40, color: '#94a3b8' }}>
-                    {searchTerm ? `Aucun résultat pour "${searchTerm}"` : 'Aucune règle. Écrivez une règle dans l\'éditeur ou importez depuis Snort.org.'}
+                    Aucune règle. Écrivez une règle dans l'éditeur ou importez depuis Snort.org.
                   </td>
                 </tr>
               )}
             </tbody>
           </table>
         </div>
-
-        {/* Pagination */}
-        {totalPages > 1 && (
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 10, fontSize: 12 }}>
-            <button
-              className="btn btn-outline"
-              onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-              disabled={safePage <= 1}
-            >
-              ← Précédent
-            </button>
-            <span style={{ color: '#64748b' }}>
-              Page <strong>{safePage}</strong> / {totalPages}
-              &nbsp;·&nbsp;règles {(safePage - 1) * PAGE_SIZE + 1}–{Math.min(safePage * PAGE_SIZE, filteredRules.length)}
-            </span>
-            <button
-              className="btn btn-outline"
-              onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-              disabled={safePage >= totalPages}
-            >
-              Suivant →
-            </button>
-          </div>
-        )}
 
         <div className="button-row">
           <button className="btn btn-primary" onClick={handleAddRule} disabled={actionLoading}>
