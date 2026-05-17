@@ -1,4 +1,7 @@
 (function () {
+  if (window.__TOPBAR_INIT__) return;
+  window.__TOPBAR_INIT__ = true;
+
   const root = document.getElementById('topbar-root');
 
   if (!root) {
@@ -1127,40 +1130,39 @@ function _launchPBat(option, params, btn, originalLabel, successLabel) {
 
   // Poll API alertes toutes les 5 secondes
   async function _pollAlerts() {
+    // Ne pas requêter si l'onglet est en arrière-plan
+    if (document.hidden || !window.NetGuardAuth?.isAuthenticated()) {
+      setTimeout(_pollAlerts, 30000);
+      return;
+    }
+
     try {
-      var token = localStorage.getItem('jwtToken');
-      var headers = { 'Content-Type': 'application/json' };
-      if (token) headers['Authorization'] = 'Bearer ' + token;
+      const headers = window.NetGuardAuth.getAuthHeaders();
 
       // Récupérer les alertes récentes
       var res = await fetch(window.NetGuardAuth.buildApiUrl('/api/alerts?limit=8&sort=desc'), { headers: headers });
       if (!res.ok) throw new Error('HTTP ' + res.status);
       var data = await res.json();
 
-      var alerts = data.alerts || data.data || data.results || [];
-      _renderAlertsList(alerts);
+      _renderAlertsList(data.alerts || data.data || data.results || []);
 
-      // Récupérer le total pour le badge
-      var statsRes = await fetch(window.NetGuardAuth.buildApiUrl('/api/stats'), { headers: headers });
-      var statsData = await statsRes.json();
-      if (statsData.success || statsData.stats) {
+      // Récupérer le total pour le badge (Uniquement si le menu est fermé pour économiser une requête)
+      if (_alertsDropdown && _alertsDropdown.hidden) {
+        var statsRes = await fetch(window.NetGuardAuth.buildApiUrl('/api/stats'), { headers: headers });
+        var statsData = await statsRes.json();
         var total = parseInt((statsData.stats || statsData).total) || 0;
-        if (_lastAlertCount === null) {
-          _lastAlertCount = total;
-        }
-        var newCount = Math.max(0, total - _lastAlertCount);
-        // Si dropdown ouvert, ne pas changer le badge
-        if (_alertsDropdown && _alertsDropdown.hidden) {
-          updateNotificationCount(newCount);
-        }
+        if (_lastAlertCount === null) _lastAlertCount = total;
+        updateNotificationCount(Math.max(0, total - _lastAlertCount));
       }
     } catch(e) {
       // Silencieux — API peut être indisponible
+    } finally {
+      // Intervalle beaucoup plus long (30s) pour éviter de saturer le tunnel ngrok
+      setTimeout(_pollAlerts, 30000);
     }
   }
 
   _pollAlerts();
-  setInterval(_pollAlerts, 5000);
 
   // API publique : permet à alerts.html de réinitialiser le badge topbar
   window.resetTopbarAlertBadge = function() {
