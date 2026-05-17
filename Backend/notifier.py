@@ -137,12 +137,33 @@ def parse_bool(value, default=False):
 
 
 def get_db_config():
+    """
+    Lit la configuration DB depuis les variables d'environnement chargées
+    par _load_runtime_env() (fichiers .env / notifier.conf dans CONFIG_DIR).
+    Aucune valeur par défaut hardcodée : toute la config vient du fichier de config.
+    """
+    required = {
+        "DB_NAME": os.getenv("DB_NAME"),
+        "DB_USER": os.getenv("DB_USER"),
+        "DB_PASSWORD": os.getenv("DB_PASSWORD"),
+        "DB_HOST": os.getenv("DB_HOST"),
+        "DB_PORT": os.getenv("DB_PORT", "5432"),
+    }
+
+    missing = [k for k, v in required.items() if not v]
+    if missing:
+        log.error(
+            f"Configuration DB incomplète — variables manquantes : {', '.join(missing)}. "
+            f"Vérifiez {CONFIG_DIR / '.env'} ou {CONFIG_DIR / 'notifier.conf'}."
+        )
+        raise RuntimeError(f"DB config incomplète : {missing}")
+
     return {
-        "dbname": os.getenv("DB_NAME", "ids_db"),
-        "user": os.getenv("DB_USER", "aya"),
-        "password": os.getenv("DB_PASSWORD", "aya"),
-        "host": os.getenv("DB_HOST", "192.168.1.2"),
-        "port": os.getenv("DB_PORT", "5432"),
+        "dbname":   required["DB_NAME"],
+        "user":     required["DB_USER"],
+        "password": required["DB_PASSWORD"],
+        "host":     required["DB_HOST"],
+        "port":     required["DB_PORT"],
     }
 
 

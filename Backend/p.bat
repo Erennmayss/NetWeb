@@ -12,12 +12,11 @@ set "RED=[91m"
 set "BLUE=[94m"
 set "RESET=[0m"
 
-title IDS Notifier - DB: 192.168.1.2
+title IDS Notifier
 
 echo.
 echo %BLUE%================================================================%RESET%
 echo %BLUE%    🛡️  IDS Alert Notifier - Windows v2.0%RESET%
-echo %BLUE%    📡  Base de donnees: 192.168.1.2:5432 (utilisateur: aya)%RESET%
 echo %BLUE%    📧  Notification email aux administrateurs incluse%RESET%
 echo %BLUE%================================================================%RESET%
 echo.
@@ -63,6 +62,50 @@ goto menu
 :: ══════════════════════════════════════════════════════════════
 :install
 echo.
+echo %BLUE%[CONFIGURATION BASE DE DONNEES]%RESET%
+echo.
+echo Entrez les parametres de connexion a votre base PostgreSQL.
+echo (Appuyez sur Entree pour garder la valeur entre parentheses)
+echo.
+
+:: Lire config existante si elle existe
+set "CONFIG_DIR_TEMP=%APPDATA%\IDS_Notifier"
+set "_DEF_HOST=localhost"
+set "_DEF_PORT=5432"
+set "_DEF_NAME=ids_db"
+set "_DEF_USER="
+set "_DEF_PASS="
+
+if exist "%CONFIG_DIR_TEMP%\.env" (
+    for /f "tokens=1,* delims==" %%A in (%CONFIG_DIR_TEMP%\.env) do (
+        if "%%A"=="DB_HOST"     set "_DEF_HOST=%%B"
+        if "%%A"=="DB_PORT"     set "_DEF_PORT=%%B"
+        if "%%A"=="DB_NAME"     set "_DEF_NAME=%%B"
+        if "%%A"=="DB_USER"     set "_DEF_USER=%%B"
+        if "%%A"=="DB_PASSWORD" set "_DEF_PASS=%%B"
+    )
+)
+
+set /p DB_HOST="  Hote PostgreSQL [!_DEF_HOST!]: "
+if "!DB_HOST!"=="" set "DB_HOST=!_DEF_HOST!"
+
+set /p DB_PORT="  Port            [!_DEF_PORT!]: "
+if "!DB_PORT!"=="" set "DB_PORT=!_DEF_PORT!"
+
+set /p DB_NAME="  Nom de la base  [!_DEF_NAME!]: "
+if "!DB_NAME!"=="" set "DB_NAME=!_DEF_NAME!"
+
+set /p DB_USER="  Utilisateur     [!_DEF_USER!]: "
+if "!DB_USER!"=="" set "DB_USER=!_DEF_USER!"
+
+set /p DB_PASS="  Mot de passe    : "
+if "!DB_PASS!"=="" set "DB_PASS=!_DEF_PASS!"
+
+echo.
+echo %GREEN%✓%RESET% Parametres DB : !DB_HOST!:!DB_PORT! / !DB_NAME! / user: !DB_USER!
+echo.
+
+echo.
 echo %GREEN%[1/11]%RESET% Verification de l'environnement Python...
 
 where python >nul 2>&1
@@ -92,11 +135,11 @@ set "TEST_SCRIPT=%TEMP%\test_db.py"
 echo import psycopg2
 echo try:
 echo     conn = psycopg2.connect(
-echo         dbname="ids_db",
-echo         user="aya",
-echo         password="aya",
-echo         host="192.168.1.2",
-echo         port="5432",
+echo         dbname="!DB_NAME!",
+echo         user="!DB_USER!",
+echo         password="!DB_PASS!",
+echo         host="!DB_HOST!",
+echo         port="!DB_PORT!",
 echo         connect_timeout=3
 echo     )
 echo     conn.close()
@@ -113,7 +156,7 @@ if "%DB_TEST%"=="OK" (
 ) else (
     echo %YELLOW%⚠%RESET% Attention: Impossible de se connecter a la base de donnees
     echo.
-    echo    Verifiez que PostgreSQL est accessible sur 192.168.1.2:5432
+    echo    Verifiez que PostgreSQL est accessible sur !DB_HOST!:!DB_PORT!
     echo    Le notifier demarrera quand meme mais ne pourra pas recuperer les alertes
     echo.
     set /p continue="Continuer quand meme (O/N) ? "
@@ -188,22 +231,22 @@ if not exist "%CONFIG_DIR%" mkdir "%CONFIG_DIR%"
 
 (
     echo # IDS Notifier Configuration
-    echo DB_NAME=ids_db
-    echo DB_USER=aya
-    echo DB_PASSWORD=aya
-    echo DB_HOST=192.168.1.2
-    echo DB_PORT=5432
+    echo DB_NAME=!DB_NAME!
+    echo DB_USER=!DB_USER!
+    echo DB_PASSWORD=!DB_PASS!
+    echo DB_HOST=!DB_HOST!
+    echo DB_PORT=!DB_PORT!
     echo POLL_INTERVAL=5
     echo ENABLE_SOUND=true
     echo MODE=db_direct
 ) > "%CONFIG_DIR%\notifier.conf"
 
 (
-    echo DB_NAME=ids_db
-    echo DB_USER=aya
-    echo DB_PASSWORD=aya
-    echo DB_HOST=192.168.1.2
-    echo DB_PORT=5432
+    echo DB_NAME=!DB_NAME!
+    echo DB_USER=!DB_USER!
+    echo DB_PASSWORD=!DB_PASS!
+    echo DB_HOST=!DB_HOST!
+    echo DB_PORT=!DB_PORT!
 ) > "%CONFIG_DIR%\.env"
 
 echo %GREEN%✓%RESET% Configuration creee dans %CONFIG_DIR%
@@ -260,7 +303,7 @@ set "TEST_ALERT=%TEMP%\create_test_alert.py"
 (
 echo import psycopg2, json
 echo try:
-echo     conn = psycopg2.connect(dbname="ids_db",user="aya",password="aya",host="192.168.1.2",port="5432")
+echo     conn = psycopg2.connect(dbname="!DB_NAME!",user="!DB_USER!",password="!DB_PASS!",host="!DB_HOST!",port="!DB_PORT!")
 echo     cur = conn.cursor()
 echo     cur.execute("""INSERT INTO alertes (attack_type,source_ip,destination_ip,severity,protocol,timestamp,details) VALUES (%%s,%%s,%%s,%%s,%%s,NOW(),%%s)""",("Test Installation - IDS Activee","192.168.1.100","192.168.1.200","low","TCP",json.dumps({"test":"Notification de test","source":"IDS Notifier"})))
 echo     conn.commit()
@@ -277,7 +320,7 @@ echo %GREEN%================================================================%RES
 echo %GREEN%              ✅ INSTALLATION REUSSIE ✅%RESET%
 echo %GREEN%================================================================%RESET%
 echo.
-echo 📡 Base de donnees : 192.168.1.2:5432 ^| ids_db ^| user: aya
+echo 📡 Base de donnees : !DB_HOST!:!DB_PORT! ^| !DB_NAME! ^| user: !DB_USER!
 echo 📁 Logs            : %CONFIG_DIR%\notifier.log
 echo 📁 Config          : %CONFIG_DIR%\notifier.conf
 if exist "%EMAIL_CONFIG%" (
