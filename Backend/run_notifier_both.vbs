@@ -1,4 +1,3 @@
-' IDS Notifier - Launcher dual (DB + Flask, invisible)
 Set oWS = WScript.CreateObject("WScript.Shell")
 sFile = "C:\\Users\\ADM\\Desktop\\NetWeb\\Backend\\notifier.py"
 sCmd = "pythonw """ & sFile & """ --api http://127.0.0.1:5000 --interval 5 --sound --both"
