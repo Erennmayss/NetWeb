@@ -337,7 +337,7 @@ function fmtTime(d) {
 // ─────────────────────────────────────────────
 async function fetchAndUpdateStats() {
   try {
-    const res  = await fetch(`${API_BASE_URL}/api/stats`);
+    const res  = await window.NetGuardAuth.apiFetch('/api/stats');
     const data = await res.json();
     if (data.success && data.stats) {
       const s = data.stats;
@@ -441,8 +441,8 @@ async function fetchPage(offset) {
   try {
     // Utilise la valeur réelle du select pour l'ordre (newest/oldest/sev)
     const sortParam = document.getElementById("sort-sel").value || "newest";
-    const res  = await fetch(
-      `${API_BASE_URL}/api/alerts?limit=${pgLimit}&offset=${offset}${sev}${search}${monthP}&sort=${sortParam}`
+    const res  = await window.NetGuardAuth.apiFetch(
+      `/api/alerts?limit=${pgLimit}&offset=${offset}${sev}${search}${monthP}&sort=${sortParam}`
     );
     const data = await res.json();
     if (!data.success) throw new Error(data.error);
@@ -593,7 +593,7 @@ async function showDetail(id) {
 
   // Enrichissement depuis /api/regles/by-message
   try {
-    const res  = await fetch(`${API_BASE_URL}/api/regles/by-message?message=${encodeURIComponent(a.name)}`);
+    const res  = await window.NetGuardAuth.apiFetch(`/api/regles/by-message?message=${encodeURIComponent(a.name)}`);
     const data = await res.json();
     if (data.success && data.found && data.regle) {
       const r = data.regle;
@@ -693,7 +693,7 @@ async function populateMonthSelector() {
   const sel = document.getElementById("pdf-month-sel");
   if (!sel) return;
   try {
-    const res  = await fetch(`${API_BASE_URL}/api/alerts?limit=99999&offset=0&sort=newest`);
+    const res  = await window.NetGuardAuth.apiFetch(`/api/alerts?limit=99999&offset=0&sort=newest`);
     const data = await res.json();
     if (!data.success) return;
 

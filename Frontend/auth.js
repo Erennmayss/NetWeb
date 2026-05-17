@@ -103,6 +103,42 @@
     return `${getApiBaseUrl()}${normalizedPath}`;
   }
 
+  function buildFetchOptions(method = 'GET', body = null, customHeaders = {}) {
+    const options = {
+      method,
+      headers: {
+        'Content-Type': 'application/json',
+        'ngrok-skip-browser-warning': 'true',
+        ...customHeaders
+      }
+    };
+    if (body) {
+      options.body = typeof body === 'string' ? body : JSON.stringify(body);
+    }
+    return options;
+  }
+
+  // API Fetch wrapper that always includes ngrok header
+  async function apiFetch(path, options = {}) {
+    const url = buildApiUrl(path);
+    const method = options.method || 'GET';
+    const body = options.body;
+    const customHeaders = options.headers || {};
+    const authHeaders = getAuthHeaders();
+    const fetchOptions = {
+      method,
+      headers: {
+        ...authHeaders,
+        ...customHeaders,
+        'ngrok-skip-browser-warning': 'true'
+      }
+    };
+    if (body) {
+      fetchOptions.body = typeof body === 'string' ? body : JSON.stringify(body);
+    }
+    return fetch(url, fetchOptions);
+  }
+
   function getRole() {
     const session = getSession();
     return session ? session.role : null;
@@ -239,12 +275,17 @@
 
   function getAuthHeaders() {
     if (DEV_MODE) {
-      return { 'Content-Type': 'application/json', 'Authorization': 'Bearer dev-token' };
+      return { 
+        'Content-Type': 'application/json', 
+        'Authorization': 'Bearer dev-token',
+        'ngrok-skip-browser-warning': 'true'
+      };
     }
     const token = localStorage.getItem('jwtToken');
     return {
       'Content-Type': 'application/json',
-      'Authorization': token ? `Bearer ${token}` : ''
+      'Authorization': token ? `Bearer ${token}` : '',
+      'ngrok-skip-browser-warning': 'true'
     };
   }
 
@@ -266,6 +307,8 @@
     getApiBaseUrl,
     setApiBaseUrl,
     buildApiUrl,
+    buildFetchOptions,
+    apiFetch,
     requestPasswordReset,
     performPasswordReset
   };

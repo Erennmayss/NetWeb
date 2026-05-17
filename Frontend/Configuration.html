@@ -318,7 +318,7 @@ const API_BASE_URL = window.NetGuardAuth.getApiBaseUrl();
 
 const api = {
   async getRules() {
-    const r = await fetch(`${API_BASE_URL}/api/regles`);
+    const r = await window.NetGuardAuth.apiFetch('/api/regles');
     if (!r.ok) throw new Error(`HTTP ${r.status}`);
     const d = await r.json();
     if (!d.success) throw new Error(d.error || "Erreur inconnue");
@@ -327,9 +327,8 @@ const api = {
     return arr;
   },
   async addRule(rule) {
-    const r = await fetch(`${API_BASE_URL}/api/regles`, {
+    const r = await window.NetGuardAuth.apiFetch('/api/regles', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ rule })
     });
     const d = await r.json();
@@ -337,9 +336,8 @@ const api = {
     return d;
   },
   async updateRule(sid, rule) {
-    const r = await fetch(`${API_BASE_URL}/api/regles/${sid}`, {
+    const r = await window.NetGuardAuth.apiFetch(`/api/regles/${sid}`, {
       method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ rule })
     });
     const d = await r.json();
@@ -347,13 +345,13 @@ const api = {
     return d;
   },
   async deleteRule(sid) {
-    const r = await fetch(`${API_BASE_URL}/api/regles/${sid}`, { method: 'DELETE' });
+    const r = await window.NetGuardAuth.apiFetch(`/api/regles/${sid}`, { method: 'DELETE' });
     const d = await r.json();
     if (!d.success) throw new Error(d.error);
     return d;
   },
   async resetRules() {
-    const r = await fetch(`${API_BASE_URL}/api/regles/reset`, { method: 'POST' });
+    const r = await window.NetGuardAuth.apiFetch('/api/regles/reset', { method: 'POST' });
     const d = await r.json();
     if (!d.success) throw new Error(d.error);
     return d;
@@ -806,7 +804,7 @@ function App() {
 
   const handleDownloadFile = async () => {
     try {
-      const r = await fetch(`${API_BASE_URL}/api/regles/export`);
+      const r = await window.NetGuardAuth.apiFetch('/api/regles/export');
       if (!r.ok) throw new Error(`HTTP ${r.status}`);
 
       const blob = await r.blob();
@@ -836,9 +834,10 @@ function App() {
       const formData = new FormData();
       formData.append('file', file);
 
-      const r = await fetch(`${API_BASE_URL}/api/regles/import`, {
+      const r = await window.NetGuardAuth.apiFetch('/api/regles/import', {
         method: 'POST',
-        body: formData
+        body: formData,
+        headers: {}
       });
 
       const d = await r.json();
@@ -867,9 +866,8 @@ function App() {
     setMirrorResult(null);
 
     try {
-      const res = await fetch(`${API_BASE_URL}/api/network/port-mirroring`, {
+      const res = await window.NetGuardAuth.apiFetch('/api/network/port-mirroring', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           session_id: parseInt(mirrorSessionId),
           source_vlan: parseInt(mirrorSourceVlan),

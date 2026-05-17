@@ -357,7 +357,7 @@
 
       const loadStats = async () => {
         try {
-          const response = await fetch(`${API_BASE_URL}/api/stats`);
+          const response = await window.NetGuardAuth.apiFetch('/api/stats');
           const data = await response.json();
           if (data.success && data.stats) {
             setStats(data.stats);
@@ -369,7 +369,7 @@
 
       const loadRecentAlerts = async () => {
         try {
-          const response = await fetch(`${API_BASE_URL}/api/alerts?limit=5&sort=newest`);
+          const response = await window.NetGuardAuth.apiFetch('/api/alerts?limit=5&sort=newest');
           const data = await response.json();
           if (data.success && data.alerts) {
             setRecentAlerts(data.alerts.slice(0, 5));
@@ -381,7 +381,7 @@
 
       const loadAllAlerts = async () => {
         try {
-          const response = await fetch(`${API_BASE_URL}/api/alerts?limit=200&sort=newest`);
+          const response = await window.NetGuardAuth.apiFetch('/api/alerts?limit=200&sort=newest');
           const data = await response.json();
           if (data.success && data.alerts) {
             setTrafficStatus(analyzeTrafficStatus(data.alerts));
@@ -393,7 +393,7 @@
 
       const loadRulesCount = async () => {
         try {
-          const response = await fetch(`${API_BASE_URL}/api/regles`);
+          const response = await window.NetGuardAuth.apiFetch('/api/regles');
           const data = await response.json();
           if (data.success) {
             setRulesCount(data.count || 0);
@@ -405,8 +405,8 @@
 
       const loadVlans = async () => {
         try {
-          const response = await fetch(`${API_BASE_URL}/api/vlan`, {
-            headers: auth.getAuthHeaders()
+          const response = await window.NetGuardAuth.apiFetch('/api/vlan', {
+            headers: {}
           });
           const data = await response.json();
           if (response.ok && data.success) {
@@ -424,8 +424,8 @@
 
       const loadInterfaces = async () => {
         try {
-          const response = await fetch(`${API_BASE_URL}/api/interface`, {
-            headers: auth.getAuthHeaders()
+          const response = await window.NetGuardAuth.apiFetch('/api/interface', {
+            headers: {}
           });
           const data = await response.json();
           if (response.ok && data.success) {
@@ -443,7 +443,7 @@
 
       const loadLastTriggeredRule = async () => {
         try {
-          const response = await fetch(`${API_BASE_URL}/api/last-triggered-rule`);
+          const response = await window.NetGuardAuth.apiFetch('/api/last-triggered-rule');
           const data = await response.json();
           if (data.success && data.has_alert && data.rule) {
             setLastTriggeredRule(data.rule);
@@ -458,12 +458,8 @@
 
       const loadUserActivities = async () => {
         try {
-          const token = localStorage.getItem('jwtToken');
-          const response = await fetch(`${API_BASE_URL}/api/users/activity`, {
-            headers: {
-              'Authorization': token ? `Bearer ${token}` : '',
-              'Content-Type': 'application/json'
-            }
+          const response = await window.NetGuardAuth.apiFetch('/api/users/activity', {
+            headers: {}
           });
           const data = await response.json();
           if (data.success && data.logs) {
