@@ -315,4 +315,7 @@ echo   Le notifier surveille la base toutes les 5 secondes.
 echo   Il redémarre automatiquement à chaque démarrage Windows.
 echo.
 pause
+
+
+
 exit /b 0
