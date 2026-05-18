@@ -1136,8 +1136,14 @@ function _launchPBat(option, params, btn, originalLabel, successLabel) {
       return;
     }
 
+    if (_isDashboardPage()) {
+      setTimeout(_pollAlerts, 60000);
+      return;
+    }
+
     try {
-      const headers = window.NetGuardAuth.getAuthHeaders();
+      const headers = { ...window.NetGuardAuth.getAuthHeaders() };
+      delete headers['Content-Type'];
 
       // Récupérer les alertes récentes
       var res = await fetch(window.NetGuardAuth.buildApiUrl('/api/alerts?limit=8&sort=desc'), { headers: headers });
@@ -1147,7 +1153,7 @@ function _launchPBat(option, params, btn, originalLabel, successLabel) {
       _renderAlertsList(data.alerts || data.data || data.results || []);
 
       // Récupérer le total pour le badge (Uniquement si le menu est fermé pour économiser une requête)
-      if (_alertsDropdown && _alertsDropdown.hidden && !_isDashboardPage()) {
+      if (_alertsDropdown && _alertsDropdown.hidden) {
         var statsRes = await fetch(window.NetGuardAuth.buildApiUrl('/api/stats'), { headers: headers });
         var statsData = await statsRes.json();
         var total = parseInt((statsData.stats || statsData).total) || 0;

@@ -7,6 +7,7 @@ import tarfile
 import io
 
 regles_bp = Blueprint("regles", __name__)
+_REGLES_SOURCE_SCHEMA_READY = False
 
 
 def preparer_source_regles():
@@ -18,6 +19,10 @@ def preparer_source_regles():
       - file   : règle importée depuis fichier
       - snort  : règle téléchargée depuis la bibliothèque Snort
     """
+    global _REGLES_SOURCE_SCHEMA_READY
+    if _REGLES_SOURCE_SCHEMA_READY:
+        return
+
     conn = get_db_connection()
     if conn is None:
         return
@@ -29,26 +34,8 @@ def preparer_source_regles():
                 ADD COLUMN IF NOT EXISTS source VARCHAR(30) DEFAULT 'manual';
             """)
 
-            cursor.execute("""
-                UPDATE regles
-                SET source = 'snort'
-                WHERE
-                    sid < 1000000
-                    OR rule ILIKE '%ruleset community%'
-                    OR rule ILIKE '%ruleset registered%'
-                    OR rule ILIKE '%ruleset subscriber%'
-                    OR rule ILIKE '%metadata:%ruleset%'
-                    OR rule ILIKE '%Cisco Talos%'
-                    OR rule ILIKE '%snort.org%';
-            """)
-
-            cursor.execute("""
-                UPDATE regles
-                SET source = 'manual'
-                WHERE source IS NULL OR source = '';
-            """)
-
             conn.commit()
+            _REGLES_SOURCE_SCHEMA_READY = True
 
     except Exception as e:
         print(f"❌ Erreur préparation source règles : {e}")
@@ -68,12 +55,28 @@ def afficher_db():
     try:
         cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
         cur.execute("""
-            SELECT sid, rule, COALESCE(source, 'manual') AS source
+            SELECT
+                sid,
+                rule,
+                COALESCE(
+                    NULLIF(source, ''),
+                    CASE
+                        WHEN sid < 1000000
+                             OR rule ILIKE '%ruleset community%'
+                             OR rule ILIKE '%ruleset registered%'
+                             OR rule ILIKE '%ruleset subscriber%'
+                             OR rule ILIKE '%metadata:%ruleset%'
+                             OR rule ILIKE '%Cisco Talos%'
+                             OR rule ILIKE '%snort.org%'
+                        THEN 'snort'
+                        ELSE 'manual'
+                    END
+                ) AS source
             FROM regles
             ORDER BY
                 CASE
-                    WHEN COALESCE(source, 'manual') = 'snort' THEN 2
-                    WHEN COALESCE(source, 'manual') = 'file' THEN 1
+                    WHEN COALESCE(NULLIF(source, ''), CASE WHEN sid < 1000000 THEN 'snort' ELSE 'manual' END) = 'snort' THEN 2
+                    WHEN COALESCE(NULLIF(source, ''), CASE WHEN sid < 1000000 THEN 'snort' ELSE 'manual' END) = 'file' THEN 1
                     ELSE 0
                 END,
                 sid;

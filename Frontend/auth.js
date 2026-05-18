@@ -107,13 +107,17 @@
     const options = {
       method,
       headers: {
-        'Content-Type': 'application/json',
         'ngrok-skip-browser-warning': 'true',
         ...customHeaders
       }
     };
     if (body) {
-      options.body = typeof body === 'string' ? body : JSON.stringify(body);
+      if (!(body instanceof FormData) && !options.headers['Content-Type']) {
+        options.headers['Content-Type'] = 'application/json';
+      }
+      options.body = body instanceof FormData || typeof body === 'string'
+        ? body
+        : JSON.stringify(body);
     }
     return options;
   }
@@ -133,8 +137,16 @@
         'ngrok-skip-browser-warning': 'true'
       }
     };
+    if (!body && !customHeaders['Content-Type']) {
+      delete fetchOptions.headers['Content-Type'];
+    }
     if (body) {
-      fetchOptions.body = typeof body === 'string' ? body : JSON.stringify(body);
+      if (!(body instanceof FormData) && !fetchOptions.headers['Content-Type']) {
+        fetchOptions.headers['Content-Type'] = 'application/json';
+      }
+      fetchOptions.body = body instanceof FormData || typeof body === 'string'
+        ? body
+        : JSON.stringify(body);
     }
     return fetch(url, fetchOptions);
   }
@@ -276,7 +288,7 @@
   function getAuthHeaders() {
     if (DEV_MODE) {
       return { 
-        'Content-Type': 'application/json', 
+        'Content-Type': 'application/json',
         'Authorization': 'Bearer dev-token',
         'ngrok-skip-browser-warning': 'true'
       };

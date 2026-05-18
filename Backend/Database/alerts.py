@@ -41,6 +41,20 @@ def row_to_alert(row):
     }
 
 
+def analyze_traffic_status(alerts):
+    critical_count = sum(1 for alert in alerts if alert.get("severity") == "critical")
+    medium_count = sum(1 for alert in alerts if alert.get("severity") == "medium")
+    total_count = len(alerts)
+
+    if critical_count >= 5:
+        return {"status": "Critique", "color": "#ef4444", "bg": "bg-red"}
+    if critical_count >= 2 or medium_count >= 8:
+        return {"status": "Sous surveillance", "color": "#f59e0b", "bg": "bg-amber"}
+    if total_count >= 30:
+        return {"status": "Activite elevee", "color": "#3b82f6", "bg": "bg-blue"}
+    return {"status": "Normal", "color": "#22c55e", "bg": "bg-green"}
+
+
 @alerts_bp.route("/api/alerts", methods=["GET"])
 def get_alerts():
     severity = request.args.get("severity")
@@ -278,6 +292,158 @@ def get_stats():
         """)
         row = cur.fetchone()
         return jsonify({"success": True, "stats": dict(row)})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+    finally:
+        conn.close()
+
+
+@alerts_bp.route("/api/dashboard/summary", methods=["GET"])
+def get_dashboard_summary():
+    conn = get_db_connection()
+    try:
+        cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+
+        cur.execute("""
+            SELECT
+                COUNT(*)                                                                AS total,
+                COUNT(*) FILTER (WHERE LOWER(severity) IN
+                    ('critical','critique','high','Ã©levÃ©e','elevee'))                   AS critical,
+                COUNT(*) FILTER (WHERE LOWER(severity) IN ('medium','moyen','moyenne')) AS medium,
+                COUNT(*) FILTER (WHERE LOWER(severity) IN ('low','faible','basse'))     AS low,
+                COUNT(DISTINCT source_ip)                                               AS unique_sources,
+                COUNT(*) FILTER (WHERE timestamp >= NOW() - INTERVAL '1 minute')       AS rate_per_minute
+            FROM alertes
+        """)
+        stats = dict(cur.fetchone() or {})
+
+        cur.execute("""
+            SELECT id, timestamp, source_ip, destination_ip,
+                   attack_type, severity, detection_engine,
+                   details, protocol, source_port, destination_port,
+                   loss, volume, service
+            FROM alertes
+            ORDER BY timestamp DESC
+            LIMIT 200
+        """)
+        alerts = [row_to_alert(row) for row in cur.fetchall()]
+
+        cur.execute("SELECT COUNT(*) AS count FROM regles")
+        rules_count = int((cur.fetchone() or {}).get("count") or 0)
+
+        cur.execute("""
+            SELECT id_vlan, nom, reseau, gateway, type, ports, status, switch_name, switch_ip
+            FROM vlan
+            ORDER BY id_vlan DESC
+        """)
+        vlans = [dict(row) for row in cur.fetchall()]
+        quarantine_vlan = next(
+            (row for row in vlans if str(row.get("status") or "").lower() == "alert"),
+            None
+        )
+
+        cur.execute("""
+            SELECT
+                COUNT(*) AS total,
+                COUNT(*) FILTER (WHERE UPPER(COALESCE(status, '')) = 'UP') AS up,
+                COUNT(*) FILTER (WHERE UPPER(COALESCE(status, '')) <> 'UP') AS down,
+                COUNT(*) FILTER (WHERE port_security = TRUE) AS secure_ports,
+                BOOL_OR(COALESCE(port_security, FALSE) = FALSE AND UPPER(COALESCE(status, '')) = 'UP') AS has_alert
+            FROM interface
+        """)
+        interface_row = cur.fetchone() or {}
+        interface_stats = {
+            "total": int(interface_row.get("total") or 0),
+            "up": int(interface_row.get("up") or 0),
+            "down": int(interface_row.get("down") or 0),
+            "securePorts": int(interface_row.get("secure_ports") or 0),
+            "hasAlert": bool(interface_row.get("has_alert") or False),
+        }
+
+        cur.execute("""
+            SELECT username, action, timestamp
+            FROM (
+                SELECT username, 'login' AS action, last_login AS timestamp
+                FROM utilisateur
+                WHERE last_login IS NOT NULL
+                UNION ALL
+                SELECT username, 'logout' AS action, last_logout AS timestamp
+                FROM utilisateur
+                WHERE last_logout IS NOT NULL
+            ) activity
+            ORDER BY timestamp DESC
+            LIMIT 10
+        """)
+        user_activities = [
+            {
+                "username": row["username"],
+                "action": row["action"],
+                "timestamp": row["timestamp"].isoformat() if row["timestamp"] else None,
+            }
+            for row in cur.fetchall()
+        ]
+
+        cur.execute("""
+            SELECT
+                id,
+                timestamp,
+                attack_type,
+                details,
+                protocol,
+                severity
+            FROM alertes
+            ORDER BY timestamp DESC
+            LIMIT 1
+        """)
+        last_alert = cur.fetchone()
+        last_triggered_rule = None
+        if last_alert:
+            import re
+
+            details = last_alert.get("details", "")
+            sid_match = re.search(r"sid:(\d+)", details)
+            last_triggered_rule = {
+                "name": last_alert.get("attack_type", "Attaque detectee"),
+                "action": "ALERT",
+                "description": f"Protocole: {last_alert.get('protocol', 'N/A')}",
+                "sid": None,
+            }
+
+            if sid_match:
+                sid = int(sid_match.group(1))
+                last_triggered_rule["sid"] = sid
+
+                cur.execute("""
+                    SELECT sid, rule, action, protocol, src_ip, dst_ip
+                    FROM regles
+                    WHERE sid = %s
+                """, (sid,))
+                db_rule = cur.fetchone()
+
+                if db_rule:
+                    msg_match = re.search(r'msg:"(.*?)"', db_rule["rule"] or "")
+                    last_triggered_rule["name"] = msg_match.group(1) if msg_match else f"Regle SID {sid}"
+                    last_triggered_rule["action"] = (db_rule.get("action") or "alert").upper()
+                    last_triggered_rule["description"] = (
+                        f"{(db_rule.get('protocol') or 'TCP').upper()} "
+                        f"{db_rule.get('src_ip', 'any')} -> {db_rule.get('dst_ip', 'any')}"
+                    )
+
+        return jsonify({
+            "success": True,
+            "stats": stats,
+            "recentAlerts": alerts[:5],
+            "trafficStatus": analyze_traffic_status(alerts),
+            "rulesCount": rules_count,
+            "vlanStats": {
+                "count": len(vlans),
+                "lastCreated": vlans[0] if vlans else None,
+                "quarantine": quarantine_vlan,
+            },
+            "interfaceStats": interface_stats,
+            "lastTriggeredRule": last_triggered_rule,
+            "userActivities": user_activities,
+        })
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 500
     finally:

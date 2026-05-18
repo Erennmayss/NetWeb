@@ -355,118 +355,29 @@
       const [lastTriggeredRule, setLastTriggeredRule] = useState(null);
       const [userActivities, setUserActivities] = useState([]);
 
-      const loadStats = async () => {
-        try {
-          const response = await window.NetGuardAuth.apiFetch('/api/stats');
-          const data = await response.json();
-          if (data.success && data.stats) {
-            setStats(data.stats);
-          }
-        } catch (error) {
-          console.error('Erreur chargement stats:', error);
-        }
+      const applyDashboardSummary = (data) => {
+        if (data.stats) setStats(data.stats);
+        if (Array.isArray(data.recentAlerts)) setRecentAlerts(data.recentAlerts.slice(0, 5));
+        if (data.trafficStatus) setTrafficStatus(data.trafficStatus);
+        if (typeof data.rulesCount === 'number') setRulesCount(data.rulesCount);
+        if (data.vlanStats) setVlanStats(data.vlanStats);
+        if (data.interfaceStats) setInterfaceStats(data.interfaceStats);
+        setLastTriggeredRule(data.lastTriggeredRule || null);
+        if (Array.isArray(data.userActivities)) setUserActivities(data.userActivities);
       };
 
-      const loadRecentAlerts = async () => {
+      const loadDashboardSummary = async (showSpinner = false) => {
+        if (showSpinner) setLoading(true);
         try {
-          const response = await window.NetGuardAuth.apiFetch('/api/alerts?limit=5&sort=newest');
-          const data = await response.json();
-          if (data.success && data.alerts) {
-            setRecentAlerts(data.alerts.slice(0, 5));
-          }
-        } catch (error) {
-          console.error('Erreur chargement alertes:', error);
-        }
-      };
-
-      const loadAllAlerts = async () => {
-        try {
-          const response = await window.NetGuardAuth.apiFetch('/api/alerts?limit=200&sort=newest');
-          const data = await response.json();
-          if (data.success && data.alerts) {
-            setTrafficStatus(analyzeTrafficStatus(data.alerts));
-          }
-        } catch (error) {
-          console.error('Erreur chargement toutes alertes:', error);
-        }
-      };
-
-      const loadRulesCount = async () => {
-        try {
-          const response = await window.NetGuardAuth.apiFetch('/api/regles');
-          const data = await response.json();
-          if (data.success) {
-            setRulesCount(data.count || 0);
-          }
-        } catch (error) {
-          console.error('Erreur chargement regles:', error);
-        }
-      };
-
-      const loadVlans = async () => {
-        try {
-          const response = await window.NetGuardAuth.apiFetch('/api/vlan', {
-            headers: {}
-          });
+          const response = await window.NetGuardAuth.apiFetch('/api/dashboard/summary');
           const data = await response.json();
           if (response.ok && data.success) {
-            const items = (data.vlans || []).slice().sort((a, b) => Number(b.id_vlan ?? b.id) - Number(a.id_vlan ?? a.id));
-            setVlanStats({
-              count: data.count || items.length,
-              lastCreated: items[0] || null,
-              quarantine: items.find((item) => String(item.status).toLowerCase() === 'alert') || null
-            });
+            applyDashboardSummary(data);
           }
         } catch (error) {
-          console.error('Erreur chargement VLANs:', error);
-        }
-      };
-
-      const loadInterfaces = async () => {
-        try {
-          const response = await window.NetGuardAuth.apiFetch('/api/interface', {
-            headers: {}
-          });
-          const data = await response.json();
-          if (response.ok && data.success) {
-            const items = data.interfaces || [];
-            const up = items.filter((item) => String(item.status).toUpperCase() === 'UP').length;
-            const down = items.filter((item) => String(item.status).toUpperCase() !== 'UP').length;
-            const securePorts = items.filter((item) => Boolean(item.port_security) === true).length;
-            const hasAlert = items.some((item) => Boolean(item.port_security) === false && String(item.status).toUpperCase() === 'UP');
-            setInterfaceStats({ total: items.length, up, down, securePorts, hasAlert });
-          }
-        } catch (error) {
-          console.error('Erreur chargement interfaces:', error);
-        }
-      };
-
-      const loadLastTriggeredRule = async () => {
-        try {
-          const response = await window.NetGuardAuth.apiFetch('/api/last-triggered-rule');
-          const data = await response.json();
-          if (data.success && data.has_alert && data.rule) {
-            setLastTriggeredRule(data.rule);
-          } else {
-            setLastTriggeredRule(null);
-          }
-        } catch (error) {
-          console.error('Erreur chargement derniere regle:', error);
-          setLastTriggeredRule(null);
-        }
-      };
-
-      const loadUserActivities = async () => {
-        try {
-          const response = await window.NetGuardAuth.apiFetch('/api/users/activity', {
-            headers: {}
-          });
-          const data = await response.json();
-          if (data.success && data.logs) {
-            setUserActivities(data.logs);
-          }
-        } catch (error) {
-          console.error('Erreur chargement activites:', error);
+          console.error('Erreur chargement dashboard:', error);
+        } finally {
+          if (showSpinner) setLoading(false);
         }
       };
 
@@ -483,46 +394,34 @@
       };
 
       const loadAllData = async () => {
-        setLoading(true);
-        await Promise.all([
-          loadStats(),
-          loadRecentAlerts(),
-          loadRulesCount(),
-          loadVlans(),
-          loadInterfaces(),
-          loadAllAlerts(),
-          loadLastTriggeredRule(),
-          loadUserActivities()
-        ]);
-        setLoading(false);
+        await loadDashboardSummary(true);
       };
 
       useEffect(() => {
         loadAllData();
 
         const refreshData = () => {
-          loadVlans();
-          loadInterfaces();
+          loadDashboardSummary(false);
         };
 
         const handleStorage = (event) => {
           if (event.key === 'netguard-vlan-updated-at') {
-            loadVlans();
+            loadDashboardSummary(false);
           }
         };
 
         window.addEventListener('storage', handleStorage);
         window.addEventListener('focus', refreshData);
-        window.addEventListener('netguard:vlan-updated', loadVlans);
-        window.addEventListener('netguard:interface-updated', loadInterfaces);
+        window.addEventListener('netguard:vlan-updated', refreshData);
+        window.addEventListener('netguard:interface-updated', refreshData);
 
-        const intervalId = window.setInterval(refreshData, 30000);
+        const intervalId = window.setInterval(refreshData, 60000);
 
         return () => {
           window.removeEventListener('storage', handleStorage);
           window.removeEventListener('focus', refreshData);
-          window.removeEventListener('netguard:vlan-updated', loadVlans);
-          window.removeEventListener('netguard:interface-updated', loadInterfaces);
+          window.removeEventListener('netguard:vlan-updated', refreshData);
+          window.removeEventListener('netguard:interface-updated', refreshData);
           window.clearInterval(intervalId);
         };
       }, []);
