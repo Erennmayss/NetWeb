@@ -1,6 +1,7 @@
 from flask import Blueprint, jsonify, request, send_file
 from Database.db import get_db_connection
 import psycopg2.extras
+import os
 import re
 import requests
 import tarfile
@@ -23,6 +24,10 @@ def preparer_source_regles():
     if _REGLES_SOURCE_SCHEMA_READY:
         return
 
+    if os.getenv("DB_PREPARE_REGLES_SCHEMA", "0") != "1":
+        _REGLES_SOURCE_SCHEMA_READY = True
+        return
+
     conn = get_db_connection()
     if conn is None:
         return
@@ -32,6 +37,21 @@ def preparer_source_regles():
             cursor.execute("""
                 ALTER TABLE regles
                 ADD COLUMN IF NOT EXISTS source VARCHAR(30) DEFAULT 'manual';
+            """)
+            cursor.execute("""
+                UPDATE regles
+                SET source = CASE
+                    WHEN sid < 1000000
+                         OR rule ILIKE '%ruleset community%'
+                         OR rule ILIKE '%ruleset registered%'
+                         OR rule ILIKE '%ruleset subscriber%'
+                         OR rule ILIKE '%metadata:%ruleset%'
+                         OR rule ILIKE '%Cisco Talos%'
+                         OR rule ILIKE '%snort.org%'
+                    THEN 'snort'
+                    ELSE 'manual'
+                END
+                WHERE source IS NULL OR source = '';
             """)
 
             conn.commit()
@@ -58,25 +78,12 @@ def afficher_db():
             SELECT
                 sid,
                 rule,
-                COALESCE(
-                    NULLIF(source, ''),
-                    CASE
-                        WHEN sid < 1000000
-                             OR rule ILIKE '%ruleset community%'
-                             OR rule ILIKE '%ruleset registered%'
-                             OR rule ILIKE '%ruleset subscriber%'
-                             OR rule ILIKE '%metadata:%ruleset%'
-                             OR rule ILIKE '%Cisco Talos%'
-                             OR rule ILIKE '%snort.org%'
-                        THEN 'snort'
-                        ELSE 'manual'
-                    END
-                ) AS source
+                COALESCE(NULLIF(source, ''), 'manual') AS source
             FROM regles
             ORDER BY
-                CASE
-                    WHEN COALESCE(NULLIF(source, ''), CASE WHEN sid < 1000000 THEN 'snort' ELSE 'manual' END) = 'snort' THEN 2
-                    WHEN COALESCE(NULLIF(source, ''), CASE WHEN sid < 1000000 THEN 'snort' ELSE 'manual' END) = 'file' THEN 1
+                CASE COALESCE(NULLIF(source, ''), 'manual')
+                    WHEN 'snort' THEN 2
+                    WHEN 'file' THEN 1
                     ELSE 0
                 END,
                 sid;
@@ -84,7 +91,17 @@ def afficher_db():
         return cur.fetchall()
 
     except Exception as e:
-        print(f"❌ Erreur lecture règles : {e}")
+        if "source" in str(e).lower():
+            conn.rollback()
+            cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+            cur.execute("""
+                SELECT sid, rule, 'manual' AS source
+                FROM regles
+                ORDER BY sid;
+            """)
+            return cur.fetchall()
+
+        print(f"Erreur lecture regles : {e}")
         return []
 
     finally:
@@ -149,6 +166,103 @@ def ajouter_regle(line, source="manual"):
 
     except Exception as e:
         raise Exception(f"Erreur ajout : {e}")
+
+    finally:
+        conn.close()
+
+
+def _parse_regle_line(line, fallback_sid=None):
+    if not line or not line.strip():
+        raise Exception("La rÃ¨gle ne peut pas Ãªtre vide")
+
+    parts = line.split()
+    if len(parts) < 7:
+        raise Exception(f"Format invalide : {len(parts)} parties trouvÃ©es, 7 attendues")
+
+    if parts[4] != '->':
+        raise Exception("Le sÃ©parateur '->' est manquant ou mal positionnÃ©")
+
+    msg_match = re.search(r'msg:"(.*?)"', line)
+    sid_match = re.search(r'sid:(\d+)', line)
+    sid = int(sid_match.group(1)) if sid_match else fallback_sid
+
+    if not sid:
+        raise Exception("SID manquant")
+
+    if not sid_match:
+        line = f"{line.rstrip(';')} sid:{sid};"
+
+    return {
+        "sid": sid,
+        "generated_sid": sid_match is None,
+        "message": msg_match.group(1) if msg_match else "",
+        "protocol": parts[1],
+        "src_ip": parts[2],
+        "src_port": parts[3],
+        "dst_ip": parts[5],
+        "dst_port": parts[6],
+        "action": parts[0],
+        "rule": line,
+    }
+
+
+def ajouter_regles_bulk(lines, source="manual", max_errors=20):
+    preparer_source_regles()
+
+    conn = get_db_connection()
+    if conn is None:
+        raise Exception("Connexion Ã  la base de donnÃ©es impossible")
+
+    added = 0
+    errors = []
+
+    try:
+        with conn.cursor() as cursor:
+            cursor.execute("SELECT COALESCE(MAX(sid), 1000000) + 1 FROM regles")
+            next_sid = cursor.fetchone()[0]
+
+            for line in lines:
+                try:
+                    parsed = _parse_regle_line(line, fallback_sid=next_sid)
+                    if parsed["generated_sid"]:
+                        next_sid += 1
+
+                    cursor.execute(
+                        """
+                        INSERT INTO regles
+                            (sid, message, protocol, src_ip, src_port, dst_ip, dst_port, action, rule, source)
+                        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                        ON CONFLICT (sid) DO UPDATE
+                        SET source =
+                            CASE
+                                WHEN EXCLUDED.source = 'snort' THEN 'snort'
+                                ELSE regles.source
+                            END
+                        """,
+                        (
+                            parsed["sid"],
+                            parsed["message"],
+                            parsed["protocol"],
+                            parsed["src_ip"],
+                            parsed["src_port"],
+                            parsed["dst_ip"],
+                            parsed["dst_port"],
+                            parsed["action"],
+                            parsed["rule"],
+                            source,
+                        )
+                    )
+                    added += 1
+                except Exception as e:
+                    if len(errors) < max_errors:
+                        errors.append({"rule": line[:80] + ("..." if len(line) > 80 else ""), "error": str(e)})
+
+            conn.commit()
+            return added, errors
+
+    except Exception as e:
+        conn.rollback()
+        raise Exception(f"Erreur import en lot : {e}")
 
     finally:
         conn.close()
@@ -376,15 +490,7 @@ def import_regles():
             if l.strip() and not l.strip().startswith("#")
         ]
 
-        added = 0
-        errors = []
-
-        for line in lines:
-            try:
-                ajouter_regle(line, source="file")
-                added += 1
-            except Exception as e:
-                errors.append({"rule": line[:60] + "...", "error": str(e)})
+        added, errors = ajouter_regles_bulk(lines, source="file", max_errors=100)
 
         return jsonify({
             "success": True,
@@ -507,26 +613,8 @@ def download_from_snort():
             "error": f"Impossible de lire l'archive tar.gz : {e}"
         }), 400
 
-    added = 0
+    added, errors = ajouter_regles_bulk(rules_lines, source="snort", max_errors=20)
     skipped = 0
-    errors = []
-
-    for line in rules_lines:
-        try:
-            ajouter_regle(line, source="snort")
-            added += 1
-
-        except Exception as e:
-            err_msg = str(e).lower()
-
-            if any(kw in err_msg for kw in ["conflict", "already exists", "unique", "do nothing"]):
-                skipped += 1
-            else:
-                if len(errors) < 20:
-                    errors.append({
-                        "rule": line[:80] + ("..." if len(line) > 80 else ""),
-                        "error": str(e)
-                    })
 
     preparer_source_regles()
 

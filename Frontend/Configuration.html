@@ -312,7 +312,7 @@
 <script src="topbar.js"></script>
 
 <script type="text/babel">
-const { useState, useEffect, useCallback } = React;
+const { useState, useEffect, useCallback, useRef } = React;
 
 const API_BASE_URL = window.NetGuardAuth.getApiBaseUrl();
 
@@ -596,6 +596,7 @@ function App() {
   const [lastUpdate, setLastUpdate] = useState(new Date());
   const [actionLoading, setActionLoading] = useState(false);
   const [showSnortModal, setShowSnortModal] = useState(false);
+  const rulesLoadingRef = useRef(false);
 
   const [mirrorSessionId, setMirrorSessionId] = useState('1');
   const [mirrorSourceVlan, setMirrorSourceVlan] = useState('10');
@@ -617,6 +618,8 @@ function App() {
   };
 
   const loadRules = useCallback(async (showSpinner = true) => {
+    if (rulesLoadingRef.current) return;
+    rulesLoadingRef.current = true;
     if (showSpinner) setLoading(true);
 
     try {
@@ -644,6 +647,7 @@ function App() {
     } catch (err) {
       setToast({ message: 'Erreur : ' + err.message, type: 'error' });
     } finally {
+      rulesLoadingRef.current = false;
       if (showSpinner) setLoading(false);
     }
   }, [selectedSid]);

@@ -392,70 +392,64 @@
           regles: '/api/regles'
         };
 
-        const [statsResult, alertsResult, vlanResult, interfaceResult, reglesResult] = await Promise.allSettled(
-          Object.values(endpoints).map(async (endpoint) => {
-            const response = await window.NetGuardAuth.apiFetch(endpoint);
-            return readJsonResponse(response, endpoint);
-          })
-        );
+        const fetchEndpoint = async (endpoint) => {
+          const response = await window.NetGuardAuth.apiFetch(endpoint);
+          return readJsonResponse(response, endpoint);
+        };
 
-        const nextSummary = {};
+        const criticalSummary = {};
 
-        if (statsResult.status === 'fulfilled') {
-          nextSummary.stats = statsResult.value.stats;
-        }
+        const statsData = await fetchEndpoint(endpoints.stats);
+        criticalSummary.stats = statsData.stats;
 
-        if (alertsResult.status === 'fulfilled') {
-          const alerts = alertsResult.value.alerts || [];
-          nextSummary.recentAlerts = alerts.slice(0, 5);
-          nextSummary.trafficStatus = analyzeTrafficStatus(alerts);
-          nextSummary.lastTriggeredRule = alerts[0]
-            ? {
-                name: alerts[0].name || 'Alerte detectee',
-                action: 'ALERT',
-                description: `Protocole: ${alerts[0].proto || 'N/A'}`
-              }
-            : null;
-        }
+        const vlanData = await fetchEndpoint(endpoints.vlan);
+        const vlans = vlanData.vlans || [];
+        criticalSummary.vlanStats = {
+          count: vlans.length,
+          lastCreated: vlans[vlans.length - 1] || null,
+          quarantine: vlans.find((vlan) => String(vlan.status || '').toLowerCase() === 'alert') || null
+        };
 
-        if (vlanResult.status === 'fulfilled') {
-          const vlans = vlanResult.value.vlans || [];
-          nextSummary.vlanStats = {
-            count: vlans.length,
-            lastCreated: vlans[vlans.length - 1] || null,
-            quarantine: vlans.find((vlan) => String(vlan.status || '').toLowerCase() === 'alert') || null
-          };
-        }
+        const interfaceData = await fetchEndpoint(endpoints.interfaces);
+        const interfaces = interfaceData.interfaces || [];
+        const upCount = interfaces.filter((port) => String(port.status || '').toUpperCase() === 'UP').length;
+        criticalSummary.interfaceStats = {
+          total: interfaces.length,
+          up: upCount,
+          down: interfaces.length - upCount,
+          securePorts: interfaces.filter((port) => Boolean(port.port_security)).length,
+          hasAlert: interfaces.some((port) => !port.port_security && String(port.status || '').toUpperCase() === 'UP')
+        };
 
-        if (interfaceResult.status === 'fulfilled') {
-          const interfaces = interfaceResult.value.interfaces || [];
-          const upCount = interfaces.filter((port) => String(port.status || '').toUpperCase() === 'UP').length;
-          nextSummary.interfaceStats = {
-            total: interfaces.length,
-            up: upCount,
-            down: interfaces.length - upCount,
-            securePorts: interfaces.filter((port) => Boolean(port.port_security)).length,
-            hasAlert: interfaces.some((port) => !port.port_security && String(port.status || '').toUpperCase() === 'UP')
-          };
-        }
+        applyDashboardSummary(criticalSummary);
 
-        if (reglesResult.status === 'fulfilled') {
-          nextSummary.rulesCount = reglesResult.value.count || (reglesResult.value.rules || []).length || 0;
-        }
+        window.setTimeout(async () => {
+          const backgroundSummary = {};
+          try {
+            const alertsData = await fetchEndpoint(endpoints.alerts);
+            const alerts = alertsData.alerts || [];
+            backgroundSummary.recentAlerts = alerts.slice(0, 5);
+            backgroundSummary.trafficStatus = analyzeTrafficStatus(alerts);
+            backgroundSummary.lastTriggeredRule = alerts[0]
+              ? {
+                  name: alerts[0].name || 'Alerte detectee',
+                  action: 'ALERT',
+                  description: `Protocole: ${alerts[0].proto || 'N/A'}`
+                }
+              : null;
+          } catch (error) {
+            console.warn('Fallback alerts ignore:', error);
+          }
 
-        applyDashboardSummary(nextSummary);
+          try {
+            const reglesData = await fetchEndpoint(endpoints.regles);
+            backgroundSummary.rulesCount = reglesData.count || (reglesData.rules || []).length || 0;
+          } catch (error) {
+            console.warn('Fallback regles ignore:', error);
+          }
 
-        const failed = [
-          statsResult,
-          alertsResult,
-          vlanResult,
-          interfaceResult,
-          reglesResult
-        ].filter((result) => result.status === 'rejected');
-
-        if (failed.length === 5) {
-          throw failed[0].reason;
-        }
+          applyDashboardSummary(backgroundSummary);
+        }, 0);
       };
 
       const loadDashboardSummary = async (showSpinner = false) => {

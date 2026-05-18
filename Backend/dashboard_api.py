@@ -1,14 +1,20 @@
 import logging
+import copy
+import os
 import re
+import threading
+import time
 
 import psycopg2.extras
 from flask import Blueprint, jsonify
 
-from Database.alerts import analyze_traffic_status, row_to_alert
+from Database.alerts import row_to_alert
 from Database.db import get_db_connection
 
 dashboard_bp = Blueprint("dashboard", __name__)
 logger = logging.getLogger(__name__)
+_SUMMARY_CACHE = {"data": None, "expires_at": 0}
+_SUMMARY_LOCK = threading.Lock()
 
 
 def _empty_summary(error=None):
@@ -41,8 +47,37 @@ def _empty_summary(error=None):
     return payload
 
 
+def _traffic_status_from_counts(total_count, critical_count, medium_count):
+    if critical_count >= 5:
+        return {"status": "Critique", "color": "#ef4444", "bg": "bg-red"}
+    if critical_count >= 2 or medium_count >= 8:
+        return {"status": "Sous surveillance", "color": "#f59e0b", "bg": "bg-amber"}
+    if total_count >= 30:
+        return {"status": "Activite elevee", "color": "#3b82f6", "bg": "bg-blue"}
+    return {"status": "Normal", "color": "#22c55e", "bg": "bg-green"}
+
+
 @dashboard_bp.route("/api/dashboard/summary", methods=["GET"])
 def dashboard_summary():
+    now = time.time()
+    cached = _SUMMARY_CACHE.get("data")
+    if cached and now < _SUMMARY_CACHE.get("expires_at", 0):
+        return jsonify(copy.deepcopy(cached))
+
+    with _SUMMARY_LOCK:
+        now = time.time()
+        cached = _SUMMARY_CACHE.get("data")
+        if cached and now < _SUMMARY_CACHE.get("expires_at", 0):
+            return jsonify(copy.deepcopy(cached))
+
+        summary = _build_dashboard_summary()
+        ttl = float(os.getenv("DASHBOARD_CACHE_TTL", "10"))
+        _SUMMARY_CACHE["data"] = copy.deepcopy(summary)
+        _SUMMARY_CACHE["expires_at"] = time.time() + ttl
+        return jsonify(summary)
+
+
+def _build_dashboard_summary():
     summary = _empty_summary()
     conn = None
 
@@ -74,11 +109,15 @@ def dashboard_summary():
                    loss, volume, service
             FROM alertes
             ORDER BY timestamp DESC
-            LIMIT 200
+            LIMIT 5
         """)
         alerts = [row_to_alert(row) for row in cur.fetchall()]
-        summary["recentAlerts"] = alerts[:5]
-        summary["trafficStatus"] = analyze_traffic_status(alerts)
+        summary["recentAlerts"] = alerts
+        summary["trafficStatus"] = _traffic_status_from_counts(
+            int(summary["stats"].get("total") or 0),
+            int(summary["stats"].get("critical") or 0),
+            int(summary["stats"].get("medium") or 0),
+        )
 
         cur.execute("SELECT COUNT(*) AS count FROM regles")
         summary["rulesCount"] = int((cur.fetchone() or {}).get("count") or 0)
@@ -188,4 +227,4 @@ def dashboard_summary():
         if conn:
             conn.close()
 
-    return jsonify(summary)
+    return summary
