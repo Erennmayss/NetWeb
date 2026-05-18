@@ -343,6 +343,13 @@
         setTimeout(() => setToast(null), 5000);
       };
 
+      const notifySync = () => {
+        const syncStamp = String(Date.now());
+        localStorage.setItem('netguard-network-sync-at', syncStamp);
+        localStorage.setItem('netguard-vlan-updated-at', syncStamp);
+        window.dispatchEvent(new CustomEvent('netguard:vlan-updated'));
+      };
+
       const loadSwitches = async () => {
         try {
           const res = await fetch(`${API_BASE_URL}/api/switchs`, {
@@ -508,6 +515,31 @@
       }, [selectedSwitchId]);
 
       useEffect(() => {
+        const refreshFromSync = () => {
+          loadVlans(selectedSwitchId);
+          loadInterfaces(selectedSwitchId);
+        };
+
+        const handleNetworkSyncStorage = (event) => {
+          if (event.key === 'netguard-network-sync-at' || event.key === 'netguard-vlan-updated-at') {
+            refreshFromSync();
+          }
+        };
+
+        window.addEventListener('focus', refreshFromSync);
+        window.addEventListener('storage', handleNetworkSyncStorage);
+        window.addEventListener('netguard:vlan-updated', refreshFromSync);
+        window.addEventListener('netguard:interface-updated', refreshFromSync);
+
+        return () => {
+          window.removeEventListener('focus', refreshFromSync);
+          window.removeEventListener('storage', handleNetworkSyncStorage);
+          window.removeEventListener('netguard:vlan-updated', refreshFromSync);
+          window.removeEventListener('netguard:interface-updated', refreshFromSync);
+        };
+      }, [selectedSwitchId]);
+
+      useEffect(() => {
         if (selectedVlan?.id) {
           loadVlanDevices(selectedVlan.id, false);
         } else {
@@ -538,6 +570,7 @@
           if (response.ok && data.success) {
             setVlans(prev => prev.filter(v => v.id !== vlanId));
             if (selectedVlan?.id === vlanId) setSelectedVlan(null);
+            notifySync();
             showToast(`✅ VLAN ${vlanId} supprimé avec succès.`, 'success');
             if (window.NetGuardAudit) window.NetGuardAudit.vlanDeleted({ id: vlanId });
           } else {
@@ -733,6 +766,7 @@
             if (selectedVlan?.id === updatedVlan.id) setSelectedVlan(updatedVlan);
             setShowEditModal(false);
             setEditNetworkError(''); setEditGatewayError(''); setEditPortsError('');
+            notifySync();
             showToast(`✅ VLAN ${editVlan.id} modifié avec succès.`, 'success');
             if (window.NetGuardAudit) window.NetGuardAudit.vlanUpdated?.({ id: editVlan.id, name: editVlan.name });
           } else {
@@ -804,6 +838,7 @@
             setNetworkError('');
             setGatewayError('');
             setPortsError('');
+            notifySync();
 
             if (data.warning) {
               showToast(`⚠️ ${data.warning}`, 'error');
