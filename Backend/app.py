@@ -27,7 +27,11 @@ def _get_cors_origins():
     raw_origins = os.getenv("CORS_ORIGINS", "").strip()
     if not raw_origins:
         return "*"
-    return [origin.strip() for origin in raw_origins.split(",") if origin.strip()]
+    origins = [origin.strip() for origin in raw_origins.split(",") if origin.strip()]
+    vercel_origin_pattern = r"https://.*\.vercel\.app"
+    if vercel_origin_pattern not in origins:
+        origins.append(vercel_origin_pattern)
+    return origins
 
 
 def _get_jwt_secret():
@@ -48,6 +52,7 @@ jwt = JWTManager(app)
 
 app.register_blueprint(users_bp)
 app.register_blueprint(auth_bp)
+app.register_blueprint(dashboard_bp)
 app.register_blueprint(alerts_bp)
 app.register_blueprint(traffic_bp)
 app.register_blueprint(regles_bp)

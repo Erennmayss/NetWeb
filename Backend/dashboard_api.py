@@ -1,223 +1,191 @@
-"""
-dashboard_api.py
-================
-Blueprint exposing GET /api/dashboard/summary.
-
-It aggregates data from the existing Database modules so the front-end
-dashboard can load everything in a single request instead of hitting
-multiple routes.
-
-Registration (add to app.py):
-    from dashboard_api import dashboard_bp
-    app.register_blueprint(dashboard_bp)
-
-Adjust the imported function names below if your Database modules
-expose different names (e.g. get_alerts() vs get_all_alerts()).
-"""
-
 import logging
-from datetime import datetime, timedelta
+import re
 
+import psycopg2.extras
 from flask import Blueprint, jsonify
-from flask_jwt_extended import jwt_required
+
+from Database.alerts import analyze_traffic_status, row_to_alert
+from Database.db import get_db_connection
 
 dashboard_bp = Blueprint("dashboard", __name__)
 logger = logging.getLogger(__name__)
 
 
-# ─────────────────────────────────────────────────────────────────────────────
-# Helpers
-# ─────────────────────────────────────────────────────────────────────────────
+def _empty_summary(error=None):
+    payload = {
+        "success": True,
+        "stats": {
+            "total": 0,
+            "critical": 0,
+            "medium": 0,
+            "low": 0,
+            "unique_sources": 0,
+            "rate_per_minute": 0,
+        },
+        "recentAlerts": [],
+        "trafficStatus": {"status": "Normal", "color": "#22c55e", "bg": "bg-green"},
+        "rulesCount": 0,
+        "vlanStats": {"count": 0, "lastCreated": None, "quarantine": None},
+        "interfaceStats": {
+            "total": 0,
+            "up": 0,
+            "down": 0,
+            "securePorts": 0,
+            "hasAlert": False,
+        },
+        "lastTriggeredRule": None,
+        "userActivities": [],
+    }
+    if error:
+        payload["warning"] = error
+    return payload
 
-def _parse_ts(ts):
-    """Parse an ISO-ish timestamp string into a datetime; return datetime.min on failure."""
-    if not ts:
-        return datetime.min
-    s = str(ts)[:19]  # trim microseconds / timezone
-    for fmt in ("%Y-%m-%dT%H:%M:%S", "%Y-%m-%d %H:%M:%S"):
-        try:
-            return datetime.strptime(s, fmt)
-        except ValueError:
-            continue
-    return datetime.min
 
-
-# ─────────────────────────────────────────────────────────────────────────────
-# Endpoint
-# ─────────────────────────────────────────────────────────────────────────────
-
-@dashboard_bp.get("/api/dashboard/summary")
-@jwt_required()
+@dashboard_bp.route("/api/dashboard/summary", methods=["GET"])
 def dashboard_summary():
-    """
-    Aggregate endpoint consumed by dashboard.html.
-
-    Returns:
-    {
-        success: bool,
-        stats:          { total, critical, medium, low, unique_sources, rate_per_minute },
-        recentAlerts:   [ { name, src, dst, severity, timestamp }, ... ]  (last 5),
-        trafficStatus:  { status, color, bg },
-        rulesCount:     int,
-        vlanStats:      { count, lastCreated, quarantine },
-        interfaceStats: { total, up, down, securePorts, hasAlert },
-        lastTriggeredRule: { name, action, description } | null,
-        userActivities: [ { username, action, timestamp }, ... ]
-    }
-    """
-
-    # ── 1. Alerts ─────────────────────────────────────────────────────────────
-    stats = {
-        "total": 0, "critical": 0, "medium": 0, "low": 0,
-        "unique_sources": 0, "rate_per_minute": 0,
-    }
-    recent_alerts = []
-    traffic_status = {"status": "Normal", "color": "#22c55e", "bg": "bg-green"}
+    summary = _empty_summary()
+    conn = None
 
     try:
-        # ⚠️  Adjust the import path / function name to match your module.
-        #     Common candidates: get_all_alerts, fetch_alerts, list_alerts …
-        from Database.alerts import get_all_alerts  # noqa: PLC0415
+        conn = get_db_connection()
+        cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
 
-        alerts: list = get_all_alerts() or []
+        cur.execute("""
+            SELECT
+                COUNT(*) AS total,
+                COUNT(*) FILTER (WHERE LOWER(severity) IN
+                    ('critical', 'critique', 'high', 'elevee')) AS critical,
+                COUNT(*) FILTER (WHERE LOWER(severity) IN
+                    ('medium', 'moyen', 'moyenne')) AS medium,
+                COUNT(*) FILTER (WHERE LOWER(severity) IN
+                    ('low', 'faible', 'basse')) AS low,
+                COUNT(DISTINCT source_ip) AS unique_sources,
+                COUNT(*) FILTER (
+                    WHERE timestamp >= NOW() - INTERVAL '1 minute'
+                ) AS rate_per_minute
+            FROM alertes
+        """)
+        summary["stats"] = dict(cur.fetchone() or summary["stats"])
 
-        stats["total"]          = len(alerts)
-        stats["critical"]       = sum(1 for a in alerts if a.get("severity") == "critical")
-        stats["medium"]         = sum(1 for a in alerts if a.get("severity") == "medium")
-        stats["low"]            = sum(1 for a in alerts if a.get("severity") == "low")
-        stats["unique_sources"] = len({a.get("src") for a in alerts if a.get("src")})
+        cur.execute("""
+            SELECT id, timestamp, source_ip, destination_ip,
+                   attack_type, severity, detection_engine,
+                   details, protocol, source_port, destination_port,
+                   loss, volume, service
+            FROM alertes
+            ORDER BY timestamp DESC
+            LIMIT 200
+        """)
+        alerts = [row_to_alert(row) for row in cur.fetchall()]
+        summary["recentAlerts"] = alerts[:5]
+        summary["trafficStatus"] = analyze_traffic_status(alerts)
 
-        now = datetime.utcnow()
-        one_minute_ago = now - timedelta(minutes=1)
-        stats["rate_per_minute"] = sum(
-            1 for a in alerts if _parse_ts(a.get("timestamp")) > one_minute_ago
-        )
+        cur.execute("SELECT COUNT(*) AS count FROM regles")
+        summary["rulesCount"] = int((cur.fetchone() or {}).get("count") or 0)
 
-        # Traffic status derived from critical alerts in the last 24 h
-        one_day_ago  = now - timedelta(hours=24)
-        critical_24h = sum(
-            1 for a in alerts
-            if a.get("severity") == "critical"
-            and _parse_ts(a.get("timestamp")) > one_day_ago
-        )
-        if critical_24h == 0:
-            traffic_status = {"status": "Normal",    "color": "#22c55e", "bg": "bg-green"}
-        elif critical_24h <= 5:
-            traffic_status = {"status": "Attention", "color": "#f59e0b", "bg": "bg-amber"}
-        else:
-            traffic_status = {"status": "Critique",  "color": "#ef4444", "bg": "bg-red"}
-
-        # Most recent 5 alerts for the log section
-        recent_alerts = sorted(
-            alerts, key=lambda a: a.get("timestamp", ""), reverse=True
-        )[:5]
-
-    except Exception as exc:
-        logger.warning("dashboard_summary – alerts error: %s", exc)
-
-    # ── 2. Rules (IDS / Snort) ────────────────────────────────────────────────
-    rules_count        = 0
-    last_triggered_rule = None
-
-    try:
-        # ⚠️  Adjust to your actual function name.
-        from Database.regles import get_all_regles  # noqa: PLC0415
-
-        rules: list = get_all_regles() or []
-        rules_count  = len(rules)
-
-        # Find the most recently matched rule by comparing alert names with rule names
-        if recent_alerts and rules:
-            rule_by_name = {r.get("name"): r for r in rules if r.get("name")}
-            for alert in recent_alerts:
-                matched = rule_by_name.get(alert.get("name"))
-                if matched:
-                    last_triggered_rule = {
-                        "name":        matched.get("name", ""),
-                        "action":      matched.get("action", "--"),
-                        "description": matched.get("description", ""),
-                    }
-                    break
-
-    except Exception as exc:
-        logger.warning("dashboard_summary – regles error: %s", exc)
-
-    # ── 3. VLANs ──────────────────────────────────────────────────────────────
-    vlan_stats = {"count": 0, "lastCreated": None, "quarantine": None}
-
-    try:
-        # ⚠️  Adjust to your actual function name.
-        from Database.vlan import get_all_vlans  # noqa: PLC0415
-
-        vlans: list = get_all_vlans() or []
-        vlan_stats["count"] = len(vlans)
-
-        if vlans:
-            # Assumes the list is ordered by creation (oldest → newest).
-            # If not, sort by id_vlan / id before taking the last element.
-            vlan_stats["lastCreated"] = vlans[-1]
-            # Quarantine VLAN: look for one named "quarantine" (case-insensitive)
-            vlan_stats["quarantine"] = next(
-                (v for v in vlans
-                 if "quarantine" in str(v.get("nom", v.get("name", ""))).lower()),
+        cur.execute("""
+            SELECT id_vlan, nom, reseau, gateway, type, ports, status,
+                   switch_name, switch_ip
+            FROM vlan
+            ORDER BY id_vlan DESC
+        """)
+        vlans = [dict(row) for row in cur.fetchall()]
+        summary["vlanStats"] = {
+            "count": len(vlans),
+            "lastCreated": vlans[0] if vlans else None,
+            "quarantine": next(
+                (row for row in vlans if str(row.get("status") or "").lower() == "alert"),
                 None,
-            )
+            ),
+        }
+
+        cur.execute("""
+            SELECT
+                COUNT(*) AS total,
+                COUNT(*) FILTER (WHERE UPPER(COALESCE(status, '')) = 'UP') AS up,
+                COUNT(*) FILTER (WHERE UPPER(COALESCE(status, '')) <> 'UP') AS down,
+                COUNT(*) FILTER (WHERE port_security = TRUE) AS secure_ports,
+                BOOL_OR(
+                    COALESCE(port_security, FALSE) = FALSE
+                    AND UPPER(COALESCE(status, '')) = 'UP'
+                ) AS has_alert
+            FROM interface
+        """)
+        interface_row = cur.fetchone() or {}
+        summary["interfaceStats"] = {
+            "total": int(interface_row.get("total") or 0),
+            "up": int(interface_row.get("up") or 0),
+            "down": int(interface_row.get("down") or 0),
+            "securePorts": int(interface_row.get("secure_ports") or 0),
+            "hasAlert": bool(interface_row.get("has_alert") or False),
+        }
+
+        cur.execute("""
+            SELECT username, action, timestamp
+            FROM (
+                SELECT username, 'login' AS action, last_login AS timestamp
+                FROM utilisateur
+                WHERE last_login IS NOT NULL
+                UNION ALL
+                SELECT username, 'logout' AS action, last_logout AS timestamp
+                FROM utilisateur
+                WHERE last_logout IS NOT NULL
+            ) activity
+            ORDER BY timestamp DESC
+            LIMIT 10
+        """)
+        summary["userActivities"] = [
+            {
+                "username": row["username"],
+                "action": row["action"],
+                "timestamp": row["timestamp"].isoformat() if row["timestamp"] else None,
+            }
+            for row in cur.fetchall()
+        ]
+
+        cur.execute("""
+            SELECT id, timestamp, attack_type, details, protocol, severity
+            FROM alertes
+            ORDER BY timestamp DESC
+            LIMIT 1
+        """)
+        last_alert = cur.fetchone()
+        if last_alert:
+            summary["lastTriggeredRule"] = {
+                "name": last_alert.get("attack_type", "Attaque detectee"),
+                "action": "ALERT",
+                "description": f"Protocole: {last_alert.get('protocol', 'N/A')}",
+                "sid": None,
+            }
+
+            sid_match = re.search(r"sid:(\d+)", last_alert.get("details", "") or "")
+            if sid_match:
+                sid = int(sid_match.group(1))
+                summary["lastTriggeredRule"]["sid"] = sid
+                cur.execute("""
+                    SELECT sid, rule, action, protocol, src_ip, dst_ip
+                    FROM regles
+                    WHERE sid = %s
+                """, (sid,))
+                db_rule = cur.fetchone()
+                if db_rule:
+                    msg_match = re.search(r'msg:"(.*?)"', db_rule.get("rule") or "")
+                    summary["lastTriggeredRule"] = {
+                        "name": msg_match.group(1) if msg_match else f"Regle SID {sid}",
+                        "action": (db_rule.get("action") or "alert").upper(),
+                        "description": (
+                            f"{(db_rule.get('protocol') or 'TCP').upper()} "
+                            f"{db_rule.get('src_ip', 'any')} -> "
+                            f"{db_rule.get('dst_ip', 'any')}"
+                        ),
+                        "sid": sid,
+                    }
 
     except Exception as exc:
-        logger.warning("dashboard_summary – vlan error: %s", exc)
+        logger.exception("Erreur /api/dashboard/summary")
+        summary = _empty_summary(str(exc))
+    finally:
+        if conn:
+            conn.close()
 
-    # ── 4. Interfaces ─────────────────────────────────────────────────────────
-    interface_stats = {
-        "total": 0, "up": 0, "down": 0, "securePorts": 0, "hasAlert": False,
-    }
-
-    try:
-        # ⚠️  Adjust to your actual function name.
-        from Database.interface import get_all_interfaces  # noqa: PLC0415
-
-        interfaces: list = get_all_interfaces() or []
-        interface_stats["total"] = len(interfaces)
-
-        # Accept several possible field names / values for "up"
-        _UP_VALUES = {"up", "actif", "active", "1", "true", True, 1}
-        interface_stats["up"] = sum(
-            1 for i in interfaces
-            if str(i.get("status", i.get("etat", i.get("state", "")))).lower()
-            in _UP_VALUES
-            or i.get("status") is True
-        )
-        interface_stats["down"]       = interface_stats["total"] - interface_stats["up"]
-        interface_stats["securePorts"] = sum(
-            1 for i in interfaces
-            if i.get("port_security") or i.get("securite_port")
-        )
-        interface_stats["hasAlert"] = stats["critical"] > 0
-
-    except Exception as exc:
-        logger.warning("dashboard_summary – interface error: %s", exc)
-
-    # ── 5. User activities (optional – from audit logs) ───────────────────────
-    user_activities: list = []
-
-    try:
-        # ⚠️  Expose a get_recent_user_activities(limit) helper in log_api.py
-        #     and import it here, or replace with your own DB query.
-        from log_api import get_recent_user_activities  # noqa: PLC0415
-
-        user_activities = get_recent_user_activities(limit=10) or []
-
-    except Exception:
-        pass  # User activities are optional; silently skip if unavailable.
-
-    # ── Response ───────────────────────────────────────────────────────────────
-    return jsonify({
-        "success":          True,
-        "stats":            stats,
-        "recentAlerts":     recent_alerts,
-        "trafficStatus":    traffic_status,
-        "rulesCount":       rules_count,
-        "vlanStats":        vlan_stats,
-        "interfaceStats":   interface_stats,
-        "lastTriggeredRule": last_triggered_rule,
-        "userActivities":   user_activities,
-    })
+    return jsonify(summary)

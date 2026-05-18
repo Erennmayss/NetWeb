@@ -258,7 +258,7 @@
   </div>
 
   <script type="text/babel">
-    const { useState, useEffect } = React;
+    const { useState, useEffect, useRef } = React;
 
     const Icon = ({ type }) => {
       const icons = {
@@ -354,6 +354,8 @@
       const [trafficStatus, setTrafficStatus] = useState({ status: 'Normal', color: '#22c55e', bg: 'bg-green' });
       const [lastTriggeredRule, setLastTriggeredRule] = useState(null);
       const [userActivities, setUserActivities] = useState([]);
+      const [loadError, setLoadError] = useState('');
+      const isLoadingRef = useRef(false);
 
       const applyDashboardSummary = (data) => {
         if (data.stats) setStats(data.stats);
@@ -366,17 +368,116 @@
         if (Array.isArray(data.userActivities)) setUserActivities(data.userActivities);
       };
 
+      const readJsonResponse = async (response, endpoint) => {
+        const contentType = response.headers.get('content-type') || '';
+        if (!contentType.includes('application/json')) {
+          const text = await response.text();
+          throw new Error(`${endpoint} ne retourne pas du JSON (${response.status}) : ${text.slice(0, 80)}`);
+        }
+
+        const data = await response.json();
+        if (!response.ok || data.success === false) {
+          throw new Error(data.error || data.warning || `${endpoint} HTTP ${response.status}`);
+        }
+
+        return data;
+      };
+
+      const loadDashboardFallback = async () => {
+        const endpoints = {
+          stats: '/api/stats',
+          alerts: '/api/alerts?limit=5&offset=0&sort=newest',
+          vlan: '/api/vlan',
+          interfaces: '/api/interface',
+          regles: '/api/regles'
+        };
+
+        const [statsResult, alertsResult, vlanResult, interfaceResult, reglesResult] = await Promise.allSettled(
+          Object.values(endpoints).map(async (endpoint) => {
+            const response = await window.NetGuardAuth.apiFetch(endpoint);
+            return readJsonResponse(response, endpoint);
+          })
+        );
+
+        const nextSummary = {};
+
+        if (statsResult.status === 'fulfilled') {
+          nextSummary.stats = statsResult.value.stats;
+        }
+
+        if (alertsResult.status === 'fulfilled') {
+          const alerts = alertsResult.value.alerts || [];
+          nextSummary.recentAlerts = alerts.slice(0, 5);
+          nextSummary.trafficStatus = analyzeTrafficStatus(alerts);
+          nextSummary.lastTriggeredRule = alerts[0]
+            ? {
+                name: alerts[0].name || 'Alerte detectee',
+                action: 'ALERT',
+                description: `Protocole: ${alerts[0].proto || 'N/A'}`
+              }
+            : null;
+        }
+
+        if (vlanResult.status === 'fulfilled') {
+          const vlans = vlanResult.value.vlans || [];
+          nextSummary.vlanStats = {
+            count: vlans.length,
+            lastCreated: vlans[vlans.length - 1] || null,
+            quarantine: vlans.find((vlan) => String(vlan.status || '').toLowerCase() === 'alert') || null
+          };
+        }
+
+        if (interfaceResult.status === 'fulfilled') {
+          const interfaces = interfaceResult.value.interfaces || [];
+          const upCount = interfaces.filter((port) => String(port.status || '').toUpperCase() === 'UP').length;
+          nextSummary.interfaceStats = {
+            total: interfaces.length,
+            up: upCount,
+            down: interfaces.length - upCount,
+            securePorts: interfaces.filter((port) => Boolean(port.port_security)).length,
+            hasAlert: interfaces.some((port) => !port.port_security && String(port.status || '').toUpperCase() === 'UP')
+          };
+        }
+
+        if (reglesResult.status === 'fulfilled') {
+          nextSummary.rulesCount = reglesResult.value.count || (reglesResult.value.rules || []).length || 0;
+        }
+
+        applyDashboardSummary(nextSummary);
+
+        const failed = [
+          statsResult,
+          alertsResult,
+          vlanResult,
+          interfaceResult,
+          reglesResult
+        ].filter((result) => result.status === 'rejected');
+
+        if (failed.length === 5) {
+          throw failed[0].reason;
+        }
+      };
+
       const loadDashboardSummary = async (showSpinner = false) => {
+        if (isLoadingRef.current) return;
+        isLoadingRef.current = true;
         if (showSpinner) setLoading(true);
         try {
           const response = await window.NetGuardAuth.apiFetch('/api/dashboard/summary');
-          const data = await response.json();
-          if (response.ok && data.success) {
-            applyDashboardSummary(data);
-          }
+          const data = await readJsonResponse(response, '/api/dashboard/summary');
+          applyDashboardSummary(data);
+          setLoadError(data.warning ? `API dashboard: ${data.warning}` : '');
         } catch (error) {
           console.error('Erreur chargement dashboard:', error);
+          try {
+            await loadDashboardFallback();
+            setLoadError('Route dashboard indisponible, donnees chargees depuis les routes existantes.');
+          } catch (fallbackError) {
+            console.error('Erreur fallback dashboard:', fallbackError);
+            setLoadError(fallbackError.message || 'Impossible de charger les donnees du dashboard.');
+          }
         } finally {
+          isLoadingRef.current = false;
           if (showSpinner) setLoading(false);
         }
       };
@@ -453,6 +554,21 @@
 
       return (
         <>
+          {loadError && (
+            <div style={{
+              background: '#fff7ed',
+              border: '1px solid #fed7aa',
+              color: '#9a3412',
+              borderRadius: '8px',
+              padding: '10px 12px',
+              fontSize: '12px',
+              fontWeight: 600,
+              marginBottom: '16px'
+            }}>
+              {loadError}
+            </div>
+          )}
+
           <div className="stats-header-grid">
             <div className="stat-mini-card">
               <div className="stat-icon bg-blue"><Icon type="vlan" /></div>

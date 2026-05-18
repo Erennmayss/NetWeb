@@ -298,7 +298,7 @@ def get_stats():
         conn.close()
 
 
-@alerts_bp.route("/api/dashboard/summary", methods=["GET"])
+@alerts_bp.route("/api/dashboard/summary-legacy", methods=["GET"])
 def get_dashboard_summary():
     conn = get_db_connection()
     try:
