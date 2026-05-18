@@ -17,6 +17,7 @@ from log_api import log_bp
 from network_api import network_bp
 from run_bat_api import run_bat_bp
 from users import users_bp
+from dashboard_api import dashboard_bp
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 FRONTEND_DIR = os.path.normpath(os.path.join(BASE_DIR, "..", "Frontend"))
