@@ -16,6 +16,7 @@ dashboard_bp = Blueprint("dashboard", __name__)
 logger = logging.getLogger(__name__)
 _SUMMARY_CACHE = {"data": None, "expires_at": 0}
 _SUMMARY_LOCK = threading.Lock()
+_VLAN_CREATED_AT_COLUMN = None
 
 
 def _empty_summary(error=None):
@@ -56,6 +57,48 @@ def _traffic_status_from_counts(total_count, critical_count, medium_count):
     if total_count >= 30:
         return {"status": "Activite elevee", "color": "#3b82f6", "bg": "bg-blue"}
     return {"status": "Normal", "color": "#22c55e", "bg": "bg-green"}
+
+
+def _get_vlan_creation_order(cur):
+    global _VLAN_CREATED_AT_COLUMN
+
+    if _VLAN_CREATED_AT_COLUMN is not None:
+        return _VLAN_CREATED_AT_COLUMN
+
+    cur.execute("""
+        SELECT column_name
+        FROM information_schema.columns
+        WHERE table_name = 'vlan'
+          AND column_name IN ('created_at', 'date_creation', 'created_on')
+        ORDER BY CASE column_name
+            WHEN 'created_at' THEN 1
+            WHEN 'date_creation' THEN 2
+            WHEN 'created_on' THEN 3
+            ELSE 4
+        END
+        LIMIT 1
+    """)
+    row = cur.fetchone()
+    column_name = row.get("column_name") if row else None
+
+    if column_name:
+        _VLAN_CREATED_AT_COLUMN = {
+            "select": f", {column_name} AS created_at",
+            "order": f"{column_name} DESC NULLS LAST, id_vlan DESC",
+        }
+    else:
+        _VLAN_CREATED_AT_COLUMN = {
+            "select": ", xmin::text::bigint AS row_version",
+            "order": "xmin::text::bigint DESC, id_vlan DESC",
+        }
+
+    return _VLAN_CREATED_AT_COLUMN
+
+
+def clear_dashboard_cache():
+    with _SUMMARY_LOCK:
+        _SUMMARY_CACHE["data"] = None
+        _SUMMARY_CACHE["expires_at"] = 0
 
 
 @dashboard_bp.route("/api/dashboard/summary", methods=["GET"])
@@ -127,20 +170,34 @@ def _build_dashboard_summary():
             int(summary["stats"].get("medium") or 0),
         )
 
-        cur.execute("""
+        cur.execute("SELECT COUNT(*) AS count FROM vlan")
+        vlan_count = int((cur.fetchone() or {}).get("count") or 0)
+        vlan_creation_order = _get_vlan_creation_order(cur)
+
+        cur.execute(f"""
             SELECT id_vlan, nom, reseau, gateway, type, ports, status,
                    switch_name, switch_ip
+                   {vlan_creation_order["select"]}
             FROM vlan
-            ORDER BY id_vlan DESC
+            ORDER BY {vlan_creation_order["order"]}
+            LIMIT 1
         """)
-        vlans = [dict(row) for row in cur.fetchall()]
+        last_vlan = cur.fetchone()
+
+        cur.execute(f"""
+            SELECT id_vlan, nom, reseau, gateway, type, ports, status,
+                   switch_name, switch_ip
+                   {vlan_creation_order["select"]}
+            FROM vlan
+            WHERE LOWER(COALESCE(status, '')) = 'alert'
+            ORDER BY {vlan_creation_order["order"]}
+            LIMIT 1
+        """)
+        quarantine_vlan = cur.fetchone()
         summary["vlanStats"] = {
-            "count": len(vlans),
-            "lastCreated": vlans[0] if vlans else None,
-            "quarantine": next(
-                (row for row in vlans if str(row.get("status") or "").lower() == "alert"),
-                None,
-            ),
+            "count": vlan_count,
+            "lastCreated": dict(last_vlan) if last_vlan else None,
+            "quarantine": dict(quarantine_vlan) if quarantine_vlan else None,
         }
 
         cur.execute("""
