@@ -35,6 +35,7 @@ def _get_jwt_secret():
         raise RuntimeError("JWT_SECRET_KEY manquant. Configurez-le avant de lancer l'application.")
     return secret
 
+
 app = Flask(__name__, static_folder=FRONTEND_DIR, static_url_path="")
 app.url_map.strict_slashes = False
 logging.basicConfig(level=logging.INFO)
@@ -61,6 +62,12 @@ try:
     initialize_default_interfaces()
 except Exception as exc:
     app.logger.error("Initialisation des interfaces impossible: %s", exc)
+
+
+# ── Endpoint de santé (utilisé par le notifier) ──────────────────────────────
+@app.get("/api/health")
+def health():
+    return {"status": "ok"}, 200
 
 
 @app.get("/")
