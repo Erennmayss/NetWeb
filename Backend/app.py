@@ -58,6 +58,7 @@ app.register_blueprint(network_bp)
 app.register_blueprint(equipements_bp)
 app.register_blueprint(run_bat_bp)
 app.register_blueprint(log_bp)
+app.register_blueprint(dashboard_bp)
 
 try:
     initialize_default_interfaces()
