@@ -6,8 +6,9 @@
 
   const STORAGE_KEY = 'netguardSession';
   const API_BASE_STORAGE_KEY = 'netguardApiBaseUrl';
+  const LOCAL_API_BASE_URL = 'http://127.0.0.1:5000';
   // Replace this fallback with your public ngrok/cloudflared URL for Vercel deployments.
-  const DEFAULT_API_BASE_URL = 'https://sufferer-cortex-starfish.ngrok-free.dev';
+  const REMOTE_API_BASE_URL = 'https://sufferer-cortex-starfish.ngrok-free.dev';
   const ROLES = {
     ADMIN: 'ADMIN',
     NETWORK_ADMIN: 'NETWORK_ADMIN',
@@ -79,13 +80,32 @@
     return String(value || '').trim().replace(/\/+$/, '');
   }
 
-  function getApiBaseUrl() {
-    const configuredValue =
-      window.NETGUARD_API_BASE ||
-      localStorage.getItem(API_BASE_STORAGE_KEY) ||
-      DEFAULT_API_BASE_URL;
+  function isLocalFrontend() {
+    const hostname = window.location.hostname;
+    return (
+      window.location.protocol === 'file:' ||
+      hostname === 'localhost' ||
+      hostname === '127.0.0.1' ||
+      hostname === '[::1]' ||
+      hostname === '::1'
+    );
+  }
 
-    return normalizeApiBaseUrl(configuredValue) || DEFAULT_API_BASE_URL;
+  function getDefaultApiBaseUrl() {
+    return isLocalFrontend() ? LOCAL_API_BASE_URL : REMOTE_API_BASE_URL;
+  }
+
+  function getApiBaseUrl() {
+    if (window.NETGUARD_API_BASE) {
+      return normalizeApiBaseUrl(window.NETGUARD_API_BASE);
+    }
+
+    const storedValue = localStorage.getItem(API_BASE_STORAGE_KEY);
+    if (storedValue && !isLocalFrontend()) {
+      return normalizeApiBaseUrl(storedValue);
+    }
+
+    return getDefaultApiBaseUrl();
   }
 
   function setApiBaseUrl(value) {
