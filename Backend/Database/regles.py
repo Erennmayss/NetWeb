@@ -6,9 +6,11 @@ import re
 import requests
 import tarfile
 import io
+import time
 
 regles_bp = Blueprint("regles", __name__)
 _REGLES_SOURCE_SCHEMA_READY = False
+_REGLES_CACHE = {"rows": None, "expires_at": 0}
 
 
 def preparer_source_regles():
@@ -68,12 +70,17 @@ def afficher_db():
     """Récupère toutes les règles avec les règles Snort à la fin."""
     preparer_source_regles()
 
+    now = time.time()
+    if _REGLES_CACHE["rows"] is not None and now < _REGLES_CACHE["expires_at"]:
+        return _REGLES_CACHE["rows"]
+
     conn = get_db_connection()
     if conn is None:
         return []
 
     try:
         cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+        cur.execute("SET LOCAL statement_timeout = '8000ms'")
         cur.execute("""
             SELECT
                 sid,
@@ -88,9 +95,16 @@ def afficher_db():
                 END,
                 sid;
         """)
-        return cur.fetchall()
+        rows = cur.fetchall()
+        _REGLES_CACHE["rows"] = rows
+        _REGLES_CACHE["expires_at"] = time.time() + int(os.getenv("REGLES_CACHE_TTL", "30"))
+        return rows
 
     except Exception as e:
+        if _REGLES_CACHE["rows"] is not None:
+            conn.rollback()
+            return _REGLES_CACHE["rows"]
+
         if "source" in str(e).lower():
             conn.rollback()
             cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
@@ -163,12 +177,18 @@ def ajouter_regle(line, source="manual"):
                 (sid, message, protocol, src_ip, src_port, dst_ip, dst_port, action, line, source)
             )
             conn.commit()
+            invalidate_regles_cache()
 
     except Exception as e:
         raise Exception(f"Erreur ajout : {e}")
 
     finally:
         conn.close()
+
+
+def invalidate_regles_cache():
+    _REGLES_CACHE["rows"] = None
+    _REGLES_CACHE["expires_at"] = 0
 
 
 def _parse_regle_line(line, fallback_sid=None):
@@ -258,6 +278,7 @@ def ajouter_regles_bulk(lines, source="manual", max_errors=20):
                         errors.append({"rule": line[:80] + ("..." if len(line) > 80 else ""), "error": str(e)})
 
             conn.commit()
+            invalidate_regles_cache()
             return added, errors
 
     except Exception as e:
@@ -332,6 +353,7 @@ def modifier_regle(first_sid, line):
                 )
 
             conn.commit()
+            invalidate_regles_cache()
 
     except Exception as e:
         raise Exception(f"Erreur modification : {e}")
@@ -350,6 +372,7 @@ def supprimer_regle(sid):
         with conn.cursor() as cursor:
             cursor.execute("DELETE FROM regles WHERE sid = %s", (sid,))
             conn.commit()
+            invalidate_regles_cache()
 
     except Exception as e:
         raise Exception(f"Erreur suppression : {e}")

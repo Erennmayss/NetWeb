@@ -5,6 +5,7 @@ import re
 import threading
 import time
 
+import psycopg2
 import psycopg2.extras
 from flask import Blueprint, jsonify
 
@@ -71,7 +72,14 @@ def dashboard_summary():
             return jsonify(copy.deepcopy(cached))
 
         summary = _build_dashboard_summary()
-        ttl = float(os.getenv("DASHBOARD_CACHE_TTL", "10"))
+        if summary.get("success") is False:
+            if cached:
+                stale = copy.deepcopy(cached)
+                stale["warning"] = summary.get("error") or summary.get("warning")
+                return jsonify(stale)
+            return jsonify(summary), 503
+
+        ttl = float(os.getenv("DASHBOARD_CACHE_TTL", "15"))
         _SUMMARY_CACHE["data"] = copy.deepcopy(summary)
         _SUMMARY_CACHE["expires_at"] = time.time() + ttl
         return jsonify(summary)
@@ -118,9 +126,6 @@ def _build_dashboard_summary():
             int(summary["stats"].get("critical") or 0),
             int(summary["stats"].get("medium") or 0),
         )
-
-        cur.execute("SELECT COUNT(*) AS count FROM regles")
-        summary["rulesCount"] = int((cur.fetchone() or {}).get("count") or 0)
 
         cur.execute("""
             SELECT id_vlan, nom, reseau, gateway, type, ports, status,
@@ -220,9 +225,19 @@ def _build_dashboard_summary():
                         "sid": sid,
                     }
 
+        try:
+            cur.execute("SET LOCAL statement_timeout = '1200ms'")
+            cur.execute("SELECT COUNT(*) AS count FROM regles")
+            summary["rulesCount"] = int((cur.fetchone() or {}).get("count") or 0)
+        except psycopg2.Error as exc:
+            logger.warning("rulesCount ignore dans dashboard: %s", exc)
+            conn.rollback()
+
     except Exception as exc:
         logger.exception("Erreur /api/dashboard/summary")
         summary = _empty_summary(str(exc))
+        summary["success"] = False
+        summary["error"] = str(exc)
     finally:
         if conn:
             conn.close()

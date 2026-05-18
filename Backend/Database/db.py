@@ -20,20 +20,29 @@ def _get_database_url():
 
 def _get_pool_limits():
     min_conn = int(os.getenv("DB_POOL_MIN", "1"))
-    max_conn = int(os.getenv("DB_POOL_MAX", "8"))
+    max_conn = int(os.getenv("DB_POOL_MAX", "3"))
     return max(1, min_conn), max(1, max_conn)
 
 
 def _get_connect_kwargs():
     database_url = _get_database_url()
     sslmode = os.getenv("DB_SSLMODE", "require").strip() or "require"
-    connect_timeout = int(os.getenv("DB_CONNECT_TIMEOUT", "10"))
+    connect_timeout = int(os.getenv("DB_CONNECT_TIMEOUT", "5"))
+    statement_timeout = int(os.getenv("DB_STATEMENT_TIMEOUT_MS", "15000"))
+    lock_timeout = int(os.getenv("DB_LOCK_TIMEOUT_MS", "3000"))
+    idle_timeout = int(os.getenv("DB_IDLE_TX_TIMEOUT_MS", "15000"))
+    options = (
+        f"-c statement_timeout={statement_timeout} "
+        f"-c lock_timeout={lock_timeout} "
+        f"-c idle_in_transaction_session_timeout={idle_timeout}"
+    )
 
     if database_url:
         return {
             "dsn": database_url,
             "sslmode": sslmode,
             "connect_timeout": connect_timeout,
+            "options": options,
         }
 
     return {
@@ -44,6 +53,7 @@ def _get_connect_kwargs():
         "port": int(os.getenv("DB_PORT", "5432")),
         "sslmode": sslmode,
         "connect_timeout": connect_timeout,
+        "options": options,
     }
 
 
@@ -149,7 +159,7 @@ class PooledConnectionProxy:
 
 def get_db_connection():
     pg_pool = _get_pool()
-    timeout = float(os.getenv("DB_POOL_TIMEOUT", "10"))
+    timeout = float(os.getenv("DB_POOL_TIMEOUT", "3"))
 
     started_at = time.perf_counter()
     if not _POOL_SEMAPHORE.acquire(timeout=timeout):

@@ -1136,7 +1136,7 @@ function _launchPBat(option, params, btn, originalLabel, successLabel) {
       return;
     }
 
-    if (_isDashboardPage()) {
+    if (_isHeavyDataPage()) {
       setTimeout(_pollAlerts, 60000);
       return;
     }
@@ -1168,8 +1168,9 @@ function _launchPBat(option, params, btn, originalLabel, successLabel) {
     }
   }
 
-  function _isDashboardPage() {
-    return window.location.pathname.includes('dashboard.html');
+  function _isHeavyDataPage() {
+    var path = window.location.pathname.toLowerCase();
+    return path.includes('dashboard.html') || path.includes('configuration.html');
   }
 
   _pollAlerts();
