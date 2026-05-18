@@ -1,7 +1,7 @@
 @echo off
 :: ============================================================
-:: p.bat - Gestionnaire IDS Notifier
-:: Options : [1] Installer  [8] Configurer emails  [0] Quitter
+:: p.bat - IDS Notifier - Installation automatique
+:: Un seul bouton : installe + configure email + démarre
 :: ============================================================
 
 setlocal enabledelayedexpansion
@@ -10,95 +10,81 @@ set "GREEN=[92m"
 set "YELLOW=[93m"
 set "RED=[91m"
 set "BLUE=[94m"
+set "CYAN=[96m"
 set "RESET=[0m"
 
-title IDS Notifier - DB: 192.168.1.2
+title IDS Notifier - Installation automatique
 
-echo.
-echo %BLUE%================================================================%RESET%
-echo %BLUE%    🛡️  IDS Alert Notifier - Windows v2.0%RESET%
-echo %BLUE%    📡  Base de donnees: 192.168.1.2:5432 (utilisateur: aya)%RESET%
-echo %BLUE%    📧  Notification email aux administrateurs incluse%RESET%
-echo %BLUE%================================================================%RESET%
-echo.
-
-:: ── 1. Vérifier les droits administrateur ──────────────────────────────────
-net session >nul 2>&1
-if %errorlevel% neq 0 (
-    echo %RED%[ERREUR]%RESET% Ce script doit etre execute en tant qu'Administrateur
-    echo.
-    echo Cliquez droit sur le fichier ^> "Executer en tant qu'administrateur"
-    pause
-    exit /b 1
-)
-
-:: ── 2. Définir les chemins ─────────────────────────────────────────────────
+:: ════════════════════════════════════════════════════════
+:: Définir les chemins dès le départ
+:: ════════════════════════════════════════════════════════
 set "SCRIPT_DIR=%~dp0"
 set "SCRIPT_DIR=%SCRIPT_DIR:~0,-1%"
 set "NOTIFIER=%SCRIPT_DIR%\notifier.py"
 set "RUN_VBS=%SCRIPT_DIR%\run_notifier.vbs"
 set "STOP_VBS=%SCRIPT_DIR%\stop_notifier.vbs"
 set "STARTUP=%APPDATA%\Microsoft\Windows\Start Menu\Programs\Startup"
+set "CONFIG_DIR=%APPDATA%\IDS_Notifier"
+set "EMAIL_CONFIG=%CONFIG_DIR%\email_config.json"
 
-:: ── 3. Menu principal ──────────────────────────────────────────────────────
-:menu
+cls
 echo.
-echo %BLUE% Que souhaitez-vous faire ?%RESET%
+echo %BLUE%╔══════════════════════════════════════════════════════════════╗%RESET%
+echo %BLUE%║         🛡️  IDS Alert Notifier - Installation v2.0          ║%RESET%
+echo %BLUE%║   Base de données : 192.168.1.2:5432  •  Utilisateur : aya  ║%RESET%
+echo %BLUE%╚══════════════════════════════════════════════════════════════╝%RESET%
 echo.
-echo    [1] Installer/Reinstaller le notifier
-echo    [8] Configurer les emails (administrateurs)
-echo    [0] Quitter
-echo.
-set /p choice="Votre choix: "
 
-if "%choice%"=="1" goto install
-if "%choice%"=="8" goto config_email
-if "%choice%"=="0" goto end
-echo %RED%Choix invalide%RESET%
-goto menu
-
-
-:: ══════════════════════════════════════════════════════════════
-:: OPTION 1 — INSTALLATION
-:: ══════════════════════════════════════════════════════════════
-:install
-echo.
-echo %GREEN%[1/11]%RESET% Verification de l'environnement Python...
-
-where python >nul 2>&1
-if errorlevel 1 (
-    echo %RED%[ERREUR]%RESET% Python non trouve dans le PATH
-    echo.
-    echo Telechargez Python depuis: https://www.python.org/downloads/
-    echo N'OUBLIEZ PAS de cocher "Add Python to PATH" lors de l'installation
+:: ── Droits administrateur ─────────────────────────────────────────────────
+net session >nul 2>&1
+if %errorlevel% neq 0 (
+    echo %RED%[ERREUR]%RESET% Ce script doit etre execute en tant qu'Administrateur.
+    echo Cliquez droit ^> "Executer en tant qu'administrateur"
     pause
-    goto menu
+    exit /b 1
 )
 
+:: ════════════════════════════════════════════════════════
+:: BOUTON UNIQUE : Installer le notifier
+:: ════════════════════════════════════════════════════════
+echo %CYAN%  Appuyez sur une touche pour lancer l'installation complète...%RESET%
+echo %CYAN%  (notification en arrière-plan + emails admins)%RESET%
+echo.
+pause
+echo.
+
+:: ════════════════════════════════════════════════════════
+:: ÉTAPE 1 — Python
+:: ════════════════════════════════════════════════════════
+echo %GREEN%[1/11]%RESET% Vérification de Python...
+where python >nul 2>&1
+if errorlevel 1 (
+    echo %RED%[ERREUR]%RESET% Python introuvable dans le PATH.
+    echo Téléchargez-le sur https://www.python.org/downloads/
+    echo (cochez "Add Python to PATH" lors de l'installation^)
+    pause
+    exit /b 1
+)
 for /f "tokens=2" %%i in ('python --version 2^>^&1') do set "PY_VERSION=%%i"
-echo %GREEN%✓%RESET% Python %PY_VERSION% trouve
+echo %GREEN%✓%RESET% Python %PY_VERSION% détecté.
 
 python -m pip --version >nul 2>&1
 if errorlevel 1 (
-    echo %RED%[ERREUR]%RESET% Pip non trouve, installation...
+    echo %YELLOW%⚠%RESET% pip absent — installation en cours...
     python -m ensurepip --upgrade
 )
 
+:: ════════════════════════════════════════════════════════
+:: ÉTAPE 2 — Test connexion DB
+:: ════════════════════════════════════════════════════════
 echo.
-echo %GREEN%[2/11]%RESET% Test de connexion a la base de donnees...
+echo %GREEN%[2/11]%RESET% Test de connexion à la base de données...
 
-set "TEST_SCRIPT=%TEMP%\test_db.py"
+set "TEST_SCRIPT=%TEMP%\ids_test_db.py"
 (
 echo import psycopg2
 echo try:
-echo     conn = psycopg2.connect(
-echo         dbname="ids_db",
-echo         user="aya",
-echo         password="aya",
-echo         host="192.168.1.2",
-echo         port="5432",
-echo         connect_timeout=3
-echo     )
+echo     conn = psycopg2.connect(dbname="ids_db",user="aya",password="aya",host="192.168.1.2",port="5432",connect_timeout=3)
 echo     conn.close()
 echo     print("OK")
 echo except:
@@ -109,41 +95,33 @@ for /f "delims=" %%i in ('python "%TEST_SCRIPT%" 2^>nul') do set "DB_TEST=%%i"
 del "%TEST_SCRIPT%" 2>nul
 
 if "%DB_TEST%"=="OK" (
-    echo %GREEN%✓%RESET% Connexion a la base de donnees reussie
+    echo %GREEN%✓%RESET% Connexion à 192.168.1.2:5432 réussie.
 ) else (
-    echo %YELLOW%⚠%RESET% Attention: Impossible de se connecter a la base de donnees
-    echo.
-    echo    Verifiez que PostgreSQL est accessible sur 192.168.1.2:5432
-    echo    Le notifier demarrera quand meme mais ne pourra pas recuperer les alertes
-    echo.
-    set /p continue="Continuer quand meme (O/N) ? "
-    if /i not "!continue!"=="O" goto menu
+    echo %YELLOW%⚠%RESET% Base de données inaccessible pour l'instant.
+    echo    Le notifier se reconnectera automatiquement dès qu'elle sera disponible.
 )
 
+:: ════════════════════════════════════════════════════════
+:: ÉTAPE 3 — Dépendances Python
+:: ════════════════════════════════════════════════════════
 echo.
-echo %GREEN%[3/11]%RESET% Installation des dependances Python...
-echo.
+echo %GREEN%[3/11]%RESET% Installation des dépendances Python...
 
 python -m pip install --upgrade pip --quiet
-echo Installation de psycopg2-binary...
-python -m pip install --quiet psycopg2-binary
-echo Installation de requests...
-python -m pip install --quiet requests
-echo Installation de plyer...
-python -m pip install --quiet plyer
-echo Installation de winotify...
-python -m pip install --quiet winotify
-echo Installation de win10toast-persist...
-python -m pip install --quiet win10toast-persist
-echo Installation de winrt...
-python -m pip install --quiet winrt
-echo %GREEN%✓%RESET% Toutes les dependances sont installees
+for %%P in (psycopg2-binary requests flask plyer winotify win10toast-persist winrt) do (
+    echo    → %%P
+    python -m pip install --quiet %%P
+)
+echo %GREEN%✓%RESET% Toutes les dépendances installées.
 
+:: ════════════════════════════════════════════════════════
+:: ÉTAPE 4 — Scripts VBS (lanceur invisible)
+:: ════════════════════════════════════════════════════════
 echo.
-echo %GREEN%[4/11]%RESET% Creation des scripts de lancement...
+echo %GREEN%[4/11]%RESET% Création des scripts de lancement...
 
 (
-    echo ' IDS Notifier - Launcher (invisible^)
+    echo ' IDS Notifier - Launcher invisible
     echo Set oWS = WScript.CreateObject^("WScript.Shell"^)
     echo sFile = "%NOTIFIER:\=\\%"
     echo sCmd = "pythonw """ ^& sFile ^& """ --db --interval 5 --sound"
@@ -152,38 +130,45 @@ echo %GREEN%[4/11]%RESET% Creation des scripts de lancement...
 ) > "%RUN_VBS%"
 
 (
-    echo ' IDS Notifier - Stopper le processus
+    echo ' IDS Notifier - Stopper
     echo Set oWS = WScript.CreateObject^("WScript.Shell"^)
     echo oWS.Run "taskkill /F /IM pythonw.exe", 0, False
     echo WScript.Sleep 1000
 ) > "%STOP_VBS%"
 
-echo %GREEN%✓%RESET% Scripts crees
+echo %GREEN%✓%RESET% Scripts VBS créés.
 
+:: ════════════════════════════════════════════════════════
+:: ÉTAPE 5 — Dossier démarrage Windows
+:: ════════════════════════════════════════════════════════
 echo.
-echo %GREEN%[5/11]%RESET% Ajout au demarrage Windows...
+echo %GREEN%[5/11]%RESET% Ajout au démarrage Windows (dossier Startup)...
 
 if exist "%STARTUP%\IDS_Notifier.vbs" del /Q "%STARTUP%\IDS_Notifier.vbs"
 if exist "%STARTUP%\IDS_Notifier.lnk" del /Q "%STARTUP%\IDS_Notifier.lnk"
 copy /Y "%RUN_VBS%" "%STARTUP%\IDS_Notifier.vbs" >nul
-echo %GREEN%✓%RESET% Ajoute au dossier Demarrage
+echo %GREEN%✓%RESET% Démarrage automatique configuré.
 
+:: ════════════════════════════════════════════════════════
+:: ÉTAPE 6 — Tâche planifiée (boot SYSTEM)
+:: ════════════════════════════════════════════════════════
 echo.
-echo %GREEN%[6/11]%RESET% Creation d'une tache planifiee...
+echo %GREEN%[6/11]%RESET% Création de la tâche planifiée (boot système)...
 
 schtasks /delete /tn "IDS_Notifier" /f >nul 2>&1
 schtasks /create /tn "IDS_Notifier" /tr "wscript.exe \"%RUN_VBS%\"" /sc onstart /delay 0001:00 /ru "SYSTEM" /f >nul 2>&1
 if %errorlevel% equ 0 (
-    echo %GREEN%✓%RESET% Tache planifiee creee (demarrage au boot)
+    echo %GREEN%✓%RESET% Tâche planifiée créée.
 ) else (
-    echo %YELLOW%⚠%RESET% Impossible de creer la tache planifiee
-    echo    Le notifier demarrera via le dossier Demarrage uniquement
+    echo %YELLOW%⚠%RESET% Tâche planifiée non créée (le notifier démarre via Startup quand même^).
 )
 
+:: ════════════════════════════════════════════════════════
+:: ÉTAPE 7 — Fichiers de configuration DB
+:: ════════════════════════════════════════════════════════
 echo.
-echo %GREEN%[7/11]%RESET% Configuration de la base de donnees...
+echo %GREEN%[7/11]%RESET% Écriture de la configuration base de données...
 
-set "CONFIG_DIR=%APPDATA%\IDS_Notifier"
 if not exist "%CONFIG_DIR%" mkdir "%CONFIG_DIR%"
 
 (
@@ -206,143 +191,36 @@ if not exist "%CONFIG_DIR%" mkdir "%CONFIG_DIR%"
     echo DB_PORT=5432
 ) > "%CONFIG_DIR%\.env"
 
-echo %GREEN%✓%RESET% Configuration creee dans %CONFIG_DIR%
+echo %GREEN%✓%RESET% Configuration DB écrite dans %CONFIG_DIR%
 
+:: ════════════════════════════════════════════════════════
+:: ÉTAPE 8 — Configuration email automatique (OPTION 8 intégrée)
+:: ════════════════════════════════════════════════════════
 echo.
-echo %GREEN%[8/11]%RESET% Configuration email...
-
-set "EMAIL_CONFIG=%CONFIG_DIR%\email_config.json"
-if not exist "%EMAIL_CONFIG%" (
-    echo %YELLOW%⚠%RESET% Aucune configuration email trouvee
-    echo.
-    echo Souhaitez-vous configurer l'envoi d'emails maintenant ?
-    echo.
-    set /p config_email_now="Configurer email (O/N) ? "
-    if /i "!config_email_now!"=="O" (
-        call :config_email
-    ) else (
-        echo.
-        echo %YELLOW%Vous pourrez configurer les emails plus tard via l'option 8%RESET%
-        echo.
-    )
-) else (
-    echo %GREEN%✓%RESET% Configuration email existante
-)
-
+echo %GREEN%[8/11]%RESET% Configuration de l'envoi d'emails aux admins...
 echo.
-echo %GREEN%[9/11]%RESET% Creation des raccourcis...
-
-set "DESKTOP=%USERPROFILE%\Desktop"
-set "SHORTCUT=%DESKTOP%\IDS_Notifier.lnk"
-powershell -Command "$WS = New-Object -ComObject WScript.Shell; $SC = $WS.CreateShortcut('%SHORTCUT%'); $SC.TargetPath = 'wscript.exe'; $SC.Arguments = '\"%RUN_VBS%\"'; $SC.Description = 'IDS Alert Notifier'; $SC.Save()" 2>nul
-if exist "%SHORTCUT%" echo %GREEN%✓%RESET% Raccourci cree sur le bureau
-
-echo.
-echo %GREEN%[10/11]%RESET% Demarrage immediat du notifier...
-
-taskkill /F /IM pythonw.exe >nul 2>&1
-timeout /t 2 /nobreak >nul
-wscript "%RUN_VBS%"
-
-timeout /t 3 /nobreak >nul
-tasklist /FI "IMAGENAME eq pythonw.exe" 2>nul | find /I "pythonw.exe" >nul
-if %errorlevel% equ 0 (
-    echo %GREEN%✓%RESET% Notifier demarre avec succes en arriere-plan
-) else (
-    echo %RED%✗%RESET% Erreur: Le notifier n'a pas demarre
-    echo    Verifiez les logs: %CONFIG_DIR%\notifier.log
-)
-
-echo.
-echo %GREEN%[11/11]%RESET% Alerte de test dans la base...
-
-set "TEST_ALERT=%TEMP%\create_test_alert.py"
-(
-echo import psycopg2, json
-echo try:
-echo     conn = psycopg2.connect(dbname="ids_db",user="aya",password="aya",host="192.168.1.2",port="5432")
-echo     cur = conn.cursor()
-echo     cur.execute("""INSERT INTO alertes (attack_type,source_ip,destination_ip,severity,protocol,timestamp,details) VALUES (%%s,%%s,%%s,%%s,%%s,NOW(),%%s)""",("Test Installation - IDS Activee","192.168.1.100","192.168.1.200","low","TCP",json.dumps({"test":"Notification de test","source":"IDS Notifier"})))
-echo     conn.commit()
-echo     print("Alerte de test creee")
-echo     conn.close()
-echo except Exception as e:
-echo     print(f"Note: {e}")
-) > "%TEST_ALERT%"
-python "%TEST_ALERT%" 2>nul
-del "%TEST_ALERT%" 2>nul
-
-echo.
-echo %GREEN%================================================================%RESET%
-echo %GREEN%              ✅ INSTALLATION REUSSIE ✅%RESET%
-echo %GREEN%================================================================%RESET%
-echo.
-echo 📡 Base de donnees : 192.168.1.2:5432 ^| ids_db ^| user: aya
-echo 📁 Logs            : %CONFIG_DIR%\notifier.log
-echo 📁 Config          : %CONFIG_DIR%\notifier.conf
-if exist "%EMAIL_CONFIG%" (
-    echo 📧 Email           : Configure ✅
-) else (
-    echo 📧 Email           : Non configure ^(option 8^)
-)
-echo.
-pause
-goto menu
-
-
-:: ══════════════════════════════════════════════════════════════
-:: OPTION 8 — CONFIGURATION EMAIL
-:: ══════════════════════════════════════════════════════════════
-:config_email
-echo.
-echo %BLUE%[CONFIGURATION EMAIL]%RESET%
-echo.
-echo Les emails seront envoyes aux utilisateurs avec role='admin'
-echo ou role='security_admin' et un email valide dans la table 'utilisateur'.
-echo.
-
-set "CONFIG_DIR=%APPDATA%\IDS_Notifier"
-if not exist "%CONFIG_DIR%" mkdir "%CONFIG_DIR%"
-set "EMAIL_CONFIG=%CONFIG_DIR%\email_config.json"
 
 if exist "%EMAIL_CONFIG%" (
-    echo %GREEN%✓%RESET% Configuration email existante :
-    echo.
-    type "%EMAIL_CONFIG%"
-    echo.
-    echo Souhaitez-vous la modifier ?
-    echo    [1] Modifier
-    echo    [2] Supprimer
-    echo    [3] Retour
-    echo.
-    set /p email_choice="Choix (1-3): "
-    if "!email_choice!"=="1" goto edit_email_config
-    if "!email_choice!"=="2" (
-        del /Q "%EMAIL_CONFIG%" 2>nul
-        echo %GREEN%Configuration email supprimee%RESET%
-        pause
-        goto menu
-    )
-    if "!email_choice!"=="3" goto menu
+    echo %GREEN%✓%RESET% Configuration email déjà existante — conservée.
+    goto :email_done
 )
 
-:edit_email_config
+echo %CYAN%  Les emails seront envoyés aux admins (role=admin / security_admin^)%RESET%
+echo %CYAN%  depuis la table 'utilisateur' de la base de données.%RESET%
 echo.
-echo %YELLOW%Configuration SMTP%RESET%
+echo %YELLOW%  Serveurs SMTP courants :%RESET%
+echo    Gmail   : smtp.gmail.com       port 587
+echo    Outlook : smtp-mail.outlook.com port 587
+echo    Yahoo   : smtp.mail.yahoo.com  port 587
 echo.
-echo Exemples de serveurs SMTP :
-echo    Gmail   : smtp.gmail.com:587
-echo    Outlook : smtp-mail.outlook.com:587
-echo    Yahoo   : smtp.mail.yahoo.com:587
-echo    Orange  : smtp.orange.fr:465
+echo %YELLOW%  ⚠  Pour Gmail : utilisez un "Mot de passe d'application" (2FA requis^)%RESET%
 echo.
-echo %YELLOW%⚠️  Pour Gmail, utilisez un "Mot de passe d'application" (2FA active)%RESET%
-echo.
-set /p smtp_server="Serveur SMTP (ex: smtp.gmail.com): "
-set /p smtp_port="Port SMTP (587 pour TLS, 465 pour SSL): "
-set /p smtp_user="Email expediteur: "
-set /p smtp_password="Mot de passe / Cle d'application: "
-set /p from_name="Nom affiche (ex: IDS Monitoring): "
+
+set /p smtp_server="  Serveur SMTP (ex: smtp.gmail.com) : "
+set /p smtp_port="  Port SMTP (587 TLS / 465 SSL)      : "
+set /p smtp_user="  Email expéditeur                   : "
+set /p smtp_password="  Mot de passe / clé d'application   : "
+set /p from_name="  Nom affiché (Entrée = IDS Monitoring): "
 if "!from_name!"=="" set "from_name=IDS Monitoring System"
 
 (
@@ -358,19 +236,83 @@ echo }
 ) > "%EMAIL_CONFIG%"
 
 echo.
-echo %GREEN%✓%RESET% Configuration email sauvegardee dans %EMAIL_CONFIG%
+echo %GREEN%✓%RESET% Email configuré : !smtp_user! → admins de la base.
+echo %YELLOW%  ⚠  Le mot de passe est stocké en clair — protégez %CONFIG_DIR%%RESET%
+
+:email_done
+
+:: ════════════════════════════════════════════════════════
+:: ÉTAPE 9 — Raccourci bureau
+:: ════════════════════════════════════════════════════════
 echo.
-echo %YELLOW%⚠️  Le mot de passe est stocke en clair — protegez l'acces a ce dossier.%RESET%
+echo %GREEN%[9/11]%RESET% Création d'un raccourci sur le bureau...
+
+set "DESKTOP=%USERPROFILE%\Desktop"
+set "SHORTCUT=%DESKTOP%\IDS_Notifier.lnk"
+powershell -Command "$WS=New-Object -ComObject WScript.Shell; $SC=$WS.CreateShortcut('%SHORTCUT%'); $SC.TargetPath='wscript.exe'; $SC.Arguments='\"%RUN_VBS%\"'; $SC.Description='IDS Alert Notifier'; $SC.Save()" 2>nul
+if exist "%SHORTCUT%" echo %GREEN%✓%RESET% Raccourci créé sur le bureau.
+
+:: ════════════════════════════════════════════════════════
+:: ÉTAPE 10 — Démarrage immédiat du notifier en arrière-plan
+:: ════════════════════════════════════════════════════════
+echo.
+echo %GREEN%[10/11]%RESET% Démarrage du notifier en arrière-plan...
+
+taskkill /F /IM pythonw.exe >nul 2>&1
+timeout /t 2 /nobreak >nul
+wscript "%RUN_VBS%"
+timeout /t 3 /nobreak >nul
+
+tasklist /FI "IMAGENAME eq pythonw.exe" 2>nul | find /I "pythonw.exe" >nul
+if %errorlevel% equ 0 (
+    echo %GREEN%✓%RESET% Notifier démarré en arrière-plan (notifications + emails admins^).
+) else (
+    echo %RED%✗%RESET% Notifier non démarré. Vérifiez : %CONFIG_DIR%\notifier.log
+)
+
+:: ════════════════════════════════════════════════════════
+:: ÉTAPE 11 — Alerte de test dans la base
+:: ════════════════════════════════════════════════════════
+echo.
+echo %GREEN%[11/11]%RESET% Envoi d'une alerte de test en base...
+
+set "TEST_ALERT=%TEMP%\ids_create_test_alert.py"
+(
+echo import psycopg2, json
+echo try:
+echo     conn = psycopg2.connect(dbname="ids_db",user="aya",password="aya",host="192.168.1.2",port="5432")
+echo     cur = conn.cursor()
+echo     cur.execute("INSERT INTO alertes (attack_type,source_ip,destination_ip,severity,protocol,timestamp,details) VALUES (%%s,%%s,%%s,%%s,%%s,NOW(),%%s)",("Test Installation - IDS Activee","192.168.1.100","192.168.1.200","basse","TCP",json.dumps({"test":"Notification de test","source":"IDS Notifier v2"})))
+echo     conn.commit()
+echo     print("OK")
+echo     conn.close()
+echo except Exception as e:
+echo     print(f"NOTE: {e}")
+) > "%TEST_ALERT%"
+python "%TEST_ALERT%" 2>nul
+del "%TEST_ALERT%" 2>nul
+
+:: ════════════════════════════════════════════════════════
+:: RÉSUMÉ FINAL
+:: ════════════════════════════════════════════════════════
+echo.
+echo %GREEN%╔══════════════════════════════════════════════════════════════╗%RESET%
+echo %GREEN%║              ✅  INSTALLATION TERMINÉE ✅                   ║%RESET%
+echo %GREEN%╚══════════════════════════════════════════════════════════════╝%RESET%
+echo.
+echo   📡 Base de données  : 192.168.1.2:5432 ^| ids_db ^| aya
+echo   🔔 Notifications    : Actives en arrière-plan (Windows Toast^)
+if exist "%EMAIL_CONFIG%" (
+    echo   📧 Emails admins    : Configurés ✅
+) else (
+    echo   📧 Emails admins    : Non configurés
+)
+echo   📁 Logs             : %CONFIG_DIR%\notifier.log
+echo   📁 Config           : %CONFIG_DIR%\notifier.conf
+echo   🖥️  Raccourci        : Bureau → IDS_Notifier
+echo.
+echo   Le notifier surveille la base toutes les 5 secondes.
+echo   Il redémarre automatiquement à chaque démarrage Windows.
 echo.
 pause
-goto menu
-
-
-:: ══════════════════════════════════════════════════════════════
-:: FIN
-:: ══════════════════════════════════════════════════════════════
-:end
-echo.
-echo %BLUE%Au revoir !%RESET%
-echo.
 exit /b 0
