@@ -1,0 +1,217 @@
+═════════════════════════════════════════════════════════════════════════════════════════════════════════
+   ✅ IDS ALERT NOTIFIER v3.0 - INSTALLATION COMPLÉTÉE
+═════════════════════════════════════════════════════════════════════════════════════════════════════════
+
+
+🎯 MAINTENANT, SUIVEZ CES 3 ÉTAPES SIMPLES
+═════════════════════════════════════════════════════════════════════════════════════════════════════════
+
+
+ÉTAPE 1️⃣  : EXÉCUTER L'INSTALLATION (2-3 minutes)
+──────────────────────────────────────────────────────────────────────────────────────────────────────
+
+    1. Ouvrez CMD ou PowerShell comme ADMINISTRATEUR
+    
+    2. Naviguez au dossier Backend:
+       
+       cd C:\Users\ADM\Desktop\ids_1\NetWeb\Backend
+    
+    3. Lancez l'installation:
+       
+       p_auto.bat
+    
+    4. L'écran affichera le progrès:
+       
+       ✓ Vérifie Python
+       ✓ Teste Supabase
+       ✓ Installe dépendances
+       ✓ Configure email
+       ✓ Ajoute au démarrage
+       ✓ Démarre le notifier
+       
+       Vous verrez: ✅ INSTALLATION RÉUSSIE
+
+
+ÉTAPE 2️⃣  : TESTER LE SYSTÈME (1 minute)
+──────────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Lancez le test rapide:
+    
+       test_notifier.bat
+    
+    Cela va:
+       ✓ Vérifier Python
+       ✓ Vérifier les dépendances
+       ✓ Tester la connexion Supabase
+       ✓ Vérifier la configuration email
+       ✓ Confirmer que le notifier s'exécute
+       
+       À la fin, il vous demandera si vous voulez créer une alerte de test.
+
+
+ÉTAPE 3️⃣  : TESTER LES NOTIFICATIONS (optionnel)
+──────────────────────────────────────────────────────────────────────────────────────────────────────
+
+    À la fin de test_notifier.bat, répondez OUI:
+    
+       Une alerte de test sera créée → Vous recevrez:
+       
+       ✓ Email dans benainimeroua@gmail.com (2-3 secondes)
+       ✓ Notification Windows toast (immédiate)
+
+
+═════════════════════════════════════════════════════════════════════════════════════════════════════════
+   C'EST TOUT ! 🎉
+═════════════════════════════════════════════════════════════════════════════════════════════════════════
+
+
+📦 FICHIERS CRÉÉS/MODIFIÉS
+═════════════════════════════════════════════════════════════════════════════════════════════════════════
+
+Nouveaux fichiers:
+
+  ✅ Backend\notifier_advanced.py              - Notifier principal (Supabase v3.0)
+  ✅ Backend\snort_alert_processor.py          - Processeur alertes Snort
+  ✅ Backend\p_auto.bat                        - Installation automatisée
+  ✅ Backend\test_notifier.bat                 - Tests rapides
+  ✅ Backend\email_config_template.json        - Config SMTP Gmail
+  ✅ Backend\IDS_NOTIFIER_README.md            - Documentation technique
+  ✅ Backend\NOTIFIER_QUICK_START.txt          - Guide rapide
+  ✅ Backend\ARCHITECTURE.txt                  - Diagramme architectural
+  ✅ Backend\INSTALLATION_SUMMARY.txt          - Ce que vous lisez
+  
+Fichiers modifiés:
+
+  ✅ Backend\Snort\Recuperation.py             - Intégration snort_alert_processor
+
+
+🔧 CONFIGURATION APPLIQUÉE
+═════════════════════════════════════════════════════════════════════════════════════════════════════════
+
+DATABASE:
+  • Supabase PostgreSQL
+  • URL: postgresql://postgres.jleedvfezpjaojgwltfu:***@aws-0-eu-west-1.pooler.supabase.com:5432/postgres
+  • SSL: require (sécurisé)
+
+EMAIL:
+  • Serveur SMTP: smtp.gmail.com:587
+  • Port: 587 (TLS)
+  • From: benainimeroua@gmail.com
+  • To: Utilisateurs avec role='admin' ou role='security_admin'
+  • Auto: ✅ Activé
+
+NOTIFIER:
+  • Polling: toutes les 5 secondes
+  • Notifications: Windows toast + Email
+  • Arrière-plan: ✅ Activé (pythonw)
+  • Autostart: ✅ Activé (tâche planifiée + startup folder)
+
+
+📍 EMPLACEMENTS IMPORTANTS
+═════════════════════════════════════════════════════════════════════════════════════════════════════════
+
+Source code:       C:\Users\ADM\Desktop\ids_1\NetWeb\Backend\
+Configuration:     C:\Users\ADM\AppData\Roaming\IDS_Notifier\
+Logs:              C:\Users\ADM\AppData\Roaming\IDS_Notifier\*.log
+Email config:      C:\Users\ADM\AppData\Roaming\IDS_Notifier\email_config.json
+
+
+⚙️ COMMANDES UTILES
+═════════════════════════════════════════════════════════════════════════════════════════════════════════
+
+Démarrer le notifier (manuel):
+   python Backend\notifier_advanced.py
+
+Démarrer en arrière-plan (sans fenêtre):
+   pythonw Backend\notifier_advanced.py
+
+Tester les alertes Snort:
+   python Backend\snort_alert_processor.py
+
+Arrêter le notifier:
+   taskkill /F /IM pythonw.exe
+
+Voir les logs:
+   type %APPDATA%\IDS_Notifier\notifier.log
+
+Voir les alertes en base:
+   (voir NOTIFIER_QUICK_START.txt pour script Python)
+
+
+✅ VÉRIFICATION D'INSTALLATION
+═════════════════════════════════════════════════════════════════════════════════════════════════════════
+
+Pour confirmer que tout fonctionne:
+
+  1. test_notifier.bat
+     → Tous les tests doivent être VERTS
+  
+  2. Vérifier le processus:
+     tasklist | find "pythonw"
+     → Vous devez voir pythonw.exe en cours d'exécution
+  
+  3. Vérifier les logs:
+     type %APPDATA%\IDS_Notifier\notifier.log
+     → Vous devez voir: "✅ Supabase accessible"
+                        "✉️ Email admin: ACTIVÉ"
+                        "💓 Surveillance active"
+
+
+⚠️ SI QUELQUE CHOSE NE FONCTIONNE PAS
+═════════════════════════════════════════════════════════════════════════════════════════════════════════
+
+Erreur: "Python not found"
+  → Installez Python depuis https://www.python.org/downloads/
+  → Cochez "Add Python to PATH"
+  → Redémarrez CMD
+
+Erreur: "psycopg2 not found"
+  → pip install psycopg2-binary
+
+Erreur: "Supabase inaccessible"
+  → Vérifiez votre connexion Internet
+  → Vérifiez que DATABASE_URL dans .env est correct
+
+Erreur: "Email non reçu"
+  → Vérifiez que les utilisateurs admin ont un email valide
+  → Vérifiez email_config.json
+  → Consultez: %APPDATA%\IDS_Notifier\snort_processor.log
+
+Notifier ne démarre pas:
+  → Lancez manuellement: python Backend\notifier_advanced.py
+  → Vérifiez les logs
+
+
+📚 DOCUMENTATION
+═════════════════════════════════════════════════════════════════════════════════════════════════════════
+
+Guide rapide:                 Backend\NOTIFIER_QUICK_START.txt
+Documentation technique:      Backend\IDS_NOTIFIER_README.md
+Diagramme architectural:       Backend\ARCHITECTURE.txt
+Ce résumé:                     Backend\INSTALLATION_SUMMARY.txt
+
+
+🚀 PROCHAINES ÉTAPES
+═════════════════════════════════════════════════════════════════════════════════════════════════════════
+
+  Avant de lancer p_auto.bat, vérifiez que:
+  
+  ✓ Python est installé (python --version)
+  ✓ Vous êtes en administrateur
+  ✓ Vous avez une connexion Internet
+  ✓ Supabase est configuré
+  ✓ Un compte Gmail est prêt
+  
+  Ensuite:
+  
+  1. Lancez p_auto.bat
+  2. Attendez ✅ INSTALLATION RÉUSSIE
+  3. Lancez test_notifier.bat pour vérifier
+  4. C'est prêt! 🎉
+
+
+═════════════════════════════════════════════════════════════════════════════════════════════════════════
+   Version: IDS Notifier v3.0 Supabase Edition
+   Date: 2026-05-18
+   Status: ✅ PRÊT À L'EMPLOI
+═════════════════════════════════════════════════════════════════════════════════════════════════════════

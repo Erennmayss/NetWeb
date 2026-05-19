@@ -67,22 +67,13 @@ def load_runtime_env():
 
 load_runtime_env()
 
-
-def build_log_handlers():
-    handlers = [logging.StreamHandler(sys.stdout)]
-    for path in (LOG_FILE, SCRIPT_DIR / "notifier.log"):
-        try:
-            handlers.insert(0, logging.FileHandler(path, encoding="utf-8"))
-            break
-        except OSError:
-            continue
-    return handlers
-
-
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s [%(levelname)s] %(message)s",
-    handlers=build_log_handlers(),
+    handlers=[
+        logging.FileHandler(LOG_FILE, encoding="utf-8"),
+        logging.StreamHandler(sys.stdout),
+    ],
 )
 log = logging.getLogger("ids-notifier")
 
@@ -528,66 +519,6 @@ def wait_for_database(db_cfg, retry_interval):
             time.sleep(retry_interval)
 
 
-def check_database_once():
-    try:
-        import psycopg2
-    except ImportError:
-        log.error("psycopg2 is missing. Run: python -m pip install psycopg2-binary")
-        return 1
-
-    db_cfg = get_db_config()
-    try:
-        conn = psycopg2.connect(**db_cfg)
-        cur = conn.cursor()
-        cur.execute("SELECT COALESCE(MAX(id), 0) FROM alertes")
-        max_id = int(cur.fetchone()[0] or 0)
-        conn.close()
-        print(f"OK database={db_label(db_cfg)} max_id={max_id}")
-        return 0
-    except Exception as exc:
-        print(f"FAIL database={db_label(db_cfg)} error={exc}")
-        return 1
-
-
-def insert_test_alert():
-    try:
-        import psycopg2
-    except ImportError:
-        log.error("psycopg2 is missing. Run: python -m pip install psycopg2-binary")
-        return 1
-
-    db_cfg = get_db_config()
-    try:
-        conn = psycopg2.connect(**db_cfg)
-        cur = conn.cursor()
-        cur.execute(
-            """
-            INSERT INTO alertes (
-                attack_type, source_ip, destination_ip,
-                severity, protocol, timestamp, details
-            )
-            VALUES (%s, %s, %s, %s, %s, NOW(), %s)
-            RETURNING id
-            """,
-            (
-                "Test Notification IDS",
-                "192.168.1.100",
-                "192.168.1.200",
-                "low",
-                "TCP",
-                json.dumps({"test": "installation automatique", "source": "p.bat"}),
-            ),
-        )
-        alert_id = int(cur.fetchone()[0])
-        conn.commit()
-        conn.close()
-        print(f"OK test_alert_id={alert_id}")
-        return 0
-    except Exception as exc:
-        print(f"FAIL test_alert_error={exc}")
-        return 1
-
-
 def get_initial_last_id(db_cfg):
     import psycopg2
 
@@ -665,19 +596,12 @@ def main():
     parser.add_argument("--interval", type=int, default=int(os.getenv("POLL_INTERVAL", "5")))
     parser.add_argument("--db", action="store_true", help="Kept for compatibility; database mode is always used")
     parser.add_argument("--sound", action="store_true", default=True)
-    parser.add_argument("--check-db", action="store_true", help="Test database connectivity and exit")
-    parser.add_argument("--test-alert", action="store_true", help="Insert one test alert and exit")
     args = parser.parse_args()
 
     log.info("=" * 70)
     log.info("IDS Background Notifier starting")
     log.info("Config directory: %s", CONFIG_DIR)
     log.info("=" * 70)
-
-    if args.check_db:
-        sys.exit(check_database_once())
-    if args.test_alert:
-        sys.exit(insert_test_alert())
 
     notifier = WindowsNotifier()
     db_cfg = get_db_config()

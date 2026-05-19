@@ -27,11 +27,17 @@ def get_vlan_columns(conn):
         cur.close()
 
 
-def derive_network_from_gateway(gateway):
+def derive_network_from_gateway(gateway, prefix=None):
+    """
+    Calcule l adresse réseau depuis une passerelle et un préfixe CIDR.
+    Si prefix est None, retourne "" plutôt que de forcer /24.
+    """
     if not gateway:
         return ""
+    if prefix is None:
+        return ""   # Pas de préfixe connu → on ne devine pas
     try:
-        return str(ipaddress.ip_network(f"{gateway}/24", strict=False))
+        return str(ipaddress.ip_network(f"{gateway}/{prefix}", strict=False))
     except ValueError:
         return ""
 
@@ -665,8 +671,16 @@ def normalize_vlan_payload(data, forced_vlan_id=None):
 
     gateway = str(data.get("gateway", data.get("vlanIp", data.get("vlan_ip", "")))).strip()
     reseau  = str(data.get("reseau", "")).strip()
+    # Récupérer le préfixe CIDR explicite envoyé par le frontend
+    raw_prefix = data.get("masque_cidr", data.get("cidr", data.get("prefix")))
+    try:
+        explicit_prefix = int(raw_prefix) if raw_prefix not in (None, "") else None
+    except (TypeError, ValueError):
+        explicit_prefix = None
+
     if not reseau and gateway:
-        reseau = derive_network_from_gateway(gateway)
+        # Dériver uniquement si le préfixe est connu, sinon laisser vide
+        reseau = derive_network_from_gateway(gateway, explicit_prefix)
 
     raw_id_switch = data.get("id_switch", data.get("switch_id"))
     id_switch = None if raw_id_switch in (None, "", "all") else raw_id_switch

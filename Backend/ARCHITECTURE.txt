@@ -1,0 +1,220 @@
+═════════════════════════════════════════════════════════════════════════════════════════════════════════
+    IDS ALERT NOTIFIER v3.0 - ARCHITECTURE
+═════════════════════════════════════════════════════════════════════════════════════════════════════════
+
+
+FLUX COMPLET DE DÉTECTION ET NOTIFICATION
+═════════════════════════════════════════════════════════════════════════════════════════════════════════
+
+
+                              ┌─────────────────────┐
+                              │  SNORT IDS          │
+                              │ Ubuntu 10.10.10.31  │
+                              │ Interface: enp0s8   │
+                              └──────────┬──────────┘
+                                         │
+                                         │ Détecte une anomalie
+                                         │ (ex: SQL Injection)
+                                         │
+                              ┌──────────▼──────────┐
+                              │  Recuperation.py    │
+                              │  (Parse l'alerte)   │
+                              └──────────┬──────────┘
+                                         │
+                    ┌────────────────────┴────────────────────┐
+                    │                                         │
+                    │ 1. Envoi API                   2. Processeur direct
+                    │                                         │
+        ┌───────────▼────────────┐          ┌────────────────▼─────────┐
+        │  Flask API             │          │  snort_alert_processor   │
+        │  /api/alerts (POST)    │          │  insert_alert()          │
+        └───────────┬────────────┘          └────────────┬─────────────┘
+                    │                                     │
+                    │                                     │
+        ┌───────────▼─────────────────────────────────────▼────────┐
+        │                                                          │
+        │           SUPABASE PostgreSQL                           │
+        │                                                          │
+        │  Table: alertes                                          │
+        │  ├─ id                                                   │
+        │  ├─ timestamp                                            │
+        │  ├─ source_ip, destination_ip                            │
+        │  ├─ attack_type, severity                                │
+        │  ├─ protocol, details (JSONB)                            │
+        │  └─ ...                                                  │
+        │                                                          │
+        │  Table: utilisateur                                      │
+        │  ├─ email                                                │
+        │  ├─ role (admin, security_admin, viewer)                 │
+        │  └─ ...                                                  │
+        │                                                          │
+        └────────────┬──────────────────────────────────┬──────────┘
+                     │                                  │
+                     │                                  │
+              ┌──────▼──────┐              ┌───────────▼──────────┐
+              │ Surveillance │              │  Notifications      │
+              │ toutes 5s    │              │  Instantanées       │
+              │              │              │  (parallèle)        │
+              │ notifier.py  │              │                     │
+              └──────┬───────┘              │ ┌────────────────┐  │
+                     │                      │ │ Toast Windows  │  │
+                     │ Récupère             │ └────────────────┘  │
+                     │ alertes              │ ┌────────────────┐  │
+                     │ nouvelles            │ │ Email SMTP     │  │
+                     │                      │ │ aux admins     │  │
+                     │                      │ └────────────────┘  │
+                     │                      │ ┌────────────────┐  │
+                     │                      │ │ Log console    │  │
+                     │                      │ └────────────────┘  │
+                     │                      │                     │
+                     └──────────┬───────────┴─────────────────────┘
+                                │
+                    ┌───────────▼────────────┐
+                    │  Notifications finales │
+                    │                        │
+                    │  ┌──────────────────┐  │
+                    │  │ Toast Windows    │  │
+                    │  │ 🔔🚨⚠️ Alerte   │  │
+                    │  └──────────────────┘  │
+                    │                        │
+                    │  ┌──────────────────┐  │
+                    │  │ Email SMTP       │  │
+                    │  │ benainimeroua@   │  │
+                    │  │ gmail.com        │  │
+                    │  └──────────────────┘  │
+                    │                        │
+                    │  ┌──────────────────┐  │
+                    │  │ Log d'état       │  │
+                    │  │ IDS_Notifier/    │  │
+                    │  │ notifier.log     │  │
+                    │  └──────────────────┘  │
+                    │                        │
+                    └────────────────────────┘
+
+
+COMPOSANTS PRINCIPAUX
+═════════════════════════════════════════════════════════════════════════════════════════════════════════
+
+┌─────────────────────────────────────────────────────────────────────────────────────────────────────┐
+│  notifier_advanced.py (Notifier Principal)                                                        │
+├─────────────────────────────────────────────────────────────────────────────────────────────────────┤
+│                                                                                                     │
+│  ✓ Surveille Supabase PostgreSQL                                                                   │
+│  ✓ Polling toutes les 5 secondes (configurable)                                                   │
+│  ✓ Détecte les nouvelles alertes                                                                  │
+│  ✓ Envoie notifications Windows (toast)                                                           │
+│  ✓ Envoie emails aux utilisateurs admin/security_admin                                            │
+│  ✓ Gère l'état (alertes vues)                                                                     │
+│  ✓ Logs complets en fichier                                                                       │
+│                                                                                                     │
+│  Lancé en:                                                                                         │
+│  • p_auto.bat (installation auto)                                                                  │
+│  • Tâche planifiée Windows (démarrage boot)                                                       │
+│  • Dossier démarrage (%APPDATA%\Microsoft\Windows\Start Menu\Programs\Startup)                   │
+│                                                                                                     │
+└─────────────────────────────────────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────────────────────────────────────┐
+│  snort_alert_processor.py (Processeur Snort)                                                      │
+├─────────────────────────────────────────────────────────────────────────────────────────────────────┤
+│                                                                                                     │
+│  ✓ Reçoit les alertes Snort depuis Recuperation.py                                               │
+│  ✓ Insère les alertes dans Supabase                                                               │
+│  ✓ Envoie IMMÉDIATEMENT:                                                                          │
+│    - Toast Windows                                                                                 │
+│    - Email aux admins                                                                              │
+│  ✓ Évite les doublons d'email (avec set en mémoire)                                               │
+│                                                                                                     │
+└─────────────────────────────────────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────────────────────────────────────┐
+│  Recuperation.py (Modifié - Intégration Snort)                                                    │
+├─────────────────────────────────────────────────────────────────────────────────────────────────────┤
+│                                                                                                     │
+│  Modification:                                                                                     │
+│  • Import du snort_alert_processor                                                                │
+│  • Dans send_alert_to_api():                                                                      │
+│    - Envoie à l'API Flask (comme avant)                                                           │
+│    - Appelle AUSSI le snort_alert_processor                                                       │
+│      (pour notifications instantanées en parallèle)                                                │
+│                                                                                                     │
+│  Résultat:                                                                                        │
+│  Deux sources d'alerte coexistent:                                                                │
+│  1. API Flask → BD → Notifier (surveillance périodique)                                          │
+│  2. Snort → Processor → Notifications instantanées                                                │
+│                                                                                                     │
+└─────────────────────────────────────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────────────────────────────────────┐
+│  p_auto.bat (Installation Automatisée)                                                            │
+├─────────────────────────────────────────────────────────────────────────────────────────────────────┤
+│                                                                                                     │
+│  1. Vérifie droits administrateur                                                                 │
+│  2. Teste Python et dépendances                                                                   │
+│  3. Teste connexion Supabase                                                                      │
+│  4. Installe/met à jour les packages:                                                             │
+│     - psycopg2-binary (PostgreSQL)                                                                │
+│     - requests                                                                                     │
+│     - plyer                                                                                        │
+│     - winotify                                                                                     │
+│     - win10toast-persist                                                                          │
+│     - winrt                                                                                        │
+│  5. Copie email_config.json (Gmail pré-configuré)                                                 │
+│  6. Ajoute au démarrage Windows                                                                   │
+│  7. Crée tâche planifiée                                                                          │
+│  8. Démarre le notifier                                                                           │
+│                                                                                                     │
+└─────────────────────────────────────────────────────────────────────────────────────────────────────┘
+
+
+CYCLE DE VIE D'UNE ALERTE
+═════════════════════════════════════════════════════════════════════════════════════════════════════════
+
+T+0s    Snort détecte une anomalie
+        └─ Écrit dans /var/log/snort/alert (serveur Ubuntu)
+
+T+1s    Recuperation.py lit l'alerte
+        └─ Parse les infos (IPs, ports, type, sévérité)
+
+T+2s    Envoi parallèle:
+        
+        A) API Flask:
+           • Envoie à /api/alerts (POST)
+           • API enregistre dans Supabase
+        
+        B) Snort Processor:
+           • Appel direct insert_alert()
+           • Insère dans Supabase
+           • Envoie notifications immédiatement:
+             - Toast Windows (< 1s)
+             - Email SMTP (2-3s)
+
+T+3s    Notifier détecte la nouvelle alerte (s'il n'y a pas d'alerte à T+2s)
+        └─ Envoie à nouveau notifications (évitement doublon interne)
+
+T+5s    Prochaine itération du notifier
+        └─ Polling Supabase
+
+
+SÉCURITÉ & DONNÉES
+═════════════════════════════════════════════════════════════════════════════════════════════════════════
+
+✅ Supabase: SSL mode REQUIRE (chiffrement en transit)
+✅ Email: SMTP Gmail avec clé d'application (pas mot de passe)
+✅ Logs: Fichiers locaux (%APPDATA%\IDS_Notifier\)
+✅ État: JSON persistant (alertes vues en mémoire + fichier)
+✅ Identifiants: Variables d'environnement .env
+
+
+SURVEILLANCE & LOGS
+═════════════════════════════════════════════════════════════════════════════════════════════════════════
+
+%APPDATA%\IDS_Notifier\
+├── notifier.log              (Principal - tout ce qui arrive)
+├── snort_processor.log       (Processeur Snort - notifications)
+├── critical_alerts.log       (Alertes critiques uniquement)
+├── notifier_state.json       (État: alertes vues, timestamp)
+└── email_config.json         (Config SMTP - créé par p_auto.bat)
+
+
+═════════════════════════════════════════════════════════════════════════════════════════════════════════
