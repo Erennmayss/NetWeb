@@ -8,7 +8,7 @@
   const API_BASE_STORAGE_KEY = 'netguardApiBaseUrl';
   const LOCAL_API_BASE_URL = 'http://127.0.0.1:5000';
   // Replace this fallback with your public ngrok/cloudflared URL for Vercel deployments.
-  const DEFAULT_API_BASE_URL = 'https://tapered-turbofan-pueblo.ngrok-free.dev';
+  const DEFAULT_API_BASE_URL = 'https://sufferer-cortex-starfish.ngrok-free.dev';
   const ROLES = {
     ADMIN: 'ADMIN',
     NETWORK_ADMIN: 'NETWORK_ADMIN',
