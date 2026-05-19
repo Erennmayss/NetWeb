@@ -1,327 +1,748 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>NetGuard - Audit Logs</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
-  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
-  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-  <script src="auth.js"></script>
-  <script src="netguard-audit.js"></script>
-  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=DM+Mono&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="layout.css" />
-  <link rel="stylesheet" href="sidebar.css" />
-  <link rel="stylesheet" href="topbar.css" />
-  <link rel="stylesheet" href="dark-mode.css" />
-  <style>
-    body { font-family: 'DM Sans', sans-serif; }
-    .topbar     { animation: slideDown 0.4s ease; }
-    .animate-in { animation: fadeInUp 0.4s ease backwards; animation-delay: 0.1s; }
-    .table-row  { animation: rowSlideIn 0.35s cubic-bezier(0.2, 0.9, 0.4, 1.1) both; }
-    @keyframes slideDown  { from { opacity:0; transform:translateY(-20px); } to { opacity:1; transform:translateY(0); } }
-    @keyframes fadeInUp   { from { opacity:0; transform:translateY(20px);  } to { opacity:1; transform:translateY(0); } }
-    @keyframes rowSlideIn { from { opacity:0; transform:translateX(-12px); } to { opacity:1; transform:translateX(0); } }
-  </style>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>NetGuard - Logs</title>
+<script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<script src="auth.js"></script>
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="layout.css"/>
+<link rel="stylesheet" href="sidebar.css"/>
+<link rel="stylesheet" href="topbar.css"/>
+<link rel="stylesheet" href="dark-mode.css"/>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+
+:root{
+  --bg:#f8fafc;--panel:rgba(255,255,255,.9);--soft:#f1f5f9;
+  --primary:#6366f1;--primary-soft:rgba(99,102,241,.12);
+  --text:#1e293b;--muted:#64748b;--dim:#94a3b8;--border:#e2e8f0;
+  --crit:#ef4444;--crit-soft:#fef2f2;
+  --med:#f59e0b;--med-soft:#fffbeb;
+  --low:#22c55e;--low-soft:#f0fdf4;
+  --info:#3b82f6;--info-soft:#eff6ff;
+  --shadow:0 10px 25px -18px rgba(15,23,42,.35),0 4px 12px -8px rgba(15,23,42,.14)
+}
+
+html,body{height:100%;font-family:"DM Sans",sans-serif;overflow:hidden}
+body{
+  background:radial-gradient(circle at top right,rgba(99,102,241,.08),transparent 22%),
+              radial-gradient(circle at bottom left,rgba(34,197,94,.05),transparent 18%),
+              var(--bg);
+  color:var(--text)
+}
+
+.app-shell{display:flex;height:100vh;width:100vw}
+.main-shell{flex:1;display:flex;flex-direction:column;min-width:0;overflow:hidden}
+
+.tabs-bar{
+  flex-shrink:0;display:flex;align-items:center;gap:8px;
+  padding:0 24px;background:rgba(255,255,255,.82);
+  border-bottom:1px solid var(--border);backdrop-filter:blur(16px);z-index:10
+}
+.tab-item{
+  border:none;background:transparent;color:var(--muted);
+  padding:16px 4px 14px;margin-right:18px;
+  border-bottom:3px solid transparent;cursor:pointer;
+  font-size:12px;font-weight:700;letter-spacing:.04em;
+  text-transform:uppercase;transition:.2s;white-space:nowrap
+}
+.tab-item:hover{color:#334155}
+.tab-item.active{color:var(--primary);border-bottom-color:var(--primary)}
+
+.scroll-zone{flex:1;overflow-y:auto;padding:24px;min-height:0}
+
+.stats-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:18px;margin-bottom:22px}
+.stat-card{background:var(--panel);border:1px solid var(--border);border-radius:18px;padding:20px;transition:all .25s}
+.stat-card:hover{transform:translateY(-4px);box-shadow:var(--shadow)}
+.stat-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+.stat-icon{width:44px;height:44px;border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:700}
+.stat-label{font-size:12px;color:var(--muted);margin-bottom:6px}
+.stat-value{font-size:28px;font-weight:700;line-height:1}
+.stat-sub{font-size:11px;color:var(--dim);margin-top:4px}
+
+.filters-panel{background:var(--panel);border:1px solid var(--border);border-radius:18px;padding:18px;margin-bottom:20px}
+.filters-grid{display:grid;grid-template-columns:minmax(250px,1fr) auto auto auto auto;gap:12px;align-items:center}
+.search-wrap{position:relative}
+.search-wrap svg{position:absolute;left:14px;top:50%;transform:translateY(-50%);color:var(--dim)}
+.search-input{width:100%;border:1px solid var(--border);border-radius:14px;padding:11px 14px 11px 42px;outline:none;background:rgba(255,255,255,.9);font-size:13px}
+.search-input:focus{border-color:var(--primary);box-shadow:0 0 0 3px rgba(99,102,241,.18)}
+select{padding:0 12px;border-radius:12px;border:1px solid var(--border);background:var(--soft);height:40px;cursor:pointer;font-size:13px}
+
+.table-panel{background:var(--panel);border:1px solid var(--border);border-radius:18px;overflow:hidden}
+.panel-header{padding:16px 20px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center}
+.logs-list{max-height:550px;overflow:auto}
+
+/* NOUVEAU DESIGN TABLEAU MODERNE */
+.log-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+.log-table thead {
+  background: rgba(248, 250, 252, 0.9);
+  border-bottom: 1px solid var(--border);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+.log-table th {
+  padding: 14px 12px;
+  text-align: left;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+  background: rgba(248, 250, 252, 0.95);
+  backdrop-filter: blur(4px);
+}
+.log-table td {
+  padding: 14px 12px;
+  border-bottom: 1px solid var(--soft);
+  font-size: 13px;
+  vertical-align: middle;
+}
+.log-row-table {
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+.log-row-table:hover {
+  background: rgba(99, 102, 241, 0.04);
+}
+.sev-pill-table {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  margin-right: 8px;
+}
+.sev-pill-table.critical { background: var(--crit); box-shadow: 0 0 0 2px var(--crit-soft); }
+.sev-pill-table.medium { background: var(--med); box-shadow: 0 0 0 2px var(--med-soft); }
+.sev-pill-table.low { background: var(--low); box-shadow: 0 0 0 2px var(--low-soft); }
+.attack-name {
+  font-weight: 600;
+  font-size: 13px;
+  color: var(--text);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.attack-protocol {
+  font-size: 10px;
+  color: var(--dim);
+  font-family: "DM Mono", monospace;
+  background: var(--soft);
+  padding: 2px 6px;
+  border-radius: 12px;
+  display: inline-block;
+}
+.count-badge-modern {
+  background: var(--primary-soft);
+  color: var(--primary);
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-weight: 700;
+  font-size: 12px;
+  display: inline-block;
+  text-align: center;
+  min-width: 50px;
+}
+.ip-address {
+  font-family: "DM Mono", monospace;
+  font-size: 12px;
+  color: var(--text);
+  background: var(--soft);
+  padding: 4px 8px;
+  border-radius: 8px;
+  display: inline-block;
+}
+.sev-badge-modern {
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 700;
+  display: inline-block;
+  text-align: center;
+  min-width: 85px;
+}
+.sev-badge-modern.critical { background: var(--crit-soft); color: #991b1b; }
+.sev-badge-modern.medium { background: var(--med-soft); color: #92400e; }
+.sev-badge-modern.low { background: var(--low-soft); color: #166534; }
+.detail-btn {
+  padding: 6px 14px;
+  font-size: 11px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--soft);
+  cursor: pointer;
+  font-weight: 600;
+  transition: all 0.2s;
+}
+.detail-btn:hover {
+  background: var(--primary);
+  color: white;
+  border-color: var(--primary);
+}
+.timestamp-cell {
+  font-family: "DM Mono", monospace;
+  font-size: 11px;
+  color: var(--dim);
+  white-space: nowrap;
+}
+.detail-panel{position:sticky;top:24px;background:var(--panel);border:1px solid var(--border);border-radius:18px;padding:20px}
+.detail-field{margin-bottom:16px}
+.detail-field label{font:600 11px "DM Mono",monospace;color:var(--dim);text-transform:uppercase;display:block;margin-bottom:6px}
+.detail-field p{background:var(--soft);padding:10px 12px;border-radius:12px;font-size:12px;word-break:break-all}
+
+.btn{padding:8px 16px;border-radius:10px;border:none;cursor:pointer;font-weight:600;font-size:13px}
+.btn-primary{background:var(--primary);color:#fff}
+.btn-outline{background:var(--soft);border:1px solid var(--border)}
+.btn-danger{background:#fef2f2;border:1px solid #fecaca;color:#991b1b}
+
+.pagination{display:flex;justify-content:center;gap:8px;padding:16px;border-top:1px solid var(--border)}
+.page-btn{padding:6px 12px;border:1px solid var(--border);background:var(--soft);border-radius:8px;cursor:pointer;font-size:12px}
+.page-btn.active{background:var(--primary);color:#fff;border-color:var(--primary)}
+
+.loading-row{padding:40px;text-align:center;color:var(--dim)}
+.spinner{width:20px;height:20px;border:2px solid var(--border);border-top-color:var(--primary);border-radius:50%;animation:spin .7s linear infinite;display:inline-block}
+@keyframes spin{to{transform:rotate(360deg)}}
+.empty-state{padding:60px;text-align:center;color:var(--dim)}
+.error-state{padding:40px;margin:20px;background:var(--crit-soft);border-radius:16px;text-align:center;color:#991b1b}
+
+@keyframes fadeInUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+.animate-in{animation:fadeInUp .35s ease backwards}
+
+@media(max-width:1200px){
+  .stats-grid{grid-template-columns:repeat(3,1fr)}
+  .filters-grid{grid-template-columns:1fr}
+  .log-table th, .log-table td { padding: 10px 8px; font-size: 11px; }
+  .ip-address { font-size: 10px; padding: 2px 6px; }
+}
+</style>
 </head>
-<body class="bg-slate-50 min-h-screen app-body">
-  <div class="app-shell">
-    <aside id="sidebar-root" class="sidebar-host" data-page="logs"></aside>
-    <main class="main">
-      <div id="topbar-root"
-           data-title="Audit Logs"
-           data-subtitle="Consultation en lecture seule des evenements de securite et d'administration."
-           data-notifications="2"></div>
-      <section class="content">
-        <div id="logs-root" class="page-block"></div>
-      </section>
-    </main>
-  </div>
+<body>
+<div class="app-shell">
+  <aside id="sidebar-root" class="sidebar-host" data-page="logs"></aside>
+  <main class="main-shell">
+    <div id="topbar-root" data-title="Logs" data-subtitle="Logs agrégés Snort et journal d'audit" data-notifications="0"></div>
 
-  <script type="text/babel">
-    const { useState, useEffect, useCallback } = React;
+    <div class="tabs-bar">
+      <button class="tab-item active" id="tab-aggregated" onclick="switchTab('aggregated')">Logs Agrégés</button>
+      <button class="tab-item" id="tab-audit" onclick="switchTab('audit')">Journal d'audit</button>
+    </div>
 
-    const LS_KEY = 'netguard_audit_logs';
-
-    /* ── Badges sévérité ─────────────────────────────────────────────── */
-    const SEV_CLASS = {
-      Info:     'bg-slate-100 text-slate-600',
-      Low:      'bg-blue-100  text-blue-700',
-      Medium:   'bg-amber-100 text-amber-700',
-      High:     'bg-rose-100  text-rose-700',
-      Critical: 'bg-purple-100 text-purple-700',
-    };
-
-    /* ── Format date ISO → "DD/MM/YYYY HH:MM" ───────────────────────── */
-    function fmtDate(iso) {
-      if (!iso) return '—';
-      try {
-        const d = new Date(iso);
-        if (isNaN(d)) return '—';
-        const p = n => String(n).padStart(2, '0');
-        return `${p(d.getDate())}/${p(d.getMonth()+1)}/${d.getFullYear()} ${p(d.getHours())}:${p(d.getMinutes())}`;
-      } catch (_) { return '—'; }
-    }
-
-    /* ── Lire localStorage ───────────────────────────────────────────── */
-    function readLogs() {
-      try {
-        return JSON.parse(localStorage.getItem(LS_KEY) || '[]').map((e, i) => ({
-          id:       e.id       || `log-${i}`,
-          date:     fmtDate(e.timestamp),
-          actor:    e.actor    || 'system',      // nom réel de l'utilisateur
-          role:     e.role     || '',
-          action:   e.action   || '—',
-          target:   e.target   || '—',
-          severity: e.severity || 'Info',
-          result:   e.result   || 'success',
-          _ts:      new Date(e.timestamp || 0).getTime(),
-        }));
-      } catch (_) { return []; }
-    }
-
-    /* ── Composant principal ─────────────────────────────────────────── */
-    function LogsPage() {
-      const session = window.NetGuardAuth ? window.NetGuardAuth.getSession() : null;
-
-      const [logs,      setLogs]      = useState([]);
-      const [filtered,  setFiltered]  = useState([]);
-      const [search,    setSearch]    = useState('');
-      const [sevFilter, setSevFilter] = useState('all');
-
-      const reload = useCallback(() => setLogs(readLogs()), []);
-
-      useEffect(() => {
-        reload();
-        window.addEventListener('netguard:audit', reload);
-        window.addEventListener('storage', reload);
-        const timer = setInterval(reload, 5000);
-        return () => {
-          window.removeEventListener('netguard:audit', reload);
-          window.removeEventListener('storage', reload);
-          clearInterval(timer);
-        };
-      }, [reload]);
-
-      /* Filtrage local */
-      useEffect(() => {
-        let r = [...logs];
-        if (sevFilter !== 'all') r = r.filter(e => e.severity === sevFilter);
-        if (search.trim()) {
-          const q = search.trim().toLowerCase();
-          r = r.filter(e =>
-            e.actor.toLowerCase().includes(q)  ||
-            e.action.toLowerCase().includes(q) ||
-            e.target.toLowerCase().includes(q) ||
-            e.role.toLowerCase().includes(q)
-          );
-        }
-        setFiltered(r);
-      }, [logs, search, sevFilter]);
-
-      const highCount = logs.filter(e => e.severity === 'High' || e.severity === 'Critical').length;
-
-      /* Export CSV */
-      function exportCSV() {
-        const header = ['Date','Acteur','Rôle','Action','Cible','Sévérité','Résultat'];
-        const rows   = filtered.map(e =>
-          [e.date, e.actor, e.role, e.action, `"${e.target.replace(/"/g,'""')}"`, e.severity, e.result]
-        );
-        const csv  = [header, ...rows].map(r => r.join(',')).join('\n');
-        const blob = new Blob(['\ufeff'+csv], { type:'text/csv;charset=utf-8;' });
-        const url  = URL.createObjectURL(blob);
-        const a    = Object.assign(document.createElement('a'), { href: url, download: `netguard_audit_${Date.now()}.csv` });
-        a.click();
-        URL.revokeObjectURL(url);
-        if (window.NetGuardAudit) window.NetGuardAudit.logsExported();
-      }
-
-      /* Vider */
-      function clearLogs() {
-        if (!confirm('Effacer tous les logs d\'audit du navigateur ?')) return;
-        if (window.NetGuardAudit) window.NetGuardAudit.clear();
-        else localStorage.removeItem(LS_KEY);
-        setLogs([]);
-      }
-
-      return (
-        <div className="p-2 md:p-4 max-w-[1400px] mx-auto animate-in">
-
-          {/* En-tête */}
-          <div className="mb-8 flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
-            <div>
-              <h1 className="page-title text-3xl font-bold text-slate-800 tracking-tight">Journal d'audit</h1>
-              <p className="text-slate-500 mt-1">Vue réservée à l'administration et aux auditeurs, sans action d'écriture.</p>
-            </div>
-            <div className="panel-card rounded-2xl border border-slate-200 bg-white px-4 py-3 shadow-sm">
-              <div className="text-[10px] font-black uppercase tracking-widest text-slate-400">Session</div>
-              <div className="mt-1 text-sm font-semibold text-slate-700">
-                {/* ✅ Affiche session.username (et non session.name) */}
-                {session ? `${session.username || session.name} (${session.role})` : '—'}
-              </div>
-            </div>
-          </div>
-
-          {/* Cartes statistiques */}
-          <div className="mb-6 grid gap-4 md:grid-cols-4">
-            <div className="stat-mini-card rounded-[1.5rem] border border-slate-200 bg-white p-5 shadow-sm">
-              <div className="text-[10px] font-black uppercase tracking-widest text-slate-400">Total events</div>
-              <div className="mt-2 text-3xl font-bold text-slate-800">{logs.length}</div>
-            </div>
-            <div className="stat-mini-card rounded-[1.5rem] border border-slate-200 bg-white p-5 shadow-sm">
-              <div className="text-[10px] font-black uppercase tracking-widest text-slate-400">High / Critical</div>
-              <div className="mt-2 text-3xl font-bold text-rose-600">{highCount}</div>
-            </div>
-            <div className="stat-mini-card rounded-[1.5rem] border border-slate-200 bg-white p-5 shadow-sm">
-              <div className="text-[10px] font-black uppercase tracking-widest text-slate-400">Affichés</div>
-              <div className="mt-2 text-3xl font-bold text-indigo-600">{filtered.length}</div>
-            </div>
-            <div className="stat-mini-card rounded-[1.5rem] border border-slate-200 bg-white p-5 shadow-sm">
-              <div className="text-[10px] font-black uppercase tracking-widest text-slate-400">Mode</div>
-              <div className="mt-2 text-2xl font-bold text-emerald-600">Read Only</div>
-            </div>
-          </div>
-
-          {/* Barre filtres */}
-          <div className="mb-4 flex flex-wrap gap-3 items-center">
-            <input
-              type="text"
-              placeholder="Rechercher acteur, action, cible…"
-              value={search}
-              onChange={e => setSearch(e.target.value)}
-              className="flex-1 min-w-[200px] rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
-            />
-            <select
-              value={sevFilter}
-              onChange={e => setSevFilter(e.target.value)}
-              className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
-            >
-              <option value="all">Toutes sévérités</option>
-              <option value="Info">Info</option>
-              <option value="Low">Low</option>
-              <option value="Medium">Medium</option>
-              <option value="High">High</option>
-              <option value="Critical">Critical</option>
-            </select>
-            <button onClick={exportCSV}
-              className="rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-700 transition-colors">
-              ↓ Export CSV
-            </button>
-            <button onClick={clearLogs}
-              className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-2 text-sm font-semibold text-rose-600 shadow-sm hover:bg-rose-100 transition-colors">
-              🗑 Vider
-            </button>
-          </div>
-
-          {/* Tableau */}
-          <div className="table-card overflow-hidden rounded-[2rem] border border-slate-200 bg-white shadow-xl shadow-indigo-600/20">
-            <div className="overflow-x-auto">
-              <table className="w-full text-left">
-                <thead className="bg-slate-50/80 border-b border-slate-100">
-                  <tr>
-                    <th className="px-6 py-5 text-[10px] font-black uppercase tracking-widest text-slate-400">Date</th>
-                    <th className="px-6 py-5 text-[10px] font-black uppercase tracking-widest text-slate-400">Acteur</th>
-                    <th className="px-6 py-5 text-[10px] font-black uppercase tracking-widest text-slate-400">Rôle</th>
-                    <th className="px-6 py-5 text-[10px] font-black uppercase tracking-widest text-slate-400">Action</th>
-                    <th className="px-6 py-5 text-[10px] font-black uppercase tracking-widest text-slate-400">Cible</th>
-                    <th className="px-6 py-5 text-[10px] font-black uppercase tracking-widest text-slate-400">Sévérité</th>
-                    <th className="px-6 py-5 text-[10px] font-black uppercase tracking-widest text-slate-400">Résultat</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100">
-
-                  {filtered.length === 0 && (
-                    <tr>
-                      <td colSpan={7} className="px-6 py-16 text-center">
-                        <div className="flex flex-col items-center gap-3">
-                          <span className="text-4xl">📋</span>
-                          <p className="text-slate-400 font-medium text-sm">
-                            {logs.length === 0
-                              ? 'Aucun événement d\'audit enregistré.'
-                              : 'Aucun événement ne correspond à vos filtres.'}
-                          </p>
-                          {logs.length === 0 && (
-                            <p className="text-slate-300 text-xs max-w-sm text-center">
-                              Les actions effectuées dans les autres pages (création utilisateur,
-                              VLAN, connexion…) apparaîtront ici automatiquement.
-                            </p>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  )}
-
-                  {filtered.map((event, index) => (
-                    <tr
-                      key={event.id}
-                      className="table-row hover:bg-slate-50/80 transition-colors"
-                      style={{ animationDelay: `${Math.min(index, 20) * 0.04}s` }}
-                    >
-                      {/* Date */}
-                      <td className="px-6 py-4 font-mono text-xs text-slate-400 whitespace-nowrap">
-                        {event.date}
-                      </td>
-
-                      {/* ✅ Acteur = session.username de la personne connectée */}
-                      <td className="px-6 py-4 font-semibold text-sm text-slate-700 whitespace-nowrap">
-                        {event.actor}
-                      </td>
-
-                      {/* Rôle */}
-                      <td className="px-6 py-4 text-xs text-slate-400 whitespace-nowrap">
-                        {event.role || '—'}
-                      </td>
-
-                      {/* Action */}
-                      <td className="px-6 py-4 text-sm font-medium text-slate-600 whitespace-nowrap">
-                        {event.action}
-                      </td>
-
-                      {/* Cible */}
-                      <td className="px-6 py-4 text-sm text-slate-500 max-w-xs truncate" title={event.target}>
-                        {event.target}
-                      </td>
-
-                      {/* Sévérité */}
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span className={`inline-flex rounded-full px-3 py-1 text-[11px] font-bold ${SEV_CLASS[event.severity] || SEV_CLASS.Info}`}>
-                          {event.severity}
-                        </span>
-                      </td>
-
-                      {/* Résultat */}
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span className={`inline-flex rounded-full px-3 py-1 text-[11px] font-bold ${
-                          event.result === 'error'
-                            ? 'bg-rose-100 text-rose-600'
-                            : 'bg-emerald-100 text-emerald-700'
-                        }`}>
-                          {event.result === 'error' ? 'Erreur' : 'OK'}
-                        </span>
-                      </td>
-                    </tr>
-                  ))}
-
-                </tbody>
-              </table>
-            </div>
-
-            {filtered.length > 0 && (
-              <div className="border-t border-slate-100 px-6 py-3 text-xs text-slate-400 flex items-center justify-between">
-                <span>{filtered.length} événement{filtered.length > 1 ? 's' : ''} affiché{filtered.length > 1 ? 's' : ''}</span>
-                <span>Stockage : localStorage du navigateur — Read Only</span>
-              </div>
-            )}
-          </div>
-
+    <!-- TAB 1 — LOGS AGRÉGÉS AVEC TABLEAU MODERNE -->
+    <div id="pane-aggregated" class="scroll-zone animate-in">
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-head">
+            <div><div class="stat-label">Total alertes</div><div class="stat-value" id="stat-total">0</div></div>
+            <div class="stat-icon" style="background:var(--info-soft)"></div>
+          </div><div class="stat-sub">Alertes brutes</div>
         </div>
+        <div class="stat-card">
+          <div class="stat-head">
+            <div><div class="stat-label">Alertes critiques</div><div class="stat-value" id="stat-raw-critical" style="color:var(--crit)">0</div></div>
+            <div class="stat-icon" style="background:var(--crit-soft)">⚠️</div>
+          </div><div class="stat-sub">Alertes brutes</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-head">
+            <div><div class="stat-label">Groupes critiques</div><div class="stat-value" id="stat-group-critical" style="color:var(--crit)">0</div></div>
+            <div class="stat-icon" style="background:var(--crit-soft)"></div>
+          </div><div class="stat-sub">Groupes uniques</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-head">
+            <div><div class="stat-label">Alertes moyennes</div><div class="stat-value" id="stat-raw-medium" style="color:var(--med)">0</div></div>
+            <div class="stat-icon" style="background:var(--med-soft)"></div>
+          </div><div class="stat-sub">Alertes brutes</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-head">
+            <div><div class="stat-label">Groupes</div><div class="stat-value" id="stat-groups">0</div></div>
+            <div class="stat-icon" style="background:var(--primary-soft)"></div>
+          </div><div class="stat-sub">Groupes uniques</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-head">
+            <div><div class="stat-label">Sources uniques</div><div class="stat-value" id="stat-sources" style="color:var(--primary)">0</div></div>
+            <div class="stat-icon" style="background:var(--primary-soft)"></div>
+          </div><div class="stat-sub">IPs distinctes</div>
+        </div>
+      </div>
+
+      <div class="filters-panel">
+        <div class="filters-grid">
+          <div class="search-wrap">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+            <input class="search-input" id="search-input" type="text" placeholder="Rechercher par IP, attaque, protocole..." oninput="applyFilters()"/>
+          </div>
+          <select id="severity-filter" onchange="applyFilters()">
+            <option value="all">Toutes sévérités</option>
+            <option value="critical">Critique</option>
+            <option value="medium">Moyen</option>
+            <option value="low">Faible</option>
+          </select>
+          <select id="sort-filter" onchange="applyFilters()">
+            <option value="newest" selected>Plus récent</option>
+            <option value="oldest">Plus ancien</option>
+            <option value="count_desc">Plus fréquent</option>
+            <option value="count_asc">Moins fréquent</option>
+          </select>
+          <button class="btn btn-outline" onclick="refreshData()">Rafraîchir</button>
+          <button class="btn btn-primary" onclick="exportLogs()">Exporter CSV</button>
+        </div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 350px;gap:20px">
+        <div class="table-panel">
+          <div class="panel-header">
+            <h3 style="font-size:14px;font-weight:600">Logs Agrégés par Attaque</h3>
+            <span id="logs-count" style="font-size:12px;color:var(--muted)">0 groupes</span>
+          </div>
+          <div class="logs-list" id="logs-list">
+            <div class="loading-row"><span class="spinner"></span> Chargement des alertes...</div>
+          </div>
+          <div class="pagination" id="pagination"></div>
+        </div>
+        <div class="detail-panel">
+          <h3 style="margin-bottom:16px;font-size:14px;font-weight:600">Détail du groupe</h3>
+          <div id="detail-content">
+            <p style="color:var(--dim);text-align:center;font-size:13px">Sélectionnez un groupe pour voir les détails</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 2 — JOURNAL D'AUDIT -->
+    <div id="pane-audit" class="scroll-zone animate-in" style="display:none">
+      <div id="audit-root"></div>
+    </div>
+
+  </main>
+</div>
+
+<script>
+// Tab switching
+function switchTab(tab) {
+  ['aggregated','audit'].forEach(t => {
+    document.getElementById('tab-' + t).classList.toggle('active', t === tab);
+    document.getElementById('pane-' + t).style.display = t === tab ? 'block' : 'none';
+  });
+  if (tab === 'audit' && window.renderAuditReact) {
+    window.renderAuditReact();
+  }
+}
+
+// Logs agrégés
+let rawAlerts = [], aggregatedGroups = [], filteredGroups = [];
+let currentPage = 0;
+const pageSize = 50;
+let stats = { totalAlerts:0, rawCritical:0, rawMedium:0, groupCritical:0, totalGroups:0, uniqueSources:0 };
+
+function extractIP(v) { return v && typeof v==='string' ? v.split(':')[0] : (v||'unknown'); }
+function extractPort(v) { if (!v||typeof v!=='string') return null; const p=v.split(':'); return p.length>1?p[1]:null; }
+
+function getLogLevel(name, sev) {
+  const n=(name||'').toLowerCase(), s=(sev||'').toLowerCase();
+  if (['critical','critique','high','elevée','elevee'].includes(s)) return {level:'CRITICAL',color:'critical'};
+  for (const k of ['exploit','shellcode','buffer','overflow','root','backdoor','malware','trojan','injection','xss','sql'])
+    if (n.includes(k)) return {level:'CRITICAL',color:'critical'};
+  if (['medium','moyen','moyenne'].includes(s)) return {level:'WARNING',color:'medium'};
+  for (const k of ['scan','nmap','brute','force','dos','ddos','flood','syn','ack','probe','sweep','recon'])
+    if (n.includes(k)) return {level:'WARNING',color:'medium'};
+  return {level:'INFO',color:'low'};
+}
+
+async function fetchAllAlerts() {
+  document.getElementById('logs-list').innerHTML = '<div class="loading-row"><span class="spinner"></span> Connexion à l\'API...</div>';
+  try {
+    const r = await fetch('/api/alerts?limit=5000&offset=0&sort=newest');
+    const result = await r.json();
+    if (!result.success || !result.alerts) throw new Error(result.error || 'Format invalide');
+    if (!result.alerts.length) {
+      document.getElementById('logs-list').innerHTML = '<div class="error-state"><strong>Aucune alerte trouvée</strong><br><button class="btn btn-primary" onclick="fetchAllAlerts()" style="margin-top:16px">Réessayer</button></div>';
+      return;
+    }
+    rawAlerts = result.alerts.map(a => {
+      let si=a.src||a.source_ip, di=a.dst||a.destination_ip;
+      let sp=a.src_port||a.source_port, dp=a.dst_port||a.destination_port;
+      if (si&&typeof si==='string'&&si.includes(':')) { sp=sp||extractPort(si); si=extractIP(si); }
+      if (di&&typeof di==='string'&&di.includes(':')) { dp=dp||extractPort(di); di=extractIP(di); }
+      return { id:a.id, timestamp:a.timestamp||a.date||new Date().toISOString(), source_ip:si||'unknown', source_port:sp, destination_ip:di||'unknown', destination_port:dp, attack_type:a.name||a.attack_type||a.message||'Unknown', severity:(a.severity||'low').toLowerCase(), protocol:(a.proto||a.protocol||'N/A').toUpperCase(), details:a.details||a.rule||a.message||'' };
+    });
+    rawAlerts.sort((a,b) => new Date(b.timestamp)-new Date(a.timestamp));
+    stats.totalAlerts   = rawAlerts.length;
+    stats.rawCritical   = rawAlerts.filter(a => a.severity==='critical').length;
+    stats.rawMedium     = rawAlerts.filter(a => a.severity==='medium').length;
+    stats.uniqueSources = new Set(rawAlerts.filter(a => a.source_ip!=='unknown').map(a => a.source_ip)).size;
+    aggregateAlerts(); updateStatistics(); applyFilters();
+  } catch(e) {
+    document.getElementById('logs-list').innerHTML = `<div class="error-state"><strong>Erreur</strong><br>${e.message}<br><button class="btn btn-primary" onclick="fetchAllAlerts()" style="margin-top:16px">Réessayer</button></div>`;
+  }
+}
+
+function aggregateAlerts() {
+  const map = new Map();
+  for (const a of rawAlerts) {
+    const k = `${a.attack_type}|${a.source_ip}|${a.destination_ip}|${a.protocol}`;
+    if (!map.has(k)) map.set(k, { id:k, name:a.attack_type, src_ip:a.source_ip, dst_ip:a.destination_ip, protocol:a.protocol, count:0, severity:a.severity, first_seen:a.timestamp, last_seen:a.timestamp, src_ports:new Set(), dst_ports:new Set(), alert_ids:[], details_list:[] });
+    const g = map.get(k);
+    g.count++; g.alert_ids.push(a.id);
+    if (a.source_port) g.src_ports.add(a.source_port);
+    if (a.destination_port) g.dst_ports.add(a.destination_port);
+    if (new Date(a.timestamp)<new Date(g.first_seen)) g.first_seen=a.timestamp;
+    if (new Date(a.timestamp)>new Date(g.last_seen))  g.last_seen=a.timestamp;
+    if (a.details) g.details_list.push(a.details);
+  }
+  aggregatedGroups = [...map.values()].map(g => {
+    const li = getLogLevel(g.name, g.severity);
+    return { ...g, log_level:li.level, log_color:li.color, src_ports:Array.from(g.src_ports), dst_ports:Array.from(g.dst_ports) };
+  });
+  aggregatedGroups.sort((a,b) => new Date(b.last_seen)-new Date(a.last_seen));
+  stats.totalGroups   = aggregatedGroups.length;
+  stats.groupCritical = aggregatedGroups.filter(g => g.severity==='critical').length;
+}
+
+function updateStatistics() {
+  document.getElementById('stat-total').textContent          = stats.totalAlerts.toLocaleString();
+  document.getElementById('stat-raw-critical').textContent   = stats.rawCritical.toLocaleString();
+  document.getElementById('stat-group-critical').textContent = stats.groupCritical.toLocaleString();
+  document.getElementById('stat-raw-medium').textContent     = stats.rawMedium.toLocaleString();
+  document.getElementById('stat-groups').textContent         = stats.totalGroups.toLocaleString();
+  document.getElementById('stat-sources').textContent        = stats.uniqueSources.toLocaleString();
+}
+
+function applyFilters() {
+  const q   = document.getElementById('search-input').value.toLowerCase().trim();
+  const sev  = document.getElementById('severity-filter').value;
+  const sort = document.getElementById('sort-filter').value;
+  filteredGroups = aggregatedGroups.filter(g => {
+    if (sev!=='all' && g.severity!==sev) return false;
+    if (q) return (g.name||'').toLowerCase().includes(q)||(g.src_ip||'').toLowerCase().includes(q)||(g.dst_ip||'').toLowerCase().includes(q)||(g.protocol||'').toLowerCase().includes(q);
+    return true;
+  });
+  if      (sort==='count_desc') filteredGroups.sort((a,b) => b.count-a.count);
+  else if (sort==='count_asc')  filteredGroups.sort((a,b) => a.count-b.count);
+  else if (sort==='newest')     filteredGroups.sort((a,b) => new Date(b.last_seen)-new Date(a.last_seen));
+  else if (sort==='oldest')     filteredGroups.sort((a,b) => new Date(a.last_seen)-new Date(b.last_seen));
+  document.getElementById('logs-count').textContent = filteredGroups.length + ' groupes';
+  currentPage = 0; renderGroupsTable(); renderPagination();
+}
+
+function fmtDT(s) {
+  if (!s) return 'N/A';
+  return new Date(s).toLocaleString('fr-FR',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit',second:'2-digit'});
+}
+function esc(t) { if (!t) return ''; const d=document.createElement('div'); d.textContent=t; return d.innerHTML; }
+
+// NOUVEAU RENDU TABLEAU MODERNE
+function renderGroupsTable() {
+  const container = document.getElementById('logs-list');
+  const start = currentPage * pageSize;
+  const page = filteredGroups.slice(start, start + pageSize);
+  
+  if (!page.length) {
+    container.innerHTML = `<div class="empty-state">${aggregatedGroups.length ? 'Aucun groupe ne correspond aux filtres' : 'Aucune alerte trouvée'}</div>`;
+    return;
+  }
+
+  const tableHtml = `
+    <table class="log-table">
+      <thead>
+        <tr>
+          <th style="width:40px"></th>
+          <th>Attaque</th>
+          <th style="width:80px">Occur.</th>
+          <th>Source IP</th>
+          <th>Destination IP</th>
+          <th style="width:80px">Protocole</th>
+          <th style="width:160px">Dernière détection</th>
+          <th style="width:100px">Niveau</th>
+          <th style="width:80px">Action</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${page.map((g, i) => `
+          <tr class="log-row-table" onclick="showGroupDetailTable(${start + i})">
+            <td><div class="sev-pill-table ${g.log_color}"></div></td>
+            <td>
+              <div class="attack-name">
+                ${esc((g.name || 'Unknown').substring(0, 50))}
+                <span class="attack-protocol">${g.protocol}</span>
+              </div>
+            </td>
+            <td><span class="count-badge-modern">x${g.count}</span></td>
+            <td><span class="ip-address">${g.src_ip}</span></td>
+            <td><span class="ip-address">${g.dst_ip}</span></td>
+            <td><span class="attack-protocol">${g.protocol}</span></td>
+            <td class="timestamp-cell">${fmtDT(g.last_seen)}</td>
+            <td><span class="sev-badge-modern ${g.log_color}">${g.log_level}</span></td>
+            <td><button class="detail-btn" onclick="event.stopPropagation();showGroupDetailTable(${start + i})">Détail</button></td>
+          </tr>
+        `).join('')}
+      </tbody>
+    </table>
+  `;
+  container.innerHTML = tableHtml;
+  window.currentPageGroups = page;
+}
+
+function showGroupDetailTable(index) {
+  const g = filteredGroups[index];
+  if (!g) return;
+  const ports = `Source: ${g.src_ports.join(', ') || '-'} → Dest: ${g.dst_ports.join(', ') || '-'}`;
+  document.getElementById('detail-content').innerHTML = `
+    <div class="detail-field"><label>Attaque</label><p><strong>${esc(g.name)}</strong></p></div>
+    <div class="detail-field"><label>Occurrences</label><p><span class="count-badge-modern">x${g.count}</span></p></div>
+    <div class="detail-field"><label>Source IP</label><p style="font-family:monospace">${g.src_ip}</p></div>
+    <div class="detail-field"><label>Destination IP</label><p style="font-family:monospace">${g.dst_ip}</p></div>
+    <div class="detail-field"><label>Ports</label><p style="font-family:monospace;font-size:11px">${ports}</p></div>
+    <div class="detail-field"><label>Protocole</label><p>${g.protocol}</p></div>
+    <div class="detail-field"><label>Niveau</label><p><span class="sev-badge-modern ${g.log_color}">${g.log_level}</span> (${g.severity})</p></div>
+    <div class="detail-field"><label>Première détection</label><p>${fmtDT(g.first_seen)}</p></div>
+    <div class="detail-field"><label>Dernière détection</label><p>${fmtDT(g.last_seen)}</p></div>
+    <div class="detail-field"><label>Détails</label><p style="max-height:100px;overflow:auto;font-family:monospace;font-size:11px">${esc((g.details_list[0] || '').substring(0, 500))}</p></div>
+    <div class="detail-field"><label>IDs alertes</label><p style="font-family:monospace;font-size:10px;max-height:80px;overflow:auto">${g.alert_ids.slice(0, 20).join(', ')}${g.alert_ids.length > 20 ? '...' : ''}</p></div>
+  `;
+}
+
+function renderPagination() {
+  const total = Math.ceil(filteredGroups.length / pageSize);
+  const c = document.getElementById('pagination');
+  if (total <= 1) { c.innerHTML = ''; return; }
+  let html = '';
+  if (currentPage > 0) html += `<button class="page-btn" onclick="goToPage(${currentPage - 1})">Précédent</button>`;
+  for (let i = Math.max(0, currentPage - 2); i <= Math.min(total - 1, currentPage + 2); i++)
+    html += `<button class="page-btn ${i === currentPage ? 'active' : ''}" onclick="goToPage(${i})">${i + 1}</button>`;
+  if (currentPage < total - 1) html += `<button class="page-btn" onclick="goToPage(${currentPage + 1})">Suivant</button>`;
+  c.innerHTML = html;
+}
+
+function goToPage(p) { currentPage = p; renderGroupsTable(); renderPagination(); }
+function refreshData() { fetchAllAlerts(); }
+function exportLogs() {
+  const h = ['Attaque','Source IP','Destination IP','Protocole','Occurrences','Sévérité','Niveau','Première détection','Dernière détection'];
+  const rows = filteredGroups.map(g => [g.name,g.src_ip,g.dst_ip,g.protocol,g.count,g.severity,g.log_level,fmtDT(g.first_seen),fmtDT(g.last_seen)]);
+  const csv = [h,...rows].map(r => r.map(c => `"${String(c).replace(/"/g,'""')}"`).join(',')).join('\n');
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob(['\ufeff'+csv],{type:'text/csv'}));
+  a.download = `logs_agreges_${new Date().toISOString().slice(0,19)}.csv`;
+  a.click();
+}
+
+// Composant React pour l'audit
+const LS_KEY = 'netguard_audit_logs';
+
+function fmtAuditDate(iso) {
+  if (!iso) return '—';
+  try {
+    const d = new Date(iso);
+    if (isNaN(d)) return '—';
+    const p = n => String(n).padStart(2, '0');
+    return `${p(d.getDate())}/${p(d.getMonth()+1)}/${d.getFullYear()} ${p(d.getHours())}:${p(d.getMinutes())}`;
+  } catch (_) { return '—'; }
+}
+
+function readAuditLogs() {
+  try {
+    return JSON.parse(localStorage.getItem(LS_KEY) || '[]').map((e, i) => ({
+      id: e.id || `log-${i}`,
+      date: fmtAuditDate(e.timestamp),
+      actor: e.actor || 'system',
+      role: e.role || '',
+      action: e.action || '—',
+      target: e.target || '—',
+      severity: e.severity || 'Info',
+      result: e.result || 'success',
+      _ts: new Date(e.timestamp || 0).getTime(),
+    }));
+  } catch (_) { return []; }
+}
+
+const SEV_CLASS = {
+  Info: 'bg-slate-100 text-slate-600',
+  Low: 'bg-blue-100 text-blue-700',
+  Medium: 'bg-amber-100 text-amber-700',
+  High: 'bg-rose-100 text-rose-700',
+  Critical: 'bg-purple-100 text-purple-700',
+};
+
+function AuditLogsComponent() {
+  const session = window.NetGuardAuth ? window.NetGuardAuth.getSession() : null;
+  const [logs, setLogs] = React.useState([]);
+  const [filtered, setFiltered] = React.useState([]);
+  const [search, setSearch] = React.useState('');
+  const [sevFilter, setSevFilter] = React.useState('all');
+
+  const reload = React.useCallback(() => setLogs(readAuditLogs()), []);
+
+  React.useEffect(() => {
+    reload();
+    const timer = setInterval(reload, 5000);
+    return () => clearInterval(timer);
+  }, [reload]);
+
+  React.useEffect(() => {
+    let r = [...logs];
+    if (sevFilter !== 'all') r = r.filter(e => e.severity === sevFilter);
+    if (search.trim()) {
+      const q = search.trim().toLowerCase();
+      r = r.filter(e =>
+        e.actor.toLowerCase().includes(q) ||
+        e.action.toLowerCase().includes(q) ||
+        e.target.toLowerCase().includes(q) ||
+        e.role.toLowerCase().includes(q)
       );
     }
+    setFiltered(r);
+  }, [logs, search, sevFilter]);
 
-    ReactDOM.createRoot(document.getElementById('logs-root')).render(<LogsPage />);
-  </script>
-  <script src="sidebar.js"></script>
-  <script src="topbar.js"></script>
+  const highCount = logs.filter(e => e.severity === 'High' || e.severity === 'Critical').length;
+
+  function exportCSV() {
+    const header = ['Date', 'Acteur', 'Rôle', 'Action', 'Cible', 'Sévérité', 'Résultat'];
+    const rows = filtered.map(e =>
+      [e.date, e.actor, e.role, e.action, `"${e.target.replace(/"/g, '""')}"`, e.severity, e.result]
+    );
+    const csv = [header, ...rows].map(r => r.join(',')).join('\n');
+    const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = Object.assign(document.createElement('a'), { href: url, download: `netguard_audit_${Date.now()}.csv` });
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  function clearLogs() {
+    if (!confirm('Effacer tous les logs d\'audit du navigateur ?')) return;
+    localStorage.removeItem(LS_KEY);
+    setLogs([]);
+  }
+
+  return React.createElement('div', { className: 'p-2 md:p-4 max-w-[1400px] mx-auto animate-in' },
+    React.createElement('div', { className: 'mb-8 flex flex-col gap-3 md:flex-row md:items-end md:justify-between' },
+      React.createElement('div', null,
+        React.createElement('h1', { className: 'text-3xl font-bold text-slate-800 tracking-tight' }, 'Journal d\'audit'),
+        React.createElement('p', { className: 'text-slate-500 mt-1' }, 'Consultation en lecture seule des événements de sécurité et d\'administration.')
+      ),
+      React.createElement('div', { className: 'rounded-2xl border border-slate-200 bg-white px-4 py-3 shadow-sm' },
+        React.createElement('div', { className: 'text-[10px] font-black uppercase tracking-widest text-slate-400' }, 'Session'),
+        React.createElement('div', { className: 'mt-1 text-sm font-semibold text-slate-700' },
+          session ? `${session.username || session.name} (${session.role})` : '—'
+        )
+      )
+    ),
+    React.createElement('div', { className: 'mb-6 grid gap-4 md:grid-cols-4' },
+      React.createElement('div', { className: 'rounded-[1.5rem] border border-slate-200 bg-white p-5 shadow-sm' },
+        React.createElement('div', { className: 'text-[10px] font-black uppercase tracking-widest text-slate-400' }, 'Total events'),
+        React.createElement('div', { className: 'mt-2 text-3xl font-bold text-slate-800' }, logs.length)
+      ),
+      React.createElement('div', { className: 'rounded-[1.5rem] border border-slate-200 bg-white p-5 shadow-sm' },
+        React.createElement('div', { className: 'text-[10px] font-black uppercase tracking-widest text-slate-400' }, 'High / Critical'),
+        React.createElement('div', { className: 'mt-2 text-3xl font-bold text-rose-600' }, highCount)
+      ),
+      React.createElement('div', { className: 'rounded-[1.5rem] border border-slate-200 bg-white p-5 shadow-sm' },
+        React.createElement('div', { className: 'text-[10px] font-black uppercase tracking-widest text-slate-400' }, 'Affichés'),
+        React.createElement('div', { className: 'mt-2 text-3xl font-bold text-indigo-600' }, filtered.length)
+      ),
+      React.createElement('div', { className: 'rounded-[1.5rem] border border-slate-200 bg-white p-5 shadow-sm' },
+        React.createElement('div', { className: 'text-[10px] font-black uppercase tracking-widest text-slate-400' }, 'Mode'),
+        React.createElement('div', { className: 'mt-2 text-2xl font-bold text-emerald-600' }, 'Read Only')
+      )
+    ),
+    React.createElement('div', { className: 'mb-4 flex flex-wrap gap-3 items-center' },
+      React.createElement('input', {
+        type: 'text',
+        placeholder: 'Rechercher acteur, action, cible…',
+        value: search,
+        onChange: e => setSearch(e.target.value),
+        className: 'flex-1 min-w-[200px] rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-400'
+      }),
+      React.createElement('select', {
+        value: sevFilter,
+        onChange: e => setSevFilter(e.target.value),
+        className: 'rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-400'
+      },
+        React.createElement('option', { value: 'all' }, 'Toutes sévérités'),
+        React.createElement('option', { value: 'Info' }, 'Info'),
+        React.createElement('option', { value: 'Low' }, 'Low'),
+        React.createElement('option', { value: 'Medium' }, 'Medium'),
+        React.createElement('option', { value: 'High' }, 'High'),
+        React.createElement('option', { value: 'Critical' }, 'Critical')
+      ),
+      React.createElement('button', { onClick: exportCSV, className: 'rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-700 transition-colors' }, '↓ Export CSV'),
+      React.createElement('button', { onClick: clearLogs, className: 'rounded-xl border border-rose-200 bg-rose-50 px-4 py-2 text-sm font-semibold text-rose-600 shadow-sm hover:bg-rose-100 transition-colors' }, '🗑 Vider')
+    ),
+    React.createElement('div', { className: 'overflow-hidden rounded-[2rem] border border-slate-200 bg-white shadow-xl shadow-indigo-600/20' },
+      React.createElement('div', { className: 'overflow-x-auto' },
+        React.createElement('table', { className: 'w-full text-left' },
+          React.createElement('thead', { className: 'bg-slate-50/80 border-b border-slate-100' },
+            React.createElement('tr', null,
+              React.createElement('th', { className: 'px-6 py-5 text-[10px] font-black uppercase tracking-widest text-slate-400' }, 'Date'),
+              React.createElement('th', { className: 'px-6 py-5 text-[10px] font-black uppercase tracking-widest text-slate-400' }, 'Acteur'),
+              React.createElement('th', { className: 'px-6 py-5 text-[10px] font-black uppercase tracking-widest text-slate-400' }, 'Rôle'),
+              React.createElement('th', { className: 'px-6 py-5 text-[10px] font-black uppercase tracking-widest text-slate-400' }, 'Action'),
+              React.createElement('th', { className: 'px-6 py-5 text-[10px] font-black uppercase tracking-widest text-slate-400' }, 'Cible'),
+              React.createElement('th', { className: 'px-6 py-5 text-[10px] font-black uppercase tracking-widest text-slate-400' }, 'Sévérité'),
+              React.createElement('th', { className: 'px-6 py-5 text-[10px] font-black uppercase tracking-widest text-slate-400' }, 'Résultat')
+            )
+          ),
+          React.createElement('tbody', { className: 'divide-y divide-slate-100' },
+            filtered.length === 0 && React.createElement('tr', null,
+              React.createElement('td', { colSpan: 7, className: 'px-6 py-16 text-center' },
+                React.createElement('div', { className: 'flex flex-col items-center gap-3' },
+                  React.createElement('span', { className: 'text-4xl' }, '📋'),
+                  React.createElement('p', { className: 'text-slate-400 font-medium text-sm' },
+                    logs.length === 0 ? 'Aucun événement d\'audit enregistré.' : 'Aucun événement ne correspond à vos filtres.'
+                  )
+                )
+              )
+            ),
+            filtered.map((event, index) =>
+              React.createElement('tr', { key: event.id, className: 'hover:bg-slate-50/80 transition-colors', style: { animationDelay: `${Math.min(index, 20) * 0.04}s` } },
+                React.createElement('td', { className: 'px-6 py-4 font-mono text-xs text-slate-400 whitespace-nowrap' }, event.date),
+                React.createElement('td', { className: 'px-6 py-4 font-semibold text-sm text-slate-700 whitespace-nowrap' }, event.actor),
+                React.createElement('td', { className: 'px-6 py-4 text-xs text-slate-400 whitespace-nowrap' }, event.role || '—'),
+                React.createElement('td', { className: 'px-6 py-4 text-sm font-medium text-slate-600 whitespace-nowrap' }, event.action),
+                React.createElement('td', { className: 'px-6 py-4 text-sm text-slate-500 max-w-xs truncate', title: event.target }, event.target),
+                React.createElement('td', { className: 'px-6 py-4 whitespace-nowrap' },
+                  React.createElement('span', { className: `inline-flex rounded-full px-3 py-1 text-[11px] font-bold ${SEV_CLASS[event.severity] || SEV_CLASS.Info}` }, event.severity)
+                ),
+                React.createElement('td', { className: 'px-6 py-4 whitespace-nowrap' },
+                  React.createElement('span', { className: `inline-flex rounded-full px-3 py-1 text-[11px] font-bold ${event.result === 'error' ? 'bg-rose-100 text-rose-600' : 'bg-emerald-100 text-emerald-700'}` }, event.result === 'error' ? 'Erreur' : 'OK')
+                )
+              )
+            )
+          )
+        )
+      ),
+      filtered.length > 0 && React.createElement('div', { className: 'border-t border-slate-100 px-6 py-3 text-xs text-slate-400 flex items-center justify-between' },
+        React.createElement('span', null, filtered.length, ' événement', filtered.length > 1 ? 's' : '', ' affiché', filtered.length > 1 ? 's' : ''),
+        React.createElement('span', null, 'Stockage : localStorage du navigateur — Read Only')
+      )
+    )
+  );
+}
+
+window.renderAuditReact = function() {
+  const rootElement = document.getElementById('audit-root');
+  if (rootElement && !rootElement.hasChildNodes()) {
+    ReactDOM.createRoot(rootElement).render(React.createElement(AuditLogsComponent));
+  }
+};
+
+// Init
+(async function init() {
+  await fetchAllAlerts();
+  setInterval(refreshData, 30000);
+})();
+</script>
+<script src="sidebar.js"></script>
+<script src="topbar.js"></script>
 </body>
 </html>
