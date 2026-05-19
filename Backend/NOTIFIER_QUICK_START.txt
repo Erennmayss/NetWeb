@@ -1,0 +1,239 @@
+╔═══════════════════════════════════════════════════════════════════════════════════════════════════════╗
+║                                                                                                       ║
+║   🛡️  IDS ALERT NOTIFIER v3.0 - DÉMARRAGE RAPIDE                                                    ║
+║                                                                                                       ║
+║   Supabase + Email Gmail SMTP + Notifications Windows Toast + Snort Integration                      ║
+║                                                                                                       ║
+╚═══════════════════════════════════════════════════════════════════════════════════════════════════════╝
+
+
+───────────────────────────────────────────────────────────────────────────────────────────────────────
+  AVANT DE COMMENCER
+───────────────────────────────────────────────────────────────────────────────────────────────────────
+
+  ✓ Python 3.7+ installé (avec "Add Python to PATH")
+  ✓ Connexion Internet active
+  ✓ Compte Supabase configuré
+  ✓ Email Gmail avec clé d'application
+
+
+───────────────────────────────────────────────────────────────────────────────────────────────────────
+  ÉTAPE 1️⃣ : INSTALLATION AUTOMATIQUE (2 MINUTES)
+───────────────────────────────────────────────────────────────────────────────────────────────────────
+
+  1. Ouvrez PowerShell ou CMD comme ADMINISTRATEUR
+
+  2. Allez au dossier Backend:
+     
+     cd C:\Users\ADM\Desktop\ids_1\NetWeb\Backend
+
+  3. Lancez l'installation:
+     
+     p_auto.bat
+
+  4. Attendez que l'installation se termine (vous verrez ✅ INSTALLATION RÉUSSIE)
+
+
+───────────────────────────────────────────────────────────────────────────────────────────────────────
+  ÉTAPE 2️⃣ : VÉRIFIER L'INSTALLATION
+───────────────────────────────────────────────────────────────────────────────────────────────────────
+
+  Lancez les tests rapides:
+
+     test_notifier.bat
+
+  Les tests vérifieront:
+     ✓ Python
+     ✓ Supabase
+     ✓ Configuration email
+     ✓ Notifier en cours d'exécution
+
+
+───────────────────────────────────────────────────────────────────────────────────────────────────────
+  ÉTAPE 3️⃣ : LANCER LE NOTIFIER MANUELLEMENT (pour tester)
+───────────────────────────────────────────────────────────────────────────────────────────────────────
+
+  Option 1 - Fenêtre visible (pour déboguer):
+     
+     python notifier_advanced.py
+
+  Option 2 - Arrière-plan (sans fenêtre):
+     
+     pythonw notifier_advanced.py --interval 5
+
+  Option 3 - Intervalle custom (ex: polling toutes les 3 secondes):
+     
+     python notifier_advanced.py --interval 3
+
+
+───────────────────────────────────────────────────────────────────────────────────────────────────────
+  COMMENT LES ALERTES SNORT ARRIVENT
+───────────────────────────────────────────────────────────────────────────────────────────────────────
+
+  1. Snort détecte une anomalie sur le serveur Ubuntu (10.10.10.31)
+
+  2. Recuperation.py récupère l'alerte et la parse:
+     • Source IP, destination IP
+     • Type d'attaque
+     • Sévérité (critical, medium, low)
+     • Détails
+
+  3. L'alerte est envoyée à TWO endroits:
+     
+     A) API Flask → Supabase (enregistrement permanent)
+     B) Snort Alert Processor → Notifications instantanées:
+        - 📬 Toast Windows (immédiat)
+        - 📧 Email aux admins (quelques secondes)
+
+  4. Le Notifier surveille Supabase toutes les 5 secondes:
+     • Récupère les nouvelles alertes
+     • Envoie à nouveau les notifications
+     • Enregistre l'état
+
+
+───────────────────────────────────────────────────────────────────────────────────────────────────────
+  FICHIERS IMPORTANTS
+───────────────────────────────────────────────────────────────────────────────────────────────────────
+
+  Backend\
+  ├── notifier_advanced.py              ← Notifier principal
+  ├── snort_alert_processor.py          ← Processeur d'alertes Snort
+  ├── Snort\Recuperation.py (modifié)  ← Intégration Snort
+  ├── p_auto.bat                        ← Installation auto
+  ├── test_notifier.bat                 ← Tests
+  ├── email_config_template.json        ← Config SMTP (pré-remplie)
+  ├── .env                              ← Variables d'environnement
+  └── IDS_NOTIFIER_README.md            ← Documentation complète
+
+  Configuration:
+  %APPDATA%\IDS_Notifier\
+  ├── notifier.log                      ← Logs du notifier
+  ├── snort_processor.log               ← Logs Snort
+  ├── email_config.json                 ← Config SMTP
+  ├── notifier_state.json               ← État (alertes vues)
+  └── critical_alerts.log               ← Log d'urgence
+
+
+───────────────────────────────────────────────────────────────────────────────────────────────────────
+  VÉRIFIER QUE ÇA MARCHE
+───────────────────────────────────────────────────────────────────────────────────────────────────────
+
+  Option 1 - Créer une alerte de test:
+     
+     test_notifier.bat
+     → Répondez OUI quand demandé
+     → Une alerte de test sera insérée dans Supabase
+     → Vous recevrez un email dans les 10 secondes
+     → Une notification Windows apparaîtra
+
+  Option 2 - Vérifier les logs:
+     
+     type %APPDATA%\IDS_Notifier\notifier.log
+
+  Option 3 - Vérifier les alertes en base:
+     
+     python -c "
+     import psycopg2
+     from urllib.parse import urlparse
+     with open('.env') as f:
+         for line in f:
+             if 'DATABASE_URL' in line:
+                 db_url = line.split('=')[1].strip()
+     parsed = urlparse(db_url)
+     conn = psycopg2.connect(dbname=parsed.path.lstrip('/'), user=parsed.username, 
+                             password=parsed.password, host=parsed.hostname, port=5432, sslmode='require')
+     cur = conn.cursor()
+     cur.execute('SELECT id, attack_type, severity, timestamp FROM alertes ORDER BY timestamp DESC LIMIT 5')
+     for row in cur.fetchall():
+         print(row)
+     conn.close()
+     "
+
+
+───────────────────────────────────────────────────────────────────────────────────────────────────────
+  QUI REÇOIT LES EMAILS ?
+───────────────────────────────────────────────────────────────────────────────────────────────────────
+
+  Les utilisateurs avec:
+
+    ✓ role = 'admin'          OU
+    ✓ role = 'security_admin'
+
+  ET qui ont un email valide dans la table 'utilisateur'
+
+  Exemple:
+    INSERT INTO utilisateur (email, role) VALUES ('admin@example.com', 'admin');
+    INSERT INTO utilisateur (email, role) VALUES ('security@example.com', 'security_admin');
+
+
+───────────────────────────────────────────────────────────────────────────────────────────────────────
+  ARRÊTER LE NOTIFIER
+───────────────────────────────────────────────────────────────────────────────────────────────────────
+
+  Méthode 1 - Tâche Manager:
+     Ctrl+Shift+Esc → Chercher "pythonw.exe" → Arrêter
+
+  Méthode 2 - Ligne de commande:
+     taskkill /F /IM pythonw.exe
+
+  Méthode 3 - Désactiver au démarrage:
+     schtasks /delete /tn "IDS_Notifier_Auto" /f
+
+
+───────────────────────────────────────────────────────────────────────────────────────────────────────
+  PROBLÈMES COURANTS
+───────────────────────────────────────────────────────────────────────────────────────────────────────
+
+  ❌ "Python not found"
+     ✓ Installez Python et cochez "Add Python to PATH"
+     ✓ Redémarrez l'invite de commande
+
+  ❌ "psycopg2 not found"
+     ✓ pip install psycopg2-binary
+
+  ❌ "Supabase inaccessible"
+     ✓ Vérifiez la connexion Internet
+     ✓ Vérifiez DATABASE_URL dans .env
+     ✓ Vérifiez les identifiants
+
+  ❌ "Email non reçu"
+     ✓ Vérifiez que les utilisateurs admin ont un email
+     ✓ Vérifiez email_config.json
+     ✓ Consultez %APPDATA%\IDS_Notifier\snort_processor.log
+
+  ❌ "Notifier ne démarre pas"
+     ✓ Lancez manuellement: python notifier_advanced.py
+     ✓ Consultez les logs
+
+
+───────────────────────────────────────────────────────────────────────────────────────────────────────
+  CONFIGURATION AVANCÉE
+───────────────────────────────────────────────────────────────────────────────────────────────────────
+
+  Changer l'intervalle de polling:
+     python notifier_advanced.py --interval 3    (polling toutes les 3 secondes)
+
+  Modifier le mail d'envoi:
+     Éditez: %APPDATA%\IDS_Notifier\email_config.json
+
+  Ajouter/retirer des utilisateurs admin:
+     UPDATE utilisateur SET role='admin' WHERE email='...';
+     UPDATE utilisateur SET role='viewer' WHERE email='...';
+
+
+───────────────────────────────────────────────────────────────────────────────────────────────────────
+  SUPPORT & LOGS
+───────────────────────────────────────────────────────────────────────────────────────────────────────
+
+  Logs principaux:
+    • %APPDATA%\IDS_Notifier\notifier.log
+    • %APPDATA%\IDS_Notifier\snort_processor.log
+    • %APPDATA%\IDS_Notifier\critical_alerts.log
+
+  Documentation complète:
+    Backend\IDS_NOTIFIER_README.md
+
+
+═══════════════════════════════════════════════════════════════════════════════════════════════════════
+  ✅ C'EST PRÊT ! Lancez: p_auto.bat
+═══════════════════════════════════════════════════════════════════════════════════════════════════════

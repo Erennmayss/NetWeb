@@ -1,4 +1,4 @@
-﻿# snort_manager_windows.py
+# snort_manager_windows.py
 #!/usr/bin/env python3
 import subprocess
 import time
@@ -13,9 +13,9 @@ import urllib.request
 from datetime import datetime
 import psutil  # pip install psutil
 
-# â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-# Import du processeur d'alertes pour notifications instantanÃ©es
-# â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# ────────────────────────────────────────────────────────────────────────────
+# Import du processeur d'alertes pour notifications instantanées
+# ────────────────────────────────────────────────────────────────────────────
 try:
     from pathlib import Path
     parent_dir = Path(__file__).parent.parent
@@ -24,7 +24,7 @@ try:
     ALERT_PROCESSOR = SnortAlertProcessor()
     HAS_ALERT_PROCESSOR = True
 except Exception as e:
-    print(f"âš ï¸  Snort Alert Processor non disponible: {e}")
+    print(f"⚠️  Snort Alert Processor non disponible: {e}")
     ALERT_PROCESSOR = None
     HAS_ALERT_PROCESSOR = False
 
@@ -73,7 +73,7 @@ class SnortManager:
         self.api_insert_count = 0
         self.packet_count = 0
         
-        # CrÃ©er le dossier des logs
+        # Créer le dossier des logs
         os.makedirs(log_dir, exist_ok=True)
         
         # Nettoyer l'ancien fichier d'alertes
@@ -100,16 +100,16 @@ class SnortManager:
             date_part, time_part = timestamp_str.split('-')
             month, day = date_part.split('/')
             year = datetime.now().year
-            # Prendre seulement les 8 premiers caractÃ¨res pour HH:MM:SS
+            # Prendre seulement les 8 premiers caractères pour HH:MM:SS
             time_clean = time_part[:8] if len(time_part) >= 8 else time_part
             return f"{year}-{month}-{day} {time_clean}"
         except:
             return datetime.now().strftime('%Y-%m-%d %H:%M:%S')
     
     def convert_severity(self, severity_value):
-        """Convertit le niveau de prioritÃ© Snort en texte"""
+        """Convertit le niveau de priorité Snort en texte"""
         if severity_value == 0 or severity_value == 1:
-            return 'Ã©levÃ©e'
+            return 'élevée'
         elif severity_value == 2:
             return 'moyenne'
         elif severity_value == 3:
@@ -220,10 +220,10 @@ class SnortManager:
 
             self.api_insert_count += 1
             
-            # â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-            # Envoyer aussi les notifications instantanÃ©es via le Snort Alert Processor
-            # â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-            if False and HAS_ALERT_PROCESSOR and ALERT_PROCESSOR:
+            # ──────────────────────────────────────────────────────────────────────────────
+            # Envoyer aussi les notifications instantanées via le Snort Alert Processor
+            # ──────────────────────────────────────────────────────────────────────────────
+            if HAS_ALERT_PROCESSOR and ALERT_PROCESSOR:
                 try:
                     alert_data = {
                         "source_ip": alert['src_ip'],
@@ -239,14 +239,14 @@ class SnortManager:
                             "message": details,
                         },
                     }
-                    # InsÃ©rer dans la base et envoyer les notifications
+                    # Insérer dans la base et envoyer les notifications
                     threading.Thread(
                         target=ALERT_PROCESSOR.insert_alert,
                         args=(alert_data,),
                         daemon=True
                     ).start()
                 except Exception as e:
-                    print(f"   âš ï¸  Erreur notification instantanÃ©e: {e}")
+                    print(f"   ⚠️  Erreur notification instantanée: {e}")
             
             return True
         except urllib.error.HTTPError as e:
@@ -314,21 +314,21 @@ class SnortManager:
             return False
     
     def _update_packet_stats_windows(self):
-        """Met Ã  jour le compteur de paquets sur Windows via psutil"""
+        """Met à jour le compteur de paquets sur Windows via psutil"""
         last_bytes_sent = {}
         last_bytes_recv = {}
         
         while self.snort_running:
             try:
-                # Obtenir les stats rÃ©seau via psutil
+                # Obtenir les stats réseau via psutil
                 net_stats = psutil.net_io_counters(pernic=True)
                 
                 if self.interface in net_stats:
                     current_recv = net_stats[self.interface].bytes_recv
                     current_sent = net_stats[self.interface].bytes_sent
                     
-                    # Calculer la diffÃ©rence approximative en paquets
-                    # (basÃ© sur taille moyenne de paquet estimÃ©e Ã  1500 bytes)
+                    # Calculer la différence approximative en paquets
+                    # (basé sur taille moyenne de paquet estimée à 1500 bytes)
                     if self.interface in last_bytes_recv:
                         diff_bytes = current_recv - last_bytes_recv[self.interface]
                         estimated_packets = diff_bytes // 1500  # Approximation
@@ -344,7 +344,7 @@ class SnortManager:
             time.sleep(5)
     
     def _tail_alerts(self):
-        """Surveille le fichier d'alertes en temps rÃ©el"""
+        """Surveille le fichier d'alertes en temps réel"""
         time.sleep(2)
 
         remote_target = f"{REMOTE_SNORT_USER}@{REMOTE_SNORT_HOST}"
@@ -413,19 +413,19 @@ class SnortManager:
                                     alert = self.parse_alert(header_line, next_line)
                                     severity_text = self.convert_severity(alert['severity'])
                                     
-                                    # Affichage colorÃ© dans la console
-                                    print(f"\n\033[91mðŸš¨ ALERTE #{self.alert_count}: {alert['attack_type']} [{severity_text}]\033[0m")
-                                    print(f"   ðŸ“ {alert['src_ip']}:{alert['src_port']} -> {alert['dst_ip']}:{alert['dst_port']}")
+                                    # Affichage coloré dans la console
+                                    print(f"\n\033[91m🚨 ALERTE #{self.alert_count}: {alert['attack_type']} [{severity_text}]\033[0m")
+                                    print(f"   📍 {alert['src_ip']}:{alert['src_port']} -> {alert['dst_ip']}:{alert['dst_port']}")
                                     
                                     # Sauvegarde en BDD
                                     self.send_alert_to_api(alert)
                 except Exception as e:
-                    print(f"âš ï¸ Erreur lecture alertes: {e}")
+                    print(f"⚠️ Erreur lecture alertes: {e}")
             else:
                 time.sleep(1)
     
     def stop_snort(self):
-        """ArrÃªte Snort proprement"""
+        """Arrête Snort proprement"""
         try:
             remote_target = f"{REMOTE_SNORT_USER}@{REMOTE_SNORT_HOST}"
             subprocess.run(
@@ -453,11 +453,11 @@ class SnortManager:
         
         self.snort_running = False
         self.snort_process = None
-        print(f"\nðŸ›‘ Snort arrÃªtÃ©")
-        print(f"ðŸ“Š Statistiques finales:")
-        print(f"   - Alertes dÃ©tectÃ©es: {self.alert_count}")
+        print(f"\n🛑 Snort arrêté")
+        print(f"📊 Statistiques finales:")
+        print(f"   - Alertes détectées: {self.alert_count}")
         print(f"   - Alertes envoyees a l'API: {self.api_insert_count}")
-        print(f"   - Paquets estimÃ©s: {self.packet_count}")
+        print(f"   - Paquets estimés: {self.packet_count}")
     
     def is_running(self):
         return self.snort_running
@@ -474,7 +474,7 @@ _snort_manager = None
 
 
 def start_snort(interface="enp0s8"):
-    """DÃ©marre Snort (fonction externe)"""
+    """Démarre Snort (fonction externe)"""
     global _snort_manager
     if _snort_manager is None:
         _snort_manager = SnortManager(interface=interface)
@@ -482,7 +482,7 @@ def start_snort(interface="enp0s8"):
 
 
 def stop_snort():
-    """ArrÃªte Snort (fonction externe)"""
+    """Arrête Snort (fonction externe)"""
     global _snort_manager
     if _snort_manager:
         _snort_manager.stop_snort()
@@ -531,13 +531,12 @@ if __name__ == "__main__":
 
     try:
         manager.start_snort()
-        print("Snort en cours d'exÃ©cution. Appuyez sur Ctrl+C pour arrÃªter.")
+        print("Snort en cours d'exécution. Appuyez sur Ctrl+C pour arrêter.")
         while manager.is_running():
             time.sleep(1)
-            # Afficher statut pÃ©riodique
+            # Afficher statut périodique
             if manager.alert_count > 0:
-                print(f"\rðŸ“Š Alertes: {manager.alert_count} | API: {manager.api_insert_count}", end="")
+                print(f"\r📊 Alertes: {manager.alert_count} | API: {manager.api_insert_count}", end="")
     except KeyboardInterrupt:
-        print("\n\nArrÃªt demandÃ©...")
+        print("\n\nArrêt demandé...")
         manager.stop_snort()
-
