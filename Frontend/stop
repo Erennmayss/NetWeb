@@ -1,7 +1,0 @@
-@echo off
-title SNORT IDS - Desinstallation
-echo Suppression du demarrage automatique...
-reg delete "HKCU\Software\Microsoft\Windows\CurrentVersion\Run" /v "SnortIDS" /f >nul 2>&1
-taskkill /f /im python.exe >nul 2>&1
-echo Done. Snort IDS ne demarrera plus automatiquement.
-pause
